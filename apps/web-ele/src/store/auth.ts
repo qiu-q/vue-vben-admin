@@ -29,11 +29,14 @@ export const useAuthStore = defineStore('auth', () => {
     params: Recordable<any>,
     onSuccess?: () => Promise<void> | void,
   ) {
+    console.log('params', params);
+
     // 异步处理用户登录操作并获取 accessToken
     let userInfo: null | UserInfo = null;
     try {
       loginLoading.value = true;
       const { accessToken } = await loginApi(params);
+      console.log('accessToken', accessToken);
 
       // 如果成功获取到 accessToken
       if (accessToken) {

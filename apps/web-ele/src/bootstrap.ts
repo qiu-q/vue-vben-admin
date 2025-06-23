@@ -7,6 +7,7 @@ import { initStores } from '@vben/stores';
 import '@vben/styles';
 import '@vben/styles/ele';
 
+import { VueFlow } from '@vue-flow/core';
 import { useTitle } from '@vueuse/core';
 import { ElLoading } from 'element-plus';
 
@@ -16,6 +17,11 @@ import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';
 import App from './app.vue';
 import { router } from './router';
+
+import '@vue-flow/core/dist/style.css';
+
+
+import DataVVue3 from '@kjgl77/datav-vue3';
 
 async function bootstrap(namespace: string) {
   // 初始化组件适配器
@@ -72,7 +78,9 @@ async function bootstrap(namespace: string) {
       useTitle(pageTitle);
     }
   });
+  app.use(VueFlow);
 
+  app.use(DataVVue3);
   app.mount('#app');
 }
 

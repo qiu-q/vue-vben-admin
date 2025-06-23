@@ -90,6 +90,9 @@ const coreRoutes: RouteRecordRaw[] = [
           title: $t('page.auth.register'),
         },
       },
+
+
+
     ],
   },
 ];

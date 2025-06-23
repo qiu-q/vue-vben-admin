@@ -1,8 +1,11 @@
 import { initPreferences } from '@vben/preferences';
 import { unmountGlobalLoading } from '@vben/utils';
 
+import { initAllWs } from '#/services/ws';
+
 import { overridesPreferences } from './preferences';
 
+initAllWs();
 /**
  * 应用初始化完成之后再进行页面加载渲染
  */

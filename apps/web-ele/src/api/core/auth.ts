@@ -1,4 +1,4 @@
-import { baseRequestClient, requestClient } from '#/api/request';
+import { baseRequestClient } from '#/api/request';
 
 export namespace AuthApi {
   /** 登录接口参数 */
@@ -22,7 +22,15 @@ export namespace AuthApi {
  * 登录
  */
 export async function loginApi(data: AuthApi.LoginParams) {
-  return requestClient.post<AuthApi.LoginResult>('/auth/login', data);
+  return {
+    id: 0,
+    password: '123456',
+    realName: 'Vben',
+    roles: ['super'],
+    username: 'vben',
+    accessToken:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwicGFzc3dvcmQiOiIxMjM0NTYiLCJyZWFsTmFtZSI6IlZiZW4iLCJyb2xlcyI6WyJzdXBlciJdLCJ1c2VybmFtZSI6InZiZW4iLCJpYXQiOjE3NDkwODU4OTQsImV4cCI6MTc0OTY5MDY5NH0.x9Gq2K0OydOVnvOmeyA4c0j9ZxRF6QHu5AAk_eOTKZo',
+  };
 }
 
 /**
@@ -47,5 +55,5 @@ export async function logoutApi() {
  * 获取用户权限码
  */
 export async function getAccessCodesApi() {
-  return requestClient.get<string[]>('/auth/codes');
+  return ['AC_100100', 'AC_100110', 'AC_100120', 'AC_100010'];
 }

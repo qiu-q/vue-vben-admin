@@ -59,7 +59,6 @@ const FORM_SLOT_PREFIX = 'form-';
 
 const TOOLBAR_ACTIONS = 'toolbar-actions';
 const TOOLBAR_TOOLS = 'toolbar-tools';
-const TABLE_TITLE = 'table-title';
 
 const gridRef = useTemplateRef<VxeGridInstance>('gridRef');
 
@@ -130,7 +129,7 @@ const [Form, formApi] = useTableForm({
 });
 
 const showTableTitle = computed(() => {
-  return !!slots[TABLE_TITLE]?.() || tableTitle.value;
+  return !!slots.tableTitle?.() || tableTitle.value;
 });
 
 const showToolbar = computed(() => {
@@ -276,15 +275,6 @@ const delegatedFormSlots = computed(() => {
     }
   }
   return resultSlots.map((key) => key.replace(FORM_SLOT_PREFIX, ''));
-});
-
-const showDefaultEmpty = computed(() => {
-  // 检查是否有原生的 VXE Table 空状态配置
-  const hasEmptyText = options.value.emptyText !== undefined;
-  const hasEmptyRender = options.value.emptyRender !== undefined;
-
-  // 如果有原生配置，就不显示默认的空状态
-  return !hasEmptyText && !hasEmptyRender;
 });
 
 async function init() {
@@ -468,7 +458,7 @@ onUnmounted(() => {
         </slot>
       </template>
       <!-- 统一控状态 -->
-      <template v-if="showDefaultEmpty" #empty>
+      <template #empty>
         <slot name="empty">
           <EmptyIcon class="mx-auto" />
           <div class="mt-2">{{ $t('common.noData') }}</div>
