@@ -1,6 +1,16 @@
 import type { RouteRecordRaw } from 'vue-router';
 
 const controlRoutes: RouteRecordRaw[] = [
+  // 默认路由跳转到大屏
+  {
+    path: '/',
+    redirect: '/control/screen',
+  },
+  // 兼容旧路径
+  {
+    path: '/NetworkTopology',
+    redirect: '/control/topology',
+  },
   // --- 大屏 ---
   {
     name: 'ControlScreen',
