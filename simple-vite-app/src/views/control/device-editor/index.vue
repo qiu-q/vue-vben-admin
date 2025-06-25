@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { getDeviceConfig, saveDeviceConfig } from '#/api/device';
 
 import CanvasEditor from '#/components/business/DeviceEditor/CanvasEditor.vue';
 import LayerList from '#/components/business/DeviceEditor/LayerList.vue';
@@ -124,8 +125,7 @@ async function loadConfig() {
   if (!deviceIdFromRoute) return;
 
   try {
-    const resp = await fetch(`/api/jx-device/Device/${deviceIdFromRoute}`);
-    const json = await resp.json();
+    const json = await getDeviceConfig(deviceIdFromRoute);
 
     if (json.code === 200 && json.data) {
       let parsed: Partial<Config> = {};
@@ -196,7 +196,6 @@ useKeyStroke(window, (e) => {
 /* -------------------------------------------------------------------------- */
 /* 保存到后端                                                                  */
 /* -------------------------------------------------------------------------- */
-const BASE_URL = '/api/jx-device/Device' as const;
 
 function syncMaterialsTree() {
   if (palettePanelRef.value?.getMaterialsTree) {
@@ -214,18 +213,13 @@ async function handleSave() {
   syncMaterialsTree();
 
   const payload = {
-    deviceId: deviceIdFromRoute, // ← 路由中的 id 同时写入请求体
+    deviceId: deviceIdFromRoute,
     ...deviceInfo.value,
     deviceJson: JSON.stringify(config.value),
   };
 
   try {
-    const resp = await fetch(`${BASE_URL}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const json = await resp.json();
+    const json = await saveDeviceConfig(payload);
 
     if (json.code === 200) {
       alert('保存成功！');

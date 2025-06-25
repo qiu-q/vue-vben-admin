@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import {
+  getFanInfo,
+  getCpuInfo,
+  getMacAddress,
+  getModel,
+  getDeviceName,
+  getPortStateInfo,
+} from '#/api/devicePreview';
 
 // 风扇动图
 // 顶部 logo
@@ -105,37 +113,14 @@ async function loadConfig() {
 
   try {
     const id = deviceId.value;
-    const requests = [
-      fetch(`/api/jx-device/switchx/SwitchInf/getFanInfo/${id}`, {
-        method: 'POST',
-      }),
-      fetch(`/api/jx-device/switchx/SwitchInf/getCpuInfo/${id}`, {
-        method: 'POST',
-      }),
-      fetch(`/jx-device/switchx/SwitchInf/getMacAddress/${id}`, {
-        method: 'POST',
-      }),
-      fetch(`/api/jx-device/switchx/SwitchInf/getModel/${id}`, { method: 'POST' }),
-      fetch(`/api/jx-device/switchx/SwitchInf/getDeviceName/${id}`, {
-        method: 'POST',
-      }),
-      fetch(`/api/jx-device/switchx/SwitchInf/getPortStateInfo/${id}`, {
-        method: 'POST',
-      }),
-    ];
-
-    const [fanResp, cpuResp, macResp, modelResp, nameResp, portResp] =
-      await Promise.all(requests);
-
-    const [fanData, cpuData, macData, modelData, nameData, portData] =
-      await Promise.all([
-        fanResp.json(),
-        cpuResp.json(),
-        macResp.json(),
-        modelResp.json(),
-        nameResp.json(),
-        portResp.json(),
-      ]);
+    const [fanData, cpuData, macData, modelData, nameData, portData] = await Promise.all([
+      getFanInfo(id),
+      getCpuInfo(id),
+      getMacAddress(id),
+      getModel(id),
+      getDeviceName(id),
+      getPortStateInfo(id),
+    ]);
 
     config.value = {
       deviceId: id,

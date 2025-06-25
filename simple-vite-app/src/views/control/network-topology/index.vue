@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue';
+import { listDevices } from '#/api/device';
 
 import html2canvas from 'html2canvas';
 
@@ -222,10 +223,8 @@ function exportAllConfigs() {
 
 // API: 获取全部设备模板
 async function fetchDevices() {
-  const API = '/api/jx-device/Device/list?pageSize=0';
   try {
-    const resp = await fetch(API);
-    const json = await resp.json();
+    const json = await listDevices();
     if (json.code !== 200) {
       console.error('获取设备列表失败', json.msg);
       return;

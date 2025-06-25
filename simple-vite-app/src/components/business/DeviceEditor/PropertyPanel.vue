@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 
 import { uploadFile } from '#/api/device';
+import { callApi } from '#/api/generic';
 import { WS_URLS } from '#/constants/ws';
 
 
@@ -70,14 +71,11 @@ function removeApi(idx: number) {
 async function testApi(idx: number) {
   const api = apiList.value[idx];
   try {
-    const resp = await (api.method === 'POST'
-      ? fetch(api.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: api.params || '{}',
-      })
-      : fetch(api.url));
-    api.lastSample = await resp.json();
+    api.lastSample = await callApi(
+      api.url,
+      api.method as 'GET' | 'POST',
+      api.method === 'POST' ? JSON.parse(api.params || '{}') : undefined,
+    );
   } catch {
     api.lastSample = { error: '请求失败' };
   }

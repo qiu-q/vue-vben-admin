@@ -1,13 +1,14 @@
 import request from '#/api/request1';
+import { getJson, postJson } from '#/api/http';
 
 // 获取设备配置
 export function getDeviceConfig(deviceId: string) {
-  return request.get(`/mockapi/devices/${deviceId}/config`);
+  return request.get(`/api/jx-device/Device/${deviceId}`);
 }
 
 // 保存设备配置
-export function saveDeviceConfig(deviceId: string, data: any) {
-  return request.post(`/mockapi/devices/${deviceId}/config`, data);
+export function saveDeviceConfig(data: any) {
+  return request.put('/api/jx-device/Device', data);
 }
 
 // 获取设备状态
@@ -41,15 +42,9 @@ export async function uploadFile(formData: FormData) {
 
 // 获取设备列表
 export async function listDevices() {
-  try {
-    const resp = await fetch('/mockapi/devices');
-    return await resp.json(); // {code, data}
-  } catch (err: any) {
-    console.error('listDevices error', err);
-    return {
-      code: -1,
-      msg: err?.message || '获取设备列表出错',
-      data: [],
-    };
-  }
+  return getJson('/api/jx-device/Device/list?pageSize=0');
+}
+
+export async function getDeviceTemplates() {
+  return getJson('/api/jx-device/Device/list?pageSize=0');
 }

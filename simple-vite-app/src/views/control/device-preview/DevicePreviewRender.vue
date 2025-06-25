@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useWs } from '#/services/ws';
+import { callApi } from '#/api/generic';
 
 // props
 const props = defineProps<{ config: any }>();
@@ -20,14 +21,11 @@ const hoveredPortInfo = ref<null | {
 // ========== API 轮询 ==========
 async function fetchApi(api: any) {
   try {
-    const resp = await (api.method === 'POST'
-      ? fetch(api.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: api.params || '{}',
-      })
-      : fetch(api.url));
-    apiDataMap.value[api.id] = await resp.json();
+    apiDataMap.value[api.id] = await callApi(
+      api.url,
+      api.method as 'GET' | 'POST',
+      api.method === 'POST' ? JSON.parse(api.params || '{}') : undefined,
+    );
   } catch {
     apiDataMap.value[api.id] = { error: '请求失败' };
   }
