@@ -28,7 +28,7 @@ const toggleLabel = computed(() =>
   viewMode.value === 'device' ? '显示详情' : '显示设备',
 );
 
-/* ───── 模拟表格数据 ───── */
+/* ───── 接口返回数据定义 ───── */
 interface PortInfo {
   portName: string;
   remoteDevice: string;
@@ -36,18 +36,18 @@ interface PortInfo {
   deviceModel: string;
 }
 
-const tableRows: PortInfo[] = [
-  { portName: 'GigabitEthernet0/0/1', remoteDevice: '备份服务器', remotePort: 'eth5', deviceModel: 'Linux CNA018 3.10.0-862.14.1.6_93.x86_64' },
-  { portName: 'GigabitEthernet0/0/2', remoteDevice: '', remotePort: '', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/3', remoteDevice: '仲裁服务器', remotePort: 'eth5', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/4', remoteDevice: '仲裁服务器', remotePort: 'eth7', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/5', remoteDevice: '', remotePort: '', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/6', remoteDevice: '', remotePort: '', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/7', remoteDevice: '', remotePort: '', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/8', remoteDevice: '', remotePort: '', deviceModel: '' },
-  { portName: 'GigabitEthernet0/0/9', remoteDevice: 'CNA018', remotePort: 'eth5', deviceModel: 'Linux CNA018 3.10.0-862.14.1.6_93.x86_64' },
-  { portName: 'GigabitEthernet0/0/10', remoteDevice: 'CNA018', remotePort: 'eth7', deviceModel: 'Linux CNA018 3.10.0-862.14.1.6_93.x86_64' },
-];
+const tableRows = ref<PortInfo[]>([]);
+
+const deviceInfo = ref({
+  model: '',
+  name: '',
+  sysRunTime: '',
+  macAddress: '',
+  temperature: '',
+  cpu: 0,
+  fan: '',
+  location: '',
+});
 
 /* ───── 拉取并解析设备配置 ───── */
 async function loadConfig() {
@@ -92,7 +92,43 @@ async function loadConfig() {
   loading.value = false;
 }
 
+/* ───── 拉取设备详情信息 ───── */
+async function loadDeviceInfo() {
+  const base = '/api/jx-device/switchx/SwitchInf';
+  const id = deviceId.value;
+  if (!id) return;
+  async function post(path: string) {
+    const resp = await fetch(`${base}${path}/${id}`, { method: 'POST' });
+    return resp.json();
+  }
+  try {
+    const [port, cpu, fan, mac, model, name, temp, loc, run] = await Promise.all([
+      post('/getPortStateInfo'),
+      post('/getCpuInfo'),
+      post('/getFanInfo'),
+      post('/getMacAddress'),
+      post('/getModel'),
+      post('/getDeviceName'),
+      post('/getTemperature'),
+      post('/getPhysicalLocation'),
+      post('/getSysRunTime'),
+    ]);
+    if (port?.code === 200) tableRows.value = port.data || [];
+    if (cpu?.code === 200) deviceInfo.value.cpu = cpu.data;
+    if (fan?.code === 200) deviceInfo.value.fan = fan.data;
+    if (mac?.code === 200) deviceInfo.value.macAddress = mac.data;
+    if (model?.code === 200) deviceInfo.value.model = model.data;
+    if (name?.code === 200) deviceInfo.value.name = name.data;
+    if (temp?.code === 200) deviceInfo.value.temperature = temp.data;
+    if (loc?.code === 200) deviceInfo.value.location = loc.data;
+    if (run?.code === 200) deviceInfo.value.sysRunTime = run.data;
+  } catch (e) {
+    console.error('loadDeviceInfo error', e);
+  }
+}
+
 onMounted(loadConfig);
+onMounted(loadDeviceInfo);
 </script>
 
 <template>
@@ -135,11 +171,11 @@ onMounted(loadConfig);
           <div class="detail-panel text-white p-6 flex flex-col lg:flex-row gap-12">
             <h2 class="text-xl mb-2 font-semibold">设备详细信息</h2>
             <ul class="space-y-1 text-sm leading-6">
-              <li>产品型号：S5720S‑52P‑LI‑AC</li>
-              <li>设备名称：switch 9‑39</li>
-              <li>运行时间：394 天 18:46:02</li>
-              <li>序列号：21980106012SLB503139</li>
-              <li>MAC 地址：a416‑e74e‑9f99</li>
+              <li>产品型号：{{ deviceInfo.model || '-' }}</li>
+              <li>设备名称：{{ deviceInfo.name || '-' }}</li>
+              <li>运行时间：{{ deviceInfo.sysRunTime || '-' }}</li>
+              <li>MAC 地址：{{ deviceInfo.macAddress || '-' }}</li>
+              <li v-if="deviceInfo.location">位置：{{ deviceInfo.location }}</li>
             </ul>
 
             <div class="metrics flex flex-wrap gap-12 justify-center lg:justify-start items-center">
@@ -150,11 +186,11 @@ onMounted(loadConfig);
                         d="M18 2.0845
                        a 15.9155 15.9155 0 0 1 0 31.831
                        a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                  <path class="circle" :stroke-dasharray="'7,100'"
+                  <path class="circle" :stroke-dasharray="`${deviceInfo.cpu},100`"
                         d="M18 2.0845
                        a 15.9155 15.9155 0 0 1 0 31.831
                        a 15.9155 15.9155 0 0 1 0 -31.831"/>
-                  <text x="18" y="20.35" class="percentage">7%</text>
+                  <text x="18" y="20.35" class="percentage">{{ deviceInfo.cpu }}%</text>
                 </svg>
                 <div class="metric-title mt-2">CPU 占用率</div>
               </div>
@@ -180,14 +216,14 @@ onMounted(loadConfig);
                         d="M18 2.0845
                        a 15.9155 15.9155 15.9155 0 0 1 0 31.831
                        a 15.9155 15.9155 15.9155 0 0 1 0 -31.831"/>
-                  <text x="18" y="20.35" class="percentage">41°C</text>
+                  <text x="18" y="20.35" class="percentage">{{ deviceInfo.temperature }}</text>
                 </svg>
                 <div class="metric-title mt-2">温度</div>
               </div>
               <!-- Fan -->
               <div class="metric text-center">
-                <img src="http://192.168.1.99:9000/qiuqiu/img4.gif" alt="Fan" class="w-16 h-16 mx-auto" />
-                <div class="metric-title mt-2">风扇状态</div>
+                <img :src="fanGif" alt="Fan" class="w-16 h-16 mx-auto" />
+                <div class="metric-title mt-2">风扇状态：{{ deviceInfo.fan }}</div>
               </div>
             </div>
           </div>
