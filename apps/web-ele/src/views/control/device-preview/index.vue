@@ -31,9 +31,8 @@ const toggleLabel = computed(() =>
 /* ───── 接口返回数据定义 ───── */
 interface PortInfo {
   portName: string;
-  remoteDevice: string;
-  remotePort: string;
-  deviceModel: string;
+  portIp?: string[];
+  portStatus: number;
 }
 
 const tableRows = ref<PortInfo[]>([]);
@@ -113,15 +112,16 @@ async function loadDeviceInfo() {
       post('/getPhysicalLocation'),
       post('/getSysRunTime'),
     ]);
+
     if (port?.code === 200) tableRows.value = port.data || [];
-    if (cpu?.code === 200) deviceInfo.value.cpu = cpu.data;
-    if (fan?.code === 200) deviceInfo.value.fan = fan.data;
-    if (mac?.code === 200) deviceInfo.value.macAddress = mac.data;
-    if (model?.code === 200) deviceInfo.value.model = model.data;
-    if (name?.code === 200) deviceInfo.value.name = name.data;
-    if (temp?.code === 200) deviceInfo.value.temperature = temp.data;
-    if (loc?.code === 200) deviceInfo.value.location = loc.data;
-    if (run?.code === 200) deviceInfo.value.sysRunTime = run.data;
+    if (cpu?.code === 200) deviceInfo.value.cpu = Number(cpu.data?.cpuValue) || 0;
+    if (fan?.code === 200) deviceInfo.value.fan = fan.data?.[0]?.speed ?? '';
+    if (mac?.code === 200) deviceInfo.value.macAddress = mac.data?.macValue || '';
+    if (model?.code === 200) deviceInfo.value.model = model.data?.modelValue || '';
+    if (name?.code === 200) deviceInfo.value.name = name.data?.nameValue || '';
+    if (temp?.code === 200) deviceInfo.value.temperature = temp.data?.temperatureValue || '';
+    if (loc?.code === 200) deviceInfo.value.location = loc.data?.locationValue || '';
+    if (run?.code === 200) deviceInfo.value.sysRunTime = run.data?.runTimeValue || '';
   } catch (e) {
     console.error('loadDeviceInfo error', e);
   }
@@ -230,32 +230,28 @@ onMounted(loadDeviceInfo);
         </div>
 
         <!-- 端口信息表 (始终显示) -->
-        <div class="mt-6 overflow-auto">
+        <div class="table-wrapper mt-6 overflow-auto max-h-72">
           <table class="w-full text-sm">
             <thead>
-            <tr class="bg-[#006b9e] text-white">
-              <th class="py-2 px-3 text-left w-16">序号</th>
-              <th class="py-2 px-3 text-left">端口名称</th>
-              <th class="py-2 px-3 text-left">远端设备名称</th>
-              <th class="py-2 px-3 text-left">远端端口名称</th>
-              <th class="py-2 px-3 text-left">远端设备型号</th>
-            </tr>
+              <tr class="bg-[#006b9e] text-white">
+                <th class="py-2 px-3 text-left w-16">序号</th>
+                <th class="py-2 px-3 text-left">端口名称</th>
+                <th class="py-2 px-3 text-left">IP 地址</th>
+                <th class="py-2 px-3 text-left">状态</th>
+              </tr>
             </thead>
             <tbody>
-            <tr
-              v-for="(row, idx) in tableRows"
-              :key="idx"
-              :class="idx % 2 === 0 ? 'bg-[#00294d]' : 'bg-[#063158]'"
-              class="text-white"
-            >
-              <td class="py-2 px-3">{{ idx + 1 }}</td>
-              <td class="py-2 px-3">{{ row.portName }}</td>
-              <td class="py-2 px-3">{{ row.remoteDevice || '-' }}</td>
-              <td class="py-2 px-3">{{ row.remotePort || '-' }}</td>
-              <td class="py-2 px-3 truncate" :title="row.deviceModel">
-                {{ row.deviceModel || '-' }}
-              </td>
-            </tr>
+              <tr
+                v-for="(row, idx) in tableRows"
+                :key="idx"
+                :class="idx % 2 === 0 ? 'bg-[#00294d]' : 'bg-[#063158]'"
+                class="text-white"
+              >
+                <td class="py-2 px-3">{{ idx + 1 }}</td>
+                <td class="py-2 px-3">{{ row.portName }}</td>
+                <td class="py-2 px-3">{{ row.portIp ? row.portIp.join(', ') : '-' }}</td>
+                <td class="py-2 px-3">{{ row.portStatus === 1 ? '连接' : '未连接' }}</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -344,5 +340,9 @@ onMounted(loadDeviceInfo);
   font-size: 10px;
   text-anchor: middle;
   dominant-baseline: central;
+}
+
+.table-wrapper {
+  max-height: 18rem;
 }
 </style>
