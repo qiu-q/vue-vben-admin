@@ -16,6 +16,16 @@
     <div style="font-weight: bold; margin-bottom: 10px">
       已保存的画布
       <button @click="exportAllConfigs" style="float: right">全部导出</button>
+      <button @click="triggerImport" style="float: right; margin-right: 8px">
+        导入配置
+      </button>
+      <input
+        ref="fileInput"
+        type="file"
+        accept=".json"
+        style="display: none"
+        @change="onFileChange"
+      />
     </div>
     <template v-if="Object.keys(topoConfigs).length > 0">
       <div
@@ -72,6 +82,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 const props = defineProps([
   'topoConfigs',
   'connectMode',
@@ -83,10 +94,30 @@ const emits = defineEmits([
   'exportOneConfig',
   'removeConfig',
   'connectToExternalRoom',
+  'importConfigs',
 ]);
 const exportAllConfigs = () => emits('exportAllConfigs');
 const restoreConfigToCanvas = (cfg: any) => emits('restoreConfigToCanvas', cfg);
 const exportOneConfig = (name: string) => emits('exportOneConfig', name);
 const removeConfig = (name: string) => emits('removeConfig', name);
 const connectToExternalRoom = (name: string) => emits('connectToExternalRoom', name);
+
+const fileInput = ref<HTMLInputElement | null>(null);
+const triggerImport = () => fileInput.value?.click();
+function onFileChange(e: Event) {
+  const files = (e.target as HTMLInputElement).files;
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result as string);
+      emits('importConfigs', data);
+    } catch (err) {
+      window.alert('配置文件解析失败');
+    }
+    if (fileInput.value) fileInput.value.value = '';
+  };
+  reader.readAsText(file);
+}
 </script>
