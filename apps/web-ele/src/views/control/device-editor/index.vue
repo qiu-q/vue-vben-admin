@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import CanvasEditor from '#/components/business/DeviceEditor/CanvasEditor.vue';
@@ -60,11 +60,14 @@ const route = useRoute();
 
 const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
 
-// 由路由携带的 deviceId —— 不存在则阻止保存
+// 路由携带的初始 deviceId（可为空）
 const deviceIdFromRoute = route.params.deviceId as string | undefined;
 
+const deviceOptions = ref<{ value: string; label: string }[]>([]);
+const selectedDeviceId = ref(deviceIdFromRoute ?? '');
+
 const config = ref<Config>({
-  deviceId: deviceIdFromRoute ?? '',
+  deviceId: '',
   width: 900,
   height: 600,
   layers: [],
@@ -87,6 +90,24 @@ const showDeviceInfoModal = ref(false);
 const showPreview = ref(false);
 const previewConfig = ref<Config>(deepClone(config.value));
 const handleClosePreview = () => (showPreview.value = false);
+
+async function fetchDeviceList() {
+  try {
+    const resp = await fetch('/api/jx-device/Device/list?pageSize=0');
+    const json = await resp.json();
+    if (json.code === 200) {
+      const rows = Array.isArray(json.rows) ? json.rows : [];
+      deviceOptions.value = rows.map((r: any) => ({
+        value: String(r.deviceId),
+        label: r.deviceName || `设备${r.deviceId}`,
+      }));
+      if (!selectedDeviceId.value && deviceOptions.value.length > 0)
+        selectedDeviceId.value = deviceOptions.value[0].value;
+    }
+  } catch (err) {
+    console.error('fetchDeviceList error', err);
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 /* 历史撤销栈                                                                  */
@@ -120,11 +141,11 @@ function redo() {
 /* -------------------------------------------------------------------------- */
 /* 加载服务器配置                                                              */
 /* -------------------------------------------------------------------------- */
-async function loadConfig() {
-  if (!deviceIdFromRoute) return;
+async function loadConfig(id: string) {
+  if (!id) return;
 
   try {
-    const resp = await fetch(`/api/jx-device/Device/${deviceIdFromRoute}`);
+    const resp = await fetch(`/api/jx-device/Device/${id}`);
     const json = await resp.json();
 
     if (json.code === 200 && json.data) {
@@ -142,7 +163,7 @@ async function loadConfig() {
         : [];
 
       config.value = { ...config.value, ...parsed } as Config;
-      if (!config.value.deviceId) config.value.deviceId = deviceIdFromRoute;
+      config.value.deviceId = id;
 
       deviceInfo.value = {
         cabinetId: json.data.cabinetId ?? 0,
@@ -159,7 +180,14 @@ async function loadConfig() {
   }
 }
 
-onMounted(loadConfig);
+onMounted(() => {
+  fetchDeviceList();
+  if (selectedDeviceId.value) loadConfig(selectedDeviceId.value);
+});
+
+watch(selectedDeviceId, (id) => {
+  if (id) loadConfig(id);
+});
 
 /* -------------------------------------------------------------------------- */
 /* 编辑区交互                                                                  */
@@ -205,16 +233,15 @@ function syncMaterialsTree() {
 }
 
 async function handleSave() {
-  // 路由中若没有 deviceId，直接阻止保存
-  if (!deviceIdFromRoute) {
-    alert('当前路由缺少 deviceId，无法保存！');
+  if (!selectedDeviceId.value) {
+    alert('请选择设备后再保存！');
     return;
   }
 
   syncMaterialsTree();
 
   const payload = {
-    deviceId: deviceIdFromRoute, // ← 路由中的 id 同时写入请求体
+    deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
     deviceJson: JSON.stringify(config.value),
   };
@@ -251,6 +278,11 @@ async function handlePreview() {
   <div class="device-editor flex h-full bg-[#181a20]">
     <!-- 工具栏 -->
     <div class="fixed bottom-0 left-0 w-full z-50 flex justify-center gap-3 pb-4">
+      <select v-model="selectedDeviceId" class="rounded bg-white/90 text-black px-2 py-1">
+        <option v-for="opt in deviceOptions" :key="opt.value" :value="opt.value">
+          {{ opt.label }}
+        </option>
+      </select>
       <button
         @click="undo"
         :disabled="historyIndex === 0"
