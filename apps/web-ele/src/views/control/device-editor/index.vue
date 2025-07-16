@@ -63,8 +63,10 @@ const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
 // 路由携带的初始 deviceId（可为空）
 const deviceIdFromRoute = route.params.deviceId as string | undefined;
 
-const deviceOptions = ref<{ value: string; label: string }[]>([]);
+const deviceOptions = ref<{ label: string; value: string }[]>([]);
 const selectedDeviceId = ref(deviceIdFromRoute ?? '');
+// 是否处于新增模式
+const creatingNew = ref(false);
 
 const config = ref<Config>({
   deviceId: '',
@@ -104,9 +106,31 @@ async function fetchDeviceList() {
       if (!selectedDeviceId.value && deviceOptions.value.length > 0)
         selectedDeviceId.value = deviceOptions.value[0].value;
     }
-  } catch (err) {
-    console.error('fetchDeviceList error', err);
+  } catch (error) {
+    console.error('fetchDeviceList error', error);
   }
+}
+
+function startNewDevice() {
+  creatingNew.value = true;
+  selectedDeviceId.value = '';
+  config.value = {
+    deviceId: '',
+    width: 900,
+    height: 600,
+    layers: [],
+    materialsTree: [],
+  };
+  deviceInfo.value = {
+    cabinetId: 0,
+    deviceName: '',
+    deviceIpAddress: '',
+    deviceSerialNumber: '',
+    deviceGateway: '',
+    deviceMacAddress: '',
+    deviceCommunity: '',
+  };
+  showDeviceInfoModal.value = true;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -174,6 +198,7 @@ async function loadConfig(id: string) {
         deviceMacAddress: json.data.deviceMacAddress ?? '',
         deviceCommunity: json.data.deviceCommunity ?? '',
       };
+      creatingNew.value = false;
     }
   } catch (error) {
     console.error('加载设备配置失败', error);
@@ -186,7 +211,10 @@ onMounted(() => {
 });
 
 watch(selectedDeviceId, (id) => {
-  if (id) loadConfig(id);
+  if (id) {
+    creatingNew.value = false;
+    loadConfig(id);
+  }
 });
 
 /* -------------------------------------------------------------------------- */
@@ -233,8 +261,8 @@ function syncMaterialsTree() {
 }
 
 async function handleSave() {
-  if (!selectedDeviceId.value) {
-    alert('请选择设备后再保存！');
+  if (!selectedDeviceId.value && !creatingNew.value) {
+    alert('请选择设备或点击新增后再保存！');
     return;
   }
 
@@ -248,7 +276,7 @@ async function handleSave() {
 
   try {
     const resp = await fetch(`${BASE_URL}`, {
-      method: 'PUT',
+      method: creatingNew.value ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -256,6 +284,11 @@ async function handleSave() {
 
     if (json.code === 200) {
       alert('保存成功！');
+      if (creatingNew.value && json.data?.deviceId) {
+        selectedDeviceId.value = String(json.data.deviceId);
+        creatingNew.value = false;
+        fetchDeviceList();
+      }
     } else {
       alert(`保存失败：${json.msg ?? '未知错误'}`);
     }
@@ -277,12 +310,27 @@ async function handlePreview() {
 <template>
   <div class="device-editor flex h-full bg-[#181a20]">
     <!-- 工具栏 -->
-    <div class="fixed bottom-0 left-0 w-full z-50 flex justify-center gap-3 pb-4">
-      <select v-model="selectedDeviceId" class="rounded bg-white/90 text-black px-2 py-1">
-        <option v-for="opt in deviceOptions" :key="opt.value" :value="opt.value">
+    <div
+      class="fixed bottom-0 left-0 z-50 flex w-full justify-center gap-3 pb-4"
+    >
+      <select
+        v-model="selectedDeviceId"
+        class="rounded bg-white/90 px-2 py-1 text-black"
+      >
+        <option
+          v-for="opt in deviceOptions"
+          :key="opt.value"
+          :value="opt.value"
+        >
           {{ opt.label }}
         </option>
       </select>
+      <button
+        @click="startNewDevice"
+        class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]"
+      >
+        新增
+      </button>
       <button
         @click="undo"
         :disabled="historyIndex === 0"

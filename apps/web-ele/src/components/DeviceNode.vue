@@ -48,13 +48,4 @@ const { data } = defineProps<Props>();
 .icon.pc {
   /* 可用背景图或 emoji */
 }
-
-.icon.switch {
-}
-
-.icon.gateway {
-}
-
-.icon.plc {
-}
 </style>
