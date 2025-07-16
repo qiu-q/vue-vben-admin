@@ -217,6 +217,7 @@ function handleSave() {
 
 
   emit('update', props.config);
+  alert("属性已保存！");
 
 }
 
