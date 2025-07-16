@@ -173,6 +173,29 @@ watch(
 
 onMounted(fetchDeviceList);
 
+function createNewDevice() {
+  selectedDeviceId.value = '';
+  config.value = {
+    deviceId: '',
+    width: 900,
+    height: 600,
+    layers: [],
+    materialsTree: [],
+  };
+  deviceInfo.value = {
+    cabinetId: 0,
+    deviceName: '',
+    deviceIpAddress: '',
+    deviceSerialNumber: '',
+    deviceGateway: '',
+    deviceMacAddress: '',
+    deviceCommunity: '',
+  };
+  history.value = [deepClone(config.value)];
+  historyIndex.value = 0;
+  showDeviceInfoModal.value = true;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 编辑区交互                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -217,23 +240,18 @@ function syncMaterialsTree() {
 }
 
 async function handleSave() {
-  // 未选择设备则阻止保存
-  if (!selectedDeviceId.value) {
-    alert('请先选择设备！');
-    return;
-  }
-
   syncMaterialsTree();
 
+  const isNew = !selectedDeviceId.value;
   const payload = {
-    deviceId: selectedDeviceId.value,
+    ...(isNew ? {} : { deviceId: selectedDeviceId.value }),
     ...deviceInfo.value,
     deviceJson: JSON.stringify(config.value),
   };
 
   try {
     const resp = await fetch(`${BASE_URL}`, {
-      method: 'PUT',
+      method: isNew ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -241,6 +259,10 @@ async function handleSave() {
 
     if (json.code === 200) {
       alert('保存成功！');
+      await fetchDeviceList();
+      if (isNew && json.data?.deviceId) {
+        selectedDeviceId.value = String(json.data.deviceId);
+      }
     } else {
       alert(`保存失败：${json.msg ?? '未知错误'}`);
     }
@@ -275,6 +297,12 @@ async function handlePreview() {
           {{ opt.deviceName || opt.deviceId }}
         </option>
       </select>
+      <button
+        @click="createNewDevice"
+        class="btn-primary border-[#b98bff] bg-[#7b5bd6] hover:bg-[#593fb1]"
+      >
+        新增
+      </button>
       <button
         @click="undo"
         :disabled="historyIndex === 0"
