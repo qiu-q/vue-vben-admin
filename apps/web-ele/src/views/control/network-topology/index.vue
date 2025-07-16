@@ -69,6 +69,9 @@ interface TopoConfig {
     _uuid: string;
     deviceId: string;
     position: { x: number; y: number };
+    scaleX?: number;
+    scaleY?: number;
+    parentCabinetId?: string | null;
   }[];
   edges: any[];
   saveTime?: number;
@@ -168,6 +171,9 @@ async function saveCurrentCanvasToConfigs() {
       deviceId: dev.deviceId,
       _uuid: dev._uuid,
       position: dev.position,
+      scaleX: dev.scaleX,
+      scaleY: dev.scaleY,
+      parentCabinetId: dev.parentCabinetId,
     })),
     edges: deepClone(edges.value),
     saveTime: Date.now(),
@@ -188,6 +194,9 @@ function restoreConfigToCanvas(config: TopoConfig) {
     const dev = deepClone(tmpl);
     dev._uuid = devCfg._uuid;
     dev.position = devCfg.position;
+    dev.scaleX = devCfg.scaleX ?? 1;
+    dev.scaleY = devCfg.scaleY ?? 1;
+    dev.parentCabinetId = devCfg.parentCabinetId ?? null;
     return dev;
   });
   edges.value = deepClone(config.edges);
@@ -218,6 +227,19 @@ function exportAllConfigs() {
   a.download = `all_topo_configs.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function importConfigs(data: any) {
+  if (data && data.devices && data.edges) {
+    const name = window.prompt('导入的画布名称', `imported_${Date.now()}`) || '';
+    if (name) topoConfigs.value[name] = data as TopoConfig;
+  } else if (typeof data === 'object') {
+    Object.assign(topoConfigs.value, data);
+  } else {
+    window.alert('未知的配置格式');
+    return;
+  }
+  saveConfigsToStorage();
 }
 
 // API: 获取全部设备模板
@@ -710,6 +732,7 @@ onMounted(() => {
       @export-one-config="exportOneConfig"
       @remove-config="removeConfig"
       @connect-to-external-room="connectToExternalRoom"
+      @import-configs="importConfigs"
     />
   </div>
 </template>
@@ -717,6 +740,7 @@ onMounted(() => {
 <style scoped>
 .canvas-bg {
   position: relative;
+  width: 1200px; height: 800px
 }
 .canvas-bg::before {
   content: '';
