@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
+
 
 import CanvasEditor from '#/components/business/DeviceEditor/CanvasEditor.vue';
 import LayerList from '#/components/business/DeviceEditor/LayerList.vue';
@@ -55,16 +55,14 @@ interface Config {
 /* -------------------------------------------------------------------------- */
 /* 基础状态                                                                    */
 /* -------------------------------------------------------------------------- */
-const router = useRouter();
-const route = useRoute();
-
 const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
 
-// 由路由携带的 deviceId —— 不存在则阻止保存
-const deviceIdFromRoute = route.params.deviceId as string | undefined;
+/** 设备列表及选择 */
+const deviceOptions = ref<any[]>([]);
+const selectedDeviceId = ref<string>('');
 
 const config = ref<Config>({
-  deviceId: deviceIdFromRoute ?? '',
+  deviceId: '',
   width: 900,
   height: 600,
   layers: [],
@@ -120,46 +118,60 @@ function redo() {
 /* -------------------------------------------------------------------------- */
 /* 加载服务器配置                                                              */
 /* -------------------------------------------------------------------------- */
-async function loadConfig() {
-  if (!deviceIdFromRoute) return;
-
+async function fetchDeviceList() {
   try {
-    const resp = await fetch(`/api/jx-device/Device/${deviceIdFromRoute}`);
+    const resp = await fetch('/api/jx-device/Device/list?pageSize=0');
     const json = await resp.json();
-
-    if (json.code === 200 && json.data) {
-      let parsed: Partial<Config> = {};
-      try {
-        parsed = JSON.parse(json.data.deviceJson);
-      } catch {
-        console.error('deviceJson 解析失败，使用默认空配置');
-      }
-
-      // 保证字段安全
-      parsed.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
-      parsed.materialsTree = Array.isArray(parsed.materialsTree)
-        ? parsed.materialsTree
-        : [];
-
-      config.value = { ...config.value, ...parsed } as Config;
-      if (!config.value.deviceId) config.value.deviceId = deviceIdFromRoute;
-
-      deviceInfo.value = {
-        cabinetId: json.data.cabinetId ?? 0,
-        deviceName: json.data.deviceName ?? '',
-        deviceIpAddress: json.data.deviceIpAddress ?? '',
-        deviceSerialNumber: json.data.deviceSerialNumber ?? '',
-        deviceGateway: json.data.deviceGateway ?? '',
-        deviceMacAddress: json.data.deviceMacAddress ?? '',
-        deviceCommunity: json.data.deviceCommunity ?? '',
-      };
+    if (json.code !== 200) return;
+    const rows = Array.isArray(json.rows) ? json.rows : [];
+    deviceOptions.value = rows;
+    if (rows.length > 0) {
+      selectedDeviceId.value = String(rows[0].deviceId);
     }
   } catch (error) {
-    console.error('加载设备配置失败', error);
+    console.error('fetchDeviceList error', error);
   }
 }
 
-onMounted(loadConfig);
+function applyDevice(row: any) {
+  let parsed: Partial<Config> = {};
+  try {
+    parsed = JSON.parse(row.deviceJson ?? '{}');
+  } catch {}
+  parsed.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
+  parsed.materialsTree = Array.isArray(parsed.materialsTree)
+    ? parsed.materialsTree
+    : [];
+  config.value = {
+    deviceId: String(row.deviceId),
+    width: parsed.width ?? 900,
+    height: parsed.height ?? 600,
+    layers: parsed.layers,
+    materialsTree: parsed.materialsTree,
+  } as Config;
+  deviceInfo.value = {
+    cabinetId: row.cabinetId ?? 0,
+    deviceName: row.deviceName ?? '',
+    deviceIpAddress: row.deviceIpAddress ?? '',
+    deviceSerialNumber: row.deviceSerialNumber ?? '',
+    deviceGateway: row.deviceGateway ?? '',
+    deviceMacAddress: row.deviceMacAddress ?? '',
+    deviceCommunity: row.deviceCommunity ?? '',
+  };
+  history.value = [deepClone(config.value)];
+  historyIndex.value = 0;
+}
+
+watch(
+  selectedDeviceId,
+  (id) => {
+    const row = deviceOptions.value.find((d) => String(d.deviceId) === id);
+    if (row) applyDevice(row);
+  },
+  { immediate: true },
+);
+
+onMounted(fetchDeviceList);
 
 /* -------------------------------------------------------------------------- */
 /* 编辑区交互                                                                  */
@@ -205,16 +217,16 @@ function syncMaterialsTree() {
 }
 
 async function handleSave() {
-  // 路由中若没有 deviceId，直接阻止保存
-  if (!deviceIdFromRoute) {
-    alert('当前路由缺少 deviceId，无法保存！');
+  // 未选择设备则阻止保存
+  if (!selectedDeviceId.value) {
+    alert('请先选择设备！');
     return;
   }
 
   syncMaterialsTree();
 
   const payload = {
-    deviceId: deviceIdFromRoute, // ← 路由中的 id 同时写入请求体
+    deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
     deviceJson: JSON.stringify(config.value),
   };
@@ -251,6 +263,18 @@ async function handlePreview() {
   <div class="device-editor flex h-full bg-[#181a20]">
     <!-- 工具栏 -->
     <div class="fixed bottom-0 left-0 w-full z-50 flex justify-center gap-3 pb-4">
+      <select
+        v-model="selectedDeviceId"
+        class="rounded border bg-[#303848] px-2 py-1 text-white"
+      >
+        <option
+          v-for="opt in deviceOptions"
+          :key="opt.deviceId"
+          :value="String(opt.deviceId)"
+        >
+          {{ opt.deviceName || opt.deviceId }}
+        </option>
+      </select>
       <button
         @click="undo"
         :disabled="historyIndex === 0"

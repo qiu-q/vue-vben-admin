@@ -20,10 +20,9 @@ const controlRoutes: RouteRecordRaw[] = [
   // --- 设备编辑器 ---
   {
     name: 'DeviceEditor',
-    path: '/control/device-editor/:deviceId',
+    path: '/control/device-editor',
     component: () => import('#/views/control/device-editor/index.vue'),
     meta: { icon: 'lucide:pencil-ruler', title: '设备编辑', order: 2 },
-    props: true,
   },
 
   // --- 设备监控预览 ---
