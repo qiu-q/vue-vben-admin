@@ -215,9 +215,9 @@ function handleSave() {
   }
   syncApiList(); // 记得同步回 props.config.apiList
 
-
   emit('update', props.config);
 
+  alert('保存成功！');
 }
 
 function updateField(field: string, value: any) {
