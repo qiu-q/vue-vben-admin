@@ -33,12 +33,20 @@ const controlRoutes: RouteRecordRaw[] = [
     meta: { icon: 'lucide:monitor', title: '设备预览', order: 3 },
     props: true,
   },
+  // --- 简洁预览页面 ---
+  {
+    name: 'DeviceView',
+    path: '/control/device-view/:deviceId',
+    component: () => import('#/views/control/device-view/index.vue'),
+    meta: { icon: 'lucide:eye', title: '阅览', order: 4 },
+    props: true,
+  },
   // 机柜
   {
     name: 'Cabinet',
     path: '/control/cabinet',
     component: () => import('#/views/control/test/index.vue'),
-    meta: { icon: 'lucide:monitor', title: '机柜', order: 4 },
+    meta: { icon: 'lucide:monitor', title: '机柜', order: 5 },
   },
   // apps/web-ele/src/views/control/networkTopologyDiagram/components/TopologyGraph.vue
   {

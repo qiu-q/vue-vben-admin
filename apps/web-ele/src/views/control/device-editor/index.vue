@@ -94,11 +94,6 @@ const deviceInfo = ref<DeviceInfo>({
 
 const showDeviceInfoModal = ref(false);
 
-/* -------------------- 预览 -------------------- */
-const showPreview = ref(false);
-const previewConfig = ref<Config>(deepClone(config.value));
-const handleClosePreview = () => (showPreview.value = false);
-
 const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
 const TABLE_ICON_URL =
   'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
@@ -342,8 +337,8 @@ async function handleSave() {
 /* -------------------------------------------------------------------------- */
 async function handlePreview() {
   await handleSave();
-  previewConfig.value = deepClone(config.value);
-  showPreview.value = true;
+  if (!selectedDeviceId.value) return;
+  router.push({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
 }
 </script>
 
@@ -397,7 +392,7 @@ async function handlePreview() {
         @click="handlePreview"
         class="btn-primary border-[#3ae0ff] bg-[#2a69d7] hover:bg-[#154c8a]"
       >
-        预览
+        阅览
       </button>
       <button
         @click="showDeviceInfoModal = true"
@@ -486,29 +481,6 @@ async function handlePreview() {
         加载中…
       </div>
 
-      <!-- 预览弹窗 -->
-      <div
-        v-if="showPreview"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      >
-        <div
-          class="relative rounded-lg bg-[#20222a] p-6 shadow-xl"
-          style="width: 920px; min-height: 640px"
-        >
-          <button
-            @click="handleClosePreview"
-            class="absolute right-3 top-2 text-lg font-bold text-[#888] hover:text-[#f44]"
-            title="关闭"
-          >
-            ×
-          </button>
-          <h3 class="mb-4 text-lg font-bold text-white">预览效果</h3>
-          <CanvasEditor
-            :config="previewConfig"
-            style="pointer-events: none; opacity: 1"
-          />
-        </div>
-      </div>
     </main>
 
     <!-- 属性面板 -->
