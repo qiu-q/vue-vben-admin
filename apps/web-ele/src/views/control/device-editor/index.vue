@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import CanvasEditor from '#/components/business/DeviceEditor/CanvasEditor.vue';
@@ -52,6 +52,12 @@ interface Config {
   materialsTree: any[];
 }
 
+interface MaterialItem {
+  id: string;
+  name: string;
+  url: string;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 基础状态                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -92,6 +98,22 @@ const showDeviceInfoModal = ref(false);
 const showPreview = ref(false);
 const previewConfig = ref<Config>(deepClone(config.value));
 const handleClosePreview = () => (showPreview.value = false);
+
+const materialsList = computed<MaterialItem[]>(() => {
+  const list: MaterialItem[] = [];
+  function walk(nodes: any[]) {
+    for (const n of nodes || []) {
+      if (Array.isArray(n.materials)) {
+        for (const m of n.materials) {
+          list.push({ id: m.id, name: m.name, url: m.url });
+        }
+      }
+      if (Array.isArray(n.children)) walk(n.children);
+    }
+  }
+  walk(config.value.materialsTree);
+  return list;
+});
 
 async function fetchDeviceList() {
   try {
@@ -478,6 +500,7 @@ async function handlePreview() {
         <PropertyPanel
           :config="config"
           :selected-layer-id="selectedLayerId"
+          :materials-list="materialsList"
           @update="handleConfigUpdate"
         />
       </template>
