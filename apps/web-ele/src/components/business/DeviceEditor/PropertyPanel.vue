@@ -121,6 +121,10 @@ const statusList = ref<
   Array<{ iconUrl: string; label: string; value: number | string }>
 >([]);
 
+// ----- 表格配置 -----
+const tableDataStr = ref('');
+const tableApiId = ref('');
+
 // —— 推送相关
 const usePush = ref(false);
 const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
@@ -221,6 +225,22 @@ function handleSave() {
 
 }
 
+function handleSaveTable() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'table';
+  try {
+    selectedLayer.value.config.data = tableDataStr.value
+      ? JSON.parse(tableDataStr.value)
+      : [];
+  } catch {
+    alert('JSON 格式错误');
+    return;
+  }
+  selectedLayer.value.config.apiId = tableApiId.value;
+  emit('update', props.config);
+  alert('属性已保存！');
+}
+
 function updateField(field: string, value: any) {
   if (!selectedLayer.value) return;
   selectedLayer.value.config[field] = value;
@@ -235,6 +255,12 @@ watch([usePush, pushService], () => {
   emit('update', props.config);
 });
 
+watch(tableApiId, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.apiId = tableApiId.value;
+  emit('update', props.config);
+});
+
 // 初始化时恢复
 watch(
   () => selectedLayer.value,
@@ -245,6 +271,11 @@ watch(
     portKey.value = layer.config.portKey || '';
     usePush.value = !!layer.config.usePush;
     pushService.value = layer.config.pushService || '';
+
+    tableApiId.value = layer.type === 'table' ? layer.config.apiId || '' : '';
+    tableDataStr.value = layer.type === 'table'
+      ? JSON.stringify(layer.config.data || [], null, 2)
+      : '';
 
     // 恢复映射
     const mapping = layer.config.statusMapping || {};
@@ -342,7 +373,7 @@ watch(
         </div>
 
         <!-- ================== 动态端口设置 ================== -->
-        <div class="mt-4 border-t pt-3">
+        <div v-if="selectedLayer.type === 'port'" class="mt-4 border-t pt-3">
           <label>
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>
@@ -516,6 +547,23 @@ watch(
               保存配置
             </button>
           </div>
+
+        <!-- ================== 表格数据设置 ================== -->
+        <div v-else-if="selectedLayer.type === 'table'" class="mt-4 border-t pt-3">
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="tableApiId" class="border p-1">
+              <option value="">(无)</option>
+              <option v-for="api in apiList" :key="api.id" :value="api.id">
+                {{ api.name }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="mb-1 block">静态 JSON 数据：</label>
+            <textarea v-model="tableDataStr" rows="4" class="w-full border p-1 text-xs"></textarea>
+          </div>
+          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveTable">保存配置</button>
         </div>
       </div>
 

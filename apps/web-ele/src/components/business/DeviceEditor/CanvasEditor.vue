@@ -72,8 +72,23 @@ function onDrop(e: DragEvent) {
   const y = e.clientY - rect.top;
   const url = e.dataTransfer?.getData('image-url');
   const matType = e.dataTransfer?.getData('mat-type') || 'image'; // 关键：识别类型
-  if (url) {
-    let layer;
+  let layer;
+  if (matType === 'table') {
+    layer = {
+      id: `table-${Date.now()}`,
+      type: 'table',
+      zIndex: layers.value.length + 1,
+      name: `表格-${Date.now().toString().slice(-4)}`,
+      config: {
+        x: x - 40,
+        y: y - 20,
+        width: 160,
+        height: 120,
+        data: [],
+        apiId: '',
+      },
+    };
+  } else if (url) {
     if (matType === 'port') {
       // 拖入端口组件
       layer = {
@@ -108,6 +123,8 @@ function onDrop(e: DragEvent) {
         },
       };
     }
+  }
+  if (layer) {
     props.config.layers.push(layer);
     emit('update', JSON.parse(JSON.stringify(props.config)));
   }
@@ -336,11 +353,57 @@ watch(
           draggable="false"
           @dragstart.prevent
         />
+        <!-- 表格组件 -->
+        <div
+          v-else-if="layer.type === 'table'"
+          class="absolute overflow-auto text-xs text-white bg-[#2d323c] border border-[#444]"
+          :style="{
+            left: `${layer.config.x}px`,
+            top: `${layer.config.y}px`,
+            width: `${layer.config.width}px`,
+            height: `${layer.config.height}px`,
+            zIndex: layer.zIndex,
+            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
+            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+          }"
+          @mousedown="onMouseDownLayer($event, layer)"
+          @click.stop="selectLayer(layer.id)"
+          draggable="false"
+          @dragstart.prevent
+        >
+          <table class="w-full border-collapse text-[11px]">
+            <thead v-if="Array.isArray(layer.config.data) && layer.config.data.length">
+              <tr>
+                <th
+                  v-for="key in Object.keys(layer.config.data[0])"
+                  :key="key"
+                  class="border px-1 py-0.5"
+                >
+                  {{ key }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, rIdx) in layer.config.data"
+                :key="rIdx"
+              >
+                <td
+                  v-for="key in Object.keys(layer.config.data[0] || {})"
+                  :key="key"
+                  class="border px-1 py-0.5"
+                >
+                  {{ row[key] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         <!-- 右下角缩放点 -->
         <div
           v-if="
             selectedId === layer.id &&
-            (layer.type === 'image' || layer.type === 'port')
+            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table')
           "
           class="resize-handle"
           :style="{

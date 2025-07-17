@@ -117,6 +117,26 @@ function bindDeviceIdToApis() {
   });
 }
 
+function getTableData(layer: any) {
+  if (layer.config.apiId) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (!apiResp || apiResp.error) return [];
+    if (Array.isArray(apiResp)) return apiResp;
+    if (Array.isArray(apiResp.data)) return apiResp.data;
+    if (Array.isArray(apiResp.rows)) return apiResp.rows;
+    return [];
+  }
+  return Array.isArray(layer.config.data) ? layer.config.data : [];
+}
+
+function getTableHeaders(layer: any) {
+  const data = getTableData(layer);
+  if (Array.isArray(data) && data.length) return Object.keys(data[0]);
+  if (Array.isArray(layer.config.data) && layer.config.data.length)
+    return Object.keys(layer.config.data[0]);
+  return [];
+}
+
 // ========== 端口移入/移出事件 ==========
 function handlePortMouseEnter(layer: any) {
   if (!layer.config.dynamic) return;
@@ -212,6 +232,45 @@ watch(
           @mouseleave="handlePortMouseLeave"
         />
       </template>
+      <!-- 表格 -->
+      <table
+        v-else-if="layer.type === 'table'"
+        :style="{
+          position: 'absolute',
+          left: `${layer.config.x}px`,
+          top: `${layer.config.y}px`,
+          width: `${layer.config.width}px`,
+          height: `${layer.config.height}px`,
+          zIndex: layer.zIndex,
+          background: '#2d323c',
+          color: '#fff',
+          overflow: 'auto',
+        }"
+        class="text-xs border-collapse"
+      >
+        <thead v-if="getTableHeaders(layer).length">
+          <tr>
+            <th
+              v-for="key in getTableHeaders(layer)"
+              :key="key"
+              class="border px-1 py-0.5"
+            >
+              {{ key }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
+            <td
+              v-for="key in getTableHeaders(layer)"
+              :key="key"
+              class="border px-1 py-0.5"
+            >
+              {{ row[key] }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </template>
     <!-- 悬浮 IP 气泡 -->
     <div
