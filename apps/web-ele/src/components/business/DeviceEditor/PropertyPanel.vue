@@ -125,19 +125,19 @@ function extractPortMap(sample: any): Record<string, any> {
 
 function collectKeys(obj: any, prefix = ''): string[] {
   const results: string[] = [];
+  if (prefix) results.push(prefix);
   if (Array.isArray(obj)) {
-    results.push(prefix);
+    // 若数组元素为对象，递归其首个元素以暴露子路径
+    if (obj.length && typeof obj[0] === 'object') {
+      results.push(...collectKeys(obj[0], prefix));
+    }
   } else if (obj && typeof obj === 'object') {
     for (const [k, v] of Object.entries(obj)) {
       const p = prefix ? `${prefix}.${k}` : k;
-      if (v && typeof v === 'object') {
-        results.push(...collectKeys(v, p));
-      } else {
-        results.push(p);
-      }
+      results.push(...collectKeys(v, p));
     }
   }
-  return results;
+  return Array.from(new Set(results));
 }
 
 // =============================================
