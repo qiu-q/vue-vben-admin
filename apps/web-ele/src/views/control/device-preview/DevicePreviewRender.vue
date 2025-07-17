@@ -233,7 +233,7 @@ watch(
         />
       </template>
       <!-- 表格 -->
-      <table
+      <div
         v-else-if="layer.type === 'table'"
         :style="{
           position: 'absolute',
@@ -244,10 +244,12 @@ watch(
           zIndex: layer.zIndex,
           background: '#2d323c',
           color: '#fff',
-          overflow: 'auto',
+          overflowX: 'auto',
+          overflowY: layer.config.scrollY ? 'auto' : 'hidden',
         }"
-        class="text-xs border-collapse"
+        class="text-xs"
       >
+        <table class="w-full border-collapse">
         <thead v-if="getTableHeaders(layer).length">
           <tr>
             <th
@@ -270,7 +272,8 @@ watch(
             </td>
           </tr>
         </tbody>
-      </table>
+        </table>
+      </div>
     </template>
     <!-- 悬浮 IP 气泡 -->
     <div

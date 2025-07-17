@@ -124,6 +124,7 @@ const statusList = ref<
 // ----- 表格配置 -----
 const tableDataStr = ref('');
 const tableApiId = ref('');
+const tableScrollY = ref(false);
 
 // —— 推送相关
 const usePush = ref(false);
@@ -237,6 +238,7 @@ function handleSaveTable() {
     return;
   }
   selectedLayer.value.config.apiId = tableApiId.value;
+  selectedLayer.value.config.scrollY = tableScrollY.value;
   emit('update', props.config);
   alert('属性已保存！');
 }
@@ -261,6 +263,12 @@ watch(tableApiId, () => {
   emit('update', props.config);
 });
 
+watch(tableScrollY, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.scrollY = tableScrollY.value;
+  emit('update', props.config);
+});
+
 // 初始化时恢复
 watch(
   () => selectedLayer.value,
@@ -276,6 +284,7 @@ watch(
     tableDataStr.value = layer.type === 'table'
       ? JSON.stringify(layer.config.data || [], null, 2)
       : '';
+    tableScrollY.value = layer.type === 'table' ? !!layer.config.scrollY : false;
 
     // 恢复映射
     const mapping = layer.config.statusMapping || {};
@@ -558,6 +567,11 @@ watch(
                 {{ api.name }}
               </option>
             </select>
+          </div>
+          <div class="mb-2">
+            <label>
+              <input type="checkbox" v-model="tableScrollY" /> 启用纵向滚动
+            </label>
           </div>
           <div class="mb-2">
             <label class="mb-1 block">静态 JSON 数据：</label>

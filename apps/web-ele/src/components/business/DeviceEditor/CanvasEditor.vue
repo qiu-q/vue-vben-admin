@@ -74,6 +74,13 @@ function onDrop(e: DragEvent) {
   const matType = e.dataTransfer?.getData('mat-type') || 'image'; // 关键：识别类型
   let layer;
   if (matType === 'table') {
+    const DEFAULT_TABLE_DATA = [
+      { 设备名称: '设备A', 设备: '型号A', 序列号: 'SN001', ip: '192.168.1.10' },
+      { 设备名称: '设备B', 设备: '型号B', 序列号: 'SN002', ip: '192.168.1.11' },
+      { 设备名称: '设备C', 设备: '型号C', 序列号: 'SN003', ip: '192.168.1.12' },
+      { 设备名称: '设备D', 设备: '型号D', 序列号: 'SN004', ip: '192.168.1.13' },
+      { 设备名称: '设备E', 设备: '型号E', 序列号: 'SN005', ip: '192.168.1.14' },
+    ];
     layer = {
       id: `table-${Date.now()}`,
       type: 'table',
@@ -84,8 +91,9 @@ function onDrop(e: DragEvent) {
         y: y - 20,
         width: 160,
         height: 120,
-        data: [],
+        data: DEFAULT_TABLE_DATA,
         apiId: '',
+        scrollY: false,
       },
     };
   } else if (url) {
@@ -356,7 +364,7 @@ watch(
         <!-- 表格组件 -->
         <div
           v-else-if="layer.type === 'table'"
-          class="absolute overflow-auto text-xs text-white bg-[#2d323c] border border-[#444]"
+          class="absolute text-xs text-white bg-[#2d323c] border border-[#444]"
           :style="{
             left: `${layer.config.x}px`,
             top: `${layer.config.y}px`,
@@ -365,6 +373,8 @@ watch(
             zIndex: layer.zIndex,
             outline: selectedId === layer.id ? '2px solid #1976d2' : '',
             boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+            overflowX: 'auto',
+            overflowY: layer.config.scrollY ? 'auto' : 'hidden',
           }"
           @mousedown="onMouseDownLayer($event, layer)"
           @click.stop="selectLayer(layer.id)"
