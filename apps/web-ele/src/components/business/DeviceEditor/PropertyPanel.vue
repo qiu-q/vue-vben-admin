@@ -126,6 +126,12 @@ const tableDataStr = ref('');
 const tableApiId = ref('');
 const tableScrollY = ref(false);
 
+// ----- 卡片配置 -----
+const cardText = ref('文本');
+const cardFontSize = ref(14);
+const cardColor = ref('#ffffff');
+const cardBackground = ref('#2d323c');
+
 // —— 推送相关
 const usePush = ref(false);
 const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
@@ -242,6 +248,17 @@ function handleSaveTable() {
   alert('属性已保存！');
 }
 
+function handleSaveCard() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'card';
+  selectedLayer.value.config.text = cardText.value;
+  selectedLayer.value.config.fontSize = cardFontSize.value;
+  selectedLayer.value.config.color = cardColor.value;
+  selectedLayer.value.config.background = cardBackground.value;
+  emit('update', props.config);
+  alert('属性已保存！');
+}
+
 function updateField(field: string, value: any) {
   if (!selectedLayer.value) return;
   selectedLayer.value.config[field] = value;
@@ -268,6 +285,15 @@ watch(tableScrollY, () => {
   emit('update', props.config);
 });
 
+watch([cardText, cardFontSize, cardColor, cardBackground], () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+  selectedLayer.value.config.text = cardText.value;
+  selectedLayer.value.config.fontSize = cardFontSize.value;
+  selectedLayer.value.config.color = cardColor.value;
+  selectedLayer.value.config.background = cardBackground.value;
+  emit('update', props.config);
+});
+
 // 初始化时恢复
 watch(
   () => selectedLayer.value,
@@ -284,6 +310,11 @@ watch(
       ? JSON.stringify(layer.config.data || [], null, 2)
       : '';
     tableScrollY.value = layer.type === 'table' ? !!layer.config.scrollY : false;
+
+    cardText.value = layer.type === 'card' ? layer.config.text || '文本' : '文本';
+    cardFontSize.value = layer.type === 'card' ? layer.config.fontSize || 14 : 14;
+    cardColor.value = layer.type === 'card' ? layer.config.color || '#ffffff' : '#ffffff';
+    cardBackground.value = layer.type === 'card' ? layer.config.background || '#2d323c' : '#2d323c';
 
     // 恢复映射
     const mapping = layer.config.statusMapping || {};
@@ -578,6 +609,26 @@ watch(
             <textarea v-model="tableDataStr" rows="4" class="w-full border p-1 text-xs"></textarea>
           </div>
           <button class="mt-2 rounded border px-3 py-1" @click="handleSaveTable">保存配置</button>
+        </div>
+        <!-- ================== 卡片设置 ================== -->
+        <div v-else-if="selectedLayer.type === 'card'" class="mt-4 border-t pt-3">
+          <div class="mb-2">
+            <label>文本：</label>
+            <input v-model="cardText" class="border p-1 w-full" />
+          </div>
+          <div class="mb-2">
+            <label>字体大小：</label>
+            <input type="number" v-model.number="cardFontSize" class="w-20 border p-1" />
+          </div>
+          <div class="mb-2">
+            <label>文字颜色：</label>
+            <input type="color" v-model="cardColor" />
+          </div>
+          <div class="mb-2">
+            <label>背景颜色：</label>
+            <input type="color" v-model="cardBackground" />
+          </div>
+          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveCard">保存配置</button>
         </div>
       </div>
 

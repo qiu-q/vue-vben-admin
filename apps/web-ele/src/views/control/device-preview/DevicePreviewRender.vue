@@ -274,6 +274,26 @@ watch(
         </tbody>
         </table>
       </div>
+      <!-- 卡片 -->
+      <div
+        v-else-if="layer.type === 'card'"
+        :style="{
+          position: 'absolute',
+          left: `${layer.config.x}px`,
+          top: `${layer.config.y}px`,
+          width: `${layer.config.width}px`,
+          height: `${layer.config.height}px`,
+          zIndex: layer.zIndex,
+          background: layer.config.background,
+          color: layer.config.color,
+          fontSize: layer.config.fontSize + 'px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }"
+      >
+        {{ layer.config.text }}
+      </div>
     </template>
     <!-- 悬浮 IP 气泡 -->
     <div

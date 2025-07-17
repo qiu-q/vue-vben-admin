@@ -107,6 +107,8 @@ function updateEditorScale() {
 const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
 const TABLE_ICON_URL =
   'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
+const CARD_ICON_URL =
+  'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Ctext x%3D"28" y%3D"34" font-size%3D"20" text-anchor%3D"middle" fill%3D"%23ccc"%3ET%3C/text%3E%3C/svg%3E';
 
 const materialsList = computed<MaterialItem[]>(() => {
   const list: MaterialItem[] = [];
@@ -119,6 +121,7 @@ const materialsList = computed<MaterialItem[]>(() => {
             materials: [
               { id: 'port-default', name: '端口', url: PORT_ICON_URL },
               { id: 'table-default', name: '表格', url: TABLE_ICON_URL },
+              { id: 'card-default', name: '卡片', url: CARD_ICON_URL },
             ],
             children: [],
           },

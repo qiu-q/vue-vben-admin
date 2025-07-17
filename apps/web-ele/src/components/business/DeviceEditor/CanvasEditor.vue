@@ -96,6 +96,23 @@ function onDrop(e: DragEvent) {
         scrollY: false,
       },
     };
+  } else if (matType === 'card') {
+    layer = {
+      id: `card-${Date.now()}`,
+      type: 'card',
+      zIndex: layers.value.length + 1,
+      name: `卡片-${Date.now().toString().slice(-4)}`,
+      config: {
+        x: x - 40,
+        y: y - 20,
+        width: 160,
+        height: 60,
+        text: '文本',
+        fontSize: 14,
+        color: '#ffffff',
+        background: '#2d323c',
+      },
+    };
   } else if (url) {
     if (matType === 'port') {
       // 拖入端口组件
@@ -414,11 +431,34 @@ watch(
             </tbody>
           </table>
         </div>
+        <!-- 卡片组件 -->
+        <div
+          v-else-if="layer.type === 'card'"
+          class="absolute flex items-center justify-center border border-[#444]"
+          :style="{
+            left: `${layer.config.x}px`,
+            top: `${layer.config.y}px`,
+            width: `${layer.config.width}px`,
+            height: `${layer.config.height}px`,
+            zIndex: layer.zIndex,
+            background: layer.config.background,
+            color: layer.config.color,
+            fontSize: layer.config.fontSize + 'px',
+            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
+            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+          }"
+          @mousedown="onMouseDownLayer($event, layer)"
+          @click.stop="selectLayer(layer.id)"
+          draggable="false"
+          @dragstart.prevent
+        >
+          {{ layer.config.text }}
+        </div>
         <!-- 右下角缩放点 -->
         <div
           v-if="
             selectedId === layer.id &&
-            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table')
+            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table' || layer.type === 'card')
           "
           class="resize-handle"
           :style="{
