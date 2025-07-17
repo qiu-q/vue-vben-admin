@@ -633,11 +633,10 @@ watch(
           </div>
           <div class="mb-2">
             <label>取值 Key：</label>
-            <select v-model="cardDataKey" class="border p-1" v-if="cardApiId">
+            <select v-model="cardDataKey" class="border p-1" :disabled="!cardApiId">
               <option value="">(无)</option>
               <option v-for="k in cardKeyOptions" :key="k" :value="k">{{ k }}</option>
             </select>
-            <input v-else v-model="cardDataKey" class="border p-1" />
           </div>
           <div class="mb-2">
             <label>字体大小：</label>
