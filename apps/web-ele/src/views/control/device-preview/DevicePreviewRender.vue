@@ -181,8 +181,8 @@ watch(
     v-if="config && Array.isArray(config.layers)"
     :style="{
       position: 'relative',
-      width: `${config.width || 600}px`,
-      height: `${config.height || 400}px`,
+      width: `${config.width || 1920}px`,
+      height: `${config.height || 1080}px`,
       background: '#20222a',
       overflow: 'hidden',
     }"

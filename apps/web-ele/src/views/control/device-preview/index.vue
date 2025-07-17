@@ -24,8 +24,8 @@ const scale = ref(1);
 function updateScale() {
   if (!previewRef.value || !config.value) return;
   const { clientWidth, clientHeight } = previewRef.value;
-  const w = config.value.width || 900;
-  const h = config.value.height || 600;
+  const w = config.value.width || 1920;
+  const h = config.value.height || 1080;
   scale.value = Math.min(clientWidth / w, clientHeight / h, 1);
 }
 onMounted(() => {
@@ -90,8 +90,8 @@ async function loadConfig() {
       /* 设定默认宽高，避免 0 / undefined */
       config.value = {
         deviceId: deviceId.value,
-        width: parsed.width || 900,
-        height: parsed.height || 600,
+        width: parsed.width || 1920,
+        height: parsed.height || 1080,
         ...parsed,
       };
     } else {

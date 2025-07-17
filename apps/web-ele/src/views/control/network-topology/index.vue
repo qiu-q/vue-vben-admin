@@ -260,8 +260,8 @@ async function fetchDevices() {
       } catch {}
       return {
         deviceId: String(row.deviceId),
-        width: cfg.width ?? 900,
-        height: cfg.height ?? 600,
+        width: cfg.width ?? 1920,
+        height: cfg.height ?? 1080,
         layers: Array.isArray(cfg.layers) ? cfg.layers : [],
         materialsTree: Array.isArray(cfg.materialsTree)
           ? cfg.materialsTree

@@ -76,8 +76,8 @@ const creatingNew = ref(false);
 
 const config = ref<Config>({
   deviceId: '',
-  width: 900,
-  height: 600,
+  width: 1920,
+  height: 1080,
   layers: [],
   materialsTree: [],
 });
@@ -160,8 +160,8 @@ function startNewDevice() {
   selectedDeviceId.value = '';
   config.value = {
     deviceId: '',
-    width: 900,
-    height: 600,
+    width: 1920,
+    height: 1080,
     layers: [],
     materialsTree: [],
   };

@@ -13,8 +13,8 @@ const scale = ref(1);
 function updateScale() {
   if (!viewRef.value || !config.value) return;
   const { clientWidth, clientHeight } = viewRef.value;
-  const w = config.value.width || 900;
-  const h = config.value.height || 600;
+  const w = config.value.width || 1920;
+  const h = config.value.height || 1080;
   scale.value = Math.min(clientWidth / w, clientHeight / h, 1);
 }
 
@@ -35,7 +35,7 @@ async function loadConfig() {
       parsed.materialsTree = Array.isArray(parsed.materialsTree)
         ? parsed.materialsTree
         : [];
-      config.value = { deviceId: deviceId.value, width: 900, height: 600, ...parsed };
+      config.value = { deviceId: deviceId.value, width: 1920, height: 1080, ...parsed };
     } else {
       error.value = json.msg || '未找到设备配置';
     }
