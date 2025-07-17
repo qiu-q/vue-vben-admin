@@ -467,106 +467,6 @@ watch(
           <!-- 推送设置 -->
 
 
-            <!-- 接口列表 -->
-            <div>
-              <b>页面数据源接口列表：</b>
-              <button
-                @click="addApi"
-                class="ml-2 rounded border px-2 py-1 text-xs"
-              >
-                +新增接口
-              </button>
-            </div>
-
-            <div
-              v-for="(api, idx) in apiList"
-              :key="api.id"
-              class="mb-1 rounded border p-2"
-            >
-              <!-- ✅ 每个接口是否启用 WS -->
-              <div class="mt-1">
-                <label>
-                  <input
-                    type="checkbox"
-                    v-model="api.usePush"
-                  />
-                  启用 WebSocket 推送
-                </label>
-                <select
-                  v-if="api.usePush"
-                  v-model="api.pushUrl"
-                  class="ml-2 w-44 border p-1"
-                >
-                  <option value="">选择推送通道</option>
-                  <option
-                    v-for="s in pushServices"
-                    :key="s"
-                    :value="s"
-                  >
-                    {{ s }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <input
-                  v-model="api.name"
-                  placeholder="接口名"
-                  class="mr-2 w-28 border px-2 py-1"
-                />
-                <select v-model="api.method" class="mr-2 w-16 border px-2 py-1">
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                </select>
-                <input
-                  v-model="api.url"
-                  placeholder="URL"
-                  class="mr-2 w-60 border px-2 py-1"
-                />
-                <input
-                  type="number"
-                  v-model="api.interval"
-                  :disabled="usePush"
-                  min="100"
-                  step="100"
-                  class="mr-2 w-20 border px-2 py-1"
-                  placeholder="轮询ms"
-                />
-                <button
-                  @click="testApi(idx)"
-                  class="rounded border px-2 py-1 text-xs"
-                >
-                  测试
-                </button>
-                <button
-                  @click="removeApi(idx)"
-                  class="ml-1 rounded border px-2 py-1 text-xs text-red-600"
-                >
-                  删除
-                </button>
-              </div>
-
-              <div v-if="api.method === 'POST'" class="mt-1">
-                <textarea
-                  v-model="api.params"
-                  class="w-full border p-1 text-xs"
-                  rows="2"
-                  placeholder="POST body JSON"
-                ></textarea>
-              </div>
-
-              <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
-                <span v-if="api.lastSample.error" style="color: #e55757">
-                  {{ api.lastSample.error }}
-                </span>
-                <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
-                <button
-                  @click="handleApiTestUse(idx)"
-                  class="ml-2 text-xs text-blue-500"
-                >
-                  选择本接口进行映射
-                </button>
-              </div>
-            </div>
 
             <!-- 端口 key & 状态映射 -->
             <div v-if="selectedApiId && Object.keys(portMap).length" class="mt-2">
@@ -697,6 +597,42 @@ watch(
     <!-- ================== 未选择图层 ================== -->
     <div v-else class="text-gray-400">请先点击选择一个图层</div>
 
+<div class="mt-4 border-t pt-3">
+  <div>
+    <b>页面数据源接口列表：</b>
+    <button @click="addApi" class="ml-2 rounded border px-2 py-1 text-xs">+新增接口</button>
+  </div>
+  <div v-for="(api, idx) in apiList" :key="api.id" class="mb-1 rounded border p-2">
+    <div class="mt-1">
+      <label>
+        <input type="checkbox" v-model="api.usePush" /> 启用 WebSocket 推送
+      </label>
+      <select v-if="api.usePush" v-model="api.pushUrl" class="ml-2 w-44 border p-1">
+        <option value="">选择推送通道</option>
+        <option v-for="s in pushServices" :key="s" :value="s">{{ s }}</option>
+      </select>
+    </div>
+    <div>
+      <input v-model="api.name" placeholder="接口名" class="mr-2 w-28 border px-2 py-1" />
+      <select v-model="api.method" class="mr-2 w-16 border px-2 py-1">
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+      </select>
+      <input v-model="api.url" placeholder="URL" class="mr-2 w-60 border px-2 py-1" />
+      <input type="number" v-model="api.interval" :disabled="usePush" min="100" step="100" class="mr-2 w-20 border px-2 py-1" placeholder="轮询ms" />
+      <button @click="testApi(idx)" class="rounded border px-2 py-1 text-xs">测试</button>
+      <button @click="removeApi(idx)" class="ml-1 rounded border px-2 py-1 text-xs text-red-600">删除</button>
+    </div>
+    <div v-if="api.method === 'POST'" class="mt-1">
+      <textarea v-model="api.params" class="w-full border p-1 text-xs" rows="2" placeholder="POST body JSON"></textarea>
+    </div>
+    <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
+      <span v-if="api.lastSample.error" style="color: #e55757">{{ api.lastSample.error }}</span>
+      <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
+      <button @click="handleApiTestUse(idx)" class="ml-2 text-xs text-blue-500">选择本接口进行映射</button>
+    </div>
+  </div>
+</div>
     <!-- ================== 图标选择弹窗 ================== -->
     <div
       v-if="iconSelectVisible"
