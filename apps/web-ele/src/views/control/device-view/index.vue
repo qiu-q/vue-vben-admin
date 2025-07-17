@@ -15,7 +15,8 @@ function updateScale() {
   const { clientWidth, clientHeight } = viewRef.value;
   const w = config.value.width || 1920;
   const h = config.value.height || 1080;
-  scale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+  // 不限制放大倍率，小尺寸配置也能全屏展示
+  scale.value = Math.min(clientWidth / w, clientHeight / h);
 }
 
 async function loadConfig() {

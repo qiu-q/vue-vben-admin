@@ -26,7 +26,8 @@ function updateScale() {
   const { clientWidth, clientHeight } = previewRef.value;
   const w = config.value.width || 1920;
   const h = config.value.height || 1080;
-  scale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+  // 不再限制最大倍率，旧配置尺寸过小时也能放大
+  scale.value = Math.min(clientWidth / w, clientHeight / h);
 }
 onMounted(() => {
   window.addEventListener('resize', updateScale);
