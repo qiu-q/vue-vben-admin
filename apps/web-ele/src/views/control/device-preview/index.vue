@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 // 风扇动图
@@ -18,6 +18,20 @@ const config = ref<any>(null);
 const loading = ref(true);
 const error = ref('');
 const selectedLayerId = ref<null | string>(null); // 预览不可编辑，占位即可
+
+const previewRef = ref<HTMLElement | null>(null);
+const scale = ref(1);
+function updateScale() {
+  if (!previewRef.value || !config.value) return;
+  const { clientWidth, clientHeight } = previewRef.value;
+  const w = config.value.width || 900;
+  const h = config.value.height || 600;
+  scale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+}
+onMounted(() => {
+  window.addEventListener('resize', updateScale);
+});
+onUnmounted(() => window.removeEventListener('resize', updateScale));
 
 /* ───── 视图切换 ───── */
 const viewMode = ref<'detail' | 'device'>('device');
@@ -136,6 +150,8 @@ async function loadDeviceInfo() {
 
 onMounted(loadConfig);
 onMounted(loadDeviceInfo);
+watch(config, updateScale);
+onMounted(updateScale);
 </script>
 
 <template>
@@ -166,8 +182,16 @@ onMounted(loadDeviceInfo);
         <!-- 设备视图 -->
         <!-- 设备视图 -->
         <div v-if="viewMode === 'device'">
-          <div class="switch-preview flex justify-center">
-            <div class="device-render">
+          <div ref="previewRef" class="switch-preview flex h-full items-center justify-center">
+            <div
+              class="device-render"
+              :style="{
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                width: `${config.width}px`,
+                height: `${config.height}px`,
+              }"
+            >
               <DevicePreviewRender :config="config" />
             </div>
           </div>
@@ -327,13 +351,13 @@ onMounted(loadDeviceInfo);
 .switch-preview {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100%;
-  margin-top: 16px;
+  height: 100%;
 }
 
 .device-render {
-  transform: scale(1.4); /* proportional enlarge */
-  transform-origin: top center;
+  /* scale handled dynamically via style binding */
 }
 
 .toggle-btn {

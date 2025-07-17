@@ -263,7 +263,12 @@ watch(
 <template>
   <div
     class="canvas-editor-wrap relative"
-    style="background: #23242a; border-radius: 8px"
+    :style="{
+      background: '#23242a',
+      borderRadius: '8px',
+      width: `${config.width + 32}px`,
+      height: `${config.height + 32}px`,
+    }"
   >
     <!-- 横向刻度 -->
     <div class="canvas-ruler-x">

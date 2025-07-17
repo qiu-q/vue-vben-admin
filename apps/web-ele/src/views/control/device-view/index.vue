@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import DevicePreviewRender from '#/views/control/device-preview/DevicePreviewRender.vue';
 
@@ -8,6 +8,15 @@ const deviceId = ref((route.params.deviceId as string) || '');
 const config = ref<any>(null);
 const loading = ref(true);
 const error = ref('');
+const viewRef = ref<HTMLElement | null>(null);
+const scale = ref(1);
+function updateScale() {
+  if (!viewRef.value || !config.value) return;
+  const { clientWidth, clientHeight } = viewRef.value;
+  const w = config.value.width || 900;
+  const h = config.value.height || 600;
+  scale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+}
 
 async function loadConfig() {
   loading.value = true;
@@ -38,14 +47,33 @@ async function loadConfig() {
 }
 
 onMounted(loadConfig);
+watch(config, updateScale);
+onMounted(() => {
+  window.addEventListener('resize', updateScale);
+  updateScale();
+});
+onUnmounted(() => window.removeEventListener('resize', updateScale));
 </script>
 
 <template>
   <div class="device-view-page">
     <div v-if="loading" class="status">加载中…</div>
     <div v-else-if="error" class="status text-red-400">{{ error }}</div>
-    <div v-else class="flex h-full items-center justify-center bg-[#181a20]">
-      <DevicePreviewRender :config="config" />
+    <div
+      v-else
+      ref="viewRef"
+      class="flex h-full items-center justify-center bg-[#181a20]"
+    >
+      <div
+        :style="{
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          width: `${config.width}px`,
+          height: `${config.height}px`,
+        }"
+      >
+        <DevicePreviewRender :config="config" />
+      </div>
     </div>
   </div>
 </template>

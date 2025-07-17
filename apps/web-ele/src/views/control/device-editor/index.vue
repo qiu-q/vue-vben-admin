@@ -94,6 +94,16 @@ const deviceInfo = ref<DeviceInfo>({
 
 const showDeviceInfoModal = ref(false);
 
+const editorWrapRef = ref<HTMLElement | null>(null);
+const editorScale = ref(1);
+function updateEditorScale() {
+  if (!editorWrapRef.value) return;
+  const { clientWidth, clientHeight } = editorWrapRef.value;
+  const w = config.value.width + 32;
+  const h = config.value.height + 32;
+  editorScale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+}
+
 const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
 const TABLE_ICON_URL =
   'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
@@ -243,6 +253,8 @@ async function loadConfig(id: string) {
 onMounted(() => {
   fetchDeviceList();
   if (selectedDeviceId.value) loadConfig(selectedDeviceId.value);
+  updateEditorScale();
+  window.addEventListener('resize', updateEditorScale);
 });
 
 watch(selectedDeviceId, (id) => {
@@ -251,6 +263,11 @@ watch(selectedDeviceId, (id) => {
     loadConfig(id);
   }
 });
+watch(
+  () => [config.value.width, config.value.height],
+  updateEditorScale,
+);
+onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
 
 /* -------------------------------------------------------------------------- */
 /* 编辑区交互                                                                  */
@@ -467,13 +484,22 @@ async function handlePreview() {
     </aside>
 
     <!-- 画布编辑区 -->
-    <main class="relative flex-1 overflow-hidden bg-[#181a20]">
-      <CanvasEditor
-        :config="config"
-        :selected-layer-id="selectedLayerId"
-        @select="handleSelectLayer"
-        @update="handleConfigUpdate"
-      />
+    <main ref="editorWrapRef" class="relative flex-1 overflow-hidden bg-[#181a20]">
+      <div
+        :style="{
+          transform: `scale(${editorScale})`,
+          transformOrigin: 'top left',
+          width: `${config.width + 32}px`,
+          height: `${config.height + 32}px`,
+        }"
+      >
+        <CanvasEditor
+          :config="config"
+          :selected-layer-id="selectedLayerId"
+          @select="handleSelectLayer"
+          @update="handleConfigUpdate"
+        />
+      </div>
       <div
         v-if="!config"
         class="flex h-full items-center justify-center text-gray-400"
