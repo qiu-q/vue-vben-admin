@@ -176,6 +176,7 @@ async function loadConfig(id: string) {
       let parsed: Partial<Config> = {};
       try {
         parsed = JSON.parse(json.data.deviceJson);
+        if (!parsed || typeof parsed !== 'object') parsed = {};
       } catch {
         console.error('deviceJson 解析失败，使用默认空配置');
       }
