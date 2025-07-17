@@ -513,7 +513,7 @@ watch(
             <select v-model="selectedApiId" class="border p-1 w-44">
               <option value="">(无)</option>
               <option v-for="api in availableApis" :key="api.id" :value="api.id">
-                {{ api.name }}
+                {{ api.url || api.name }}
               </option>
             </select>
           </div>
@@ -594,7 +594,7 @@ watch(
             <select v-model="tableApiId" class="border p-1">
               <option value="">(无)</option>
               <option v-for="api in availableApis" :key="api.id" :value="api.id">
-                {{ api.name }}
+                {{ api.url || api.name }}
               </option>
             </select>
           </div>
@@ -627,7 +627,7 @@ watch(
             <select v-model="cardApiId" class="border p-1">
               <option value="">(无)</option>
               <option v-for="api in availableApis" :key="api.id" :value="api.id">
-                {{ api.name }}
+                {{ api.url || api.name }}
               </option>
             </select>
           </div>
