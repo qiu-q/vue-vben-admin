@@ -37,6 +37,15 @@ const availableApis = computed(() => {
   return Array.from(map.values());
 });
 
+function getKeyOptions(apiId: string): string[] {
+  const api = availableApis.value.find((a) => a.id === apiId);
+  if (!api || !api.lastSample) return [];
+  return collectKeys(api.lastSample);
+}
+
+const cardKeyOptions = computed(() => getKeyOptions(cardApiId.value));
+const tableKeyOptions = computed(() => getKeyOptions(tableApiId.value));
+
 // =============================================
 // 页面级接口（apiList）管理
 // =============================================
@@ -114,6 +123,23 @@ function extractPortMap(sample: any): Record<string, any> {
   return {};
 }
 
+function collectKeys(obj: any, prefix = ''): string[] {
+  const results: string[] = [];
+  if (Array.isArray(obj)) {
+    results.push(prefix);
+  } else if (obj && typeof obj === 'object') {
+    for (const [k, v] of Object.entries(obj)) {
+      const p = prefix ? `${prefix}.${k}` : k;
+      if (v && typeof v === 'object') {
+        results.push(...collectKeys(v, p));
+      } else {
+        results.push(p);
+      }
+    }
+  }
+  return results;
+}
+
 // =============================================
 // 动态端口 & 推送设置
 // =============================================
@@ -133,6 +159,7 @@ const statusList = ref<
 const tableDataStr = ref('');
 const tableApiId = ref('');
 const tableScrollY = ref(false);
+const tableDataKey = ref('');
 
 // ----- 卡片配置 -----
 const cardText = ref('文本');
@@ -253,6 +280,7 @@ function handleSaveTable() {
     return;
   }
   selectedLayer.value.config.apiId = tableApiId.value;
+  selectedLayer.value.config.dataKey = tableDataKey.value;
   selectedLayer.value.config.scrollY = tableScrollY.value;
   emit('update', props.config);
   alert('属性已保存！');
@@ -288,6 +316,8 @@ watch([usePush, pushService], () => {
 watch(tableApiId, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
   selectedLayer.value.config.apiId = tableApiId.value;
+  const opts = getKeyOptions(tableApiId.value);
+  if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
   emit('update', props.config);
 });
 
@@ -295,6 +325,28 @@ watch(tableScrollY, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
   selectedLayer.value.config.scrollY = tableScrollY.value;
   emit('update', props.config);
+});
+
+watch(tableDataKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.dataKey = tableDataKey.value;
+  emit('update', props.config);
+});
+
+watch(cardDataKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
+});
+
+watch(cardApiId, () => {
+  const opts = getKeyOptions(cardApiId.value);
+  if (!cardDataKey.value && opts.length) cardDataKey.value = opts[0];
+});
+
+watch(tableApiId, () => {
+  const opts = getKeyOptions(tableApiId.value);
+  if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
 });
 
 watch(selectedApiId, () => {
@@ -337,6 +389,7 @@ watch(
     tableDataStr.value = layer.type === 'table'
       ? JSON.stringify(layer.config.data || [], null, 2)
       : '';
+    tableDataKey.value = layer.type === 'table' ? layer.config.dataKey || '' : '';
     tableScrollY.value = layer.type === 'table' ? !!layer.config.scrollY : false;
 
     cardText.value = layer.type === 'card' ? layer.config.text || '文本' : '文本';
@@ -545,6 +598,13 @@ watch(
               </option>
             </select>
           </div>
+          <div class="mb-2" v-if="tableApiId">
+            <label>取值 Key：</label>
+            <select v-model="tableDataKey" class="border p-1">
+              <option value="">(根)</option>
+              <option v-for="k in tableKeyOptions" :key="k" :value="k">{{ k }}</option>
+            </select>
+          </div>
           <div class="mb-2">
             <label>
               <input type="checkbox" v-model="tableScrollY" /> 启用纵向滚动
@@ -573,7 +633,11 @@ watch(
           </div>
           <div class="mb-2">
             <label>取值 Key：</label>
-            <input v-model="cardDataKey" class="border p-1" />
+            <select v-model="cardDataKey" class="border p-1" v-if="cardApiId">
+              <option value="">(无)</option>
+              <option v-for="k in cardKeyOptions" :key="k" :value="k">{{ k }}</option>
+            </select>
+            <input v-else v-model="cardDataKey" class="border p-1" />
           </div>
           <div class="mb-2">
             <label>字体大小：</label>

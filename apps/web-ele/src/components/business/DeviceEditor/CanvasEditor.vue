@@ -104,10 +104,47 @@ function startPollingApis() {
   }
 }
 
-function getByKey(obj: any, path: string) {
-  return path
-    .split('.')
-    .reduce((acc: any, key: string) => (acc ? acc[key] : undefined), obj);
+function getByKey(obj: any, path: string): any {
+  if (!obj) return undefined;
+  if (path.includes('.')) {
+    const [head, ...rest] = path.split('.');
+    const next = getByKey(obj, head);
+    return rest.length ? getByKey(next, rest.join('.')) : next;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const val = getByKey(item, path);
+      if (val !== undefined) return val;
+    }
+    return undefined;
+  }
+  if (obj && typeof obj === 'object') {
+    if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
+    for (const key of Object.keys(obj)) {
+      const val = getByKey(obj[key], path);
+      if (val !== undefined) return val;
+    }
+  }
+  return undefined;
+}
+
+function getTableData(layer: any) {
+  if (layer.config.apiId) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (!apiResp || apiResp.error) return [];
+    let data = layer.config.dataKey ? getByKey(apiResp, layer.config.dataKey) : apiResp;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.rows)) return data.rows;
+    return [];
+  }
+  return Array.isArray(layer.config.data) ? layer.config.data : [];
+}
+
+function getTableHeaders(layer: any) {
+  const data = getTableData(layer);
+  if (Array.isArray(data) && data.length) return Object.keys(data[0]);
+  return [];
 }
 
 function getLayerText(layer: any) {
@@ -155,6 +192,7 @@ function onDrop(e: DragEvent) {
         height: 120,
         data: DEFAULT_TABLE_DATA,
         apiId: '',
+        dataKey: '',
         scrollY: false,
       },
     };
@@ -482,10 +520,10 @@ watch(
           @dragstart.prevent
         >
           <table class="w-full border-collapse text-[11px]">
-            <thead v-if="Array.isArray(layer.config.data) && layer.config.data.length">
+            <thead v-if="getTableHeaders(layer).length">
               <tr>
                 <th
-                  v-for="key in Object.keys(layer.config.data[0])"
+                  v-for="key in getTableHeaders(layer)"
                   :key="key"
                   class="border px-1 py-0.5"
                 >
@@ -494,12 +532,9 @@ watch(
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(row, rIdx) in layer.config.data"
-                :key="rIdx"
-              >
+              <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
                 <td
-                  v-for="key in Object.keys(layer.config.data[0] || {})"
+                  v-for="key in getTableHeaders(layer)"
                   :key="key"
                   class="border px-1 py-0.5"
                 >
