@@ -99,8 +99,25 @@ const showPreview = ref(false);
 const previewConfig = ref<Config>(deepClone(config.value));
 const handleClosePreview = () => (showPreview.value = false);
 
+const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
+const TABLE_ICON_URL =
+  'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
+
 const materialsList = computed<MaterialItem[]>(() => {
   const list: MaterialItem[] = [];
+  const tree =
+    Array.isArray(config.value.materialsTree) && config.value.materialsTree.length
+      ? config.value.materialsTree
+      : [
+          {
+            id: 'root',
+            materials: [
+              { id: 'port-default', name: '端口', url: PORT_ICON_URL },
+              { id: 'table-default', name: '表格', url: TABLE_ICON_URL },
+            ],
+            children: [],
+          },
+        ];
   function walk(nodes: any[]) {
     for (const n of nodes || []) {
       if (Array.isArray(n.materials)) {
@@ -111,7 +128,7 @@ const materialsList = computed<MaterialItem[]>(() => {
       if (Array.isArray(n.children)) walk(n.children);
     }
   }
-  walk(config.value.materialsTree);
+  walk(tree);
   return list;
 });
 
