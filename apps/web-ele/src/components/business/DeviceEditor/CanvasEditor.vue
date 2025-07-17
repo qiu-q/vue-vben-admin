@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 
 const props = defineProps<{
   config: any;
@@ -58,6 +65,61 @@ function drawGrid(
 const rulerMajorStep = 160;
 const rulerColor = '#7faaff';
 const rulerMinorColor = '#476bb7';
+
+// --------- API 轮询 ---------
+const apiDataMap = ref<Record<string, any>>({});
+const apiTimers = ref<Record<string, number>>({});
+
+async function fetchApi(api: any) {
+  try {
+    const resp = await (api.method === 'POST'
+      ? fetch(api.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: api.params || '{}',
+        })
+      : fetch(api.url));
+    apiDataMap.value[api.id] = await resp.json();
+  } catch {
+    apiDataMap.value[api.id] = { error: '请求失败' };
+  }
+}
+
+function cleanupApiTimers() {
+  Object.values(apiTimers.value).forEach((t) => clearInterval(t));
+  apiTimers.value = {};
+}
+
+function startPollingApis() {
+  cleanupApiTimers();
+  if (!props.config?.apiList) return;
+  for (const api of props.config.apiList) {
+    fetchApi(api);
+    if (api.interval && api.interval > 0) {
+      apiTimers.value[api.id] = window.setInterval(
+        () => fetchApi(api),
+        api.interval,
+      );
+    }
+  }
+}
+
+function getByKey(obj: any, path: string) {
+  return path
+    .split('.')
+    .reduce((acc: any, key: string) => (acc ? acc[key] : undefined), obj);
+}
+
+function getLayerText(layer: any) {
+  if (layer.config.apiId && layer.config.dataKey) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (apiResp && !apiResp.error) {
+      const val = getByKey(apiResp, layer.config.dataKey);
+      if (val !== undefined && val !== null) return String(val);
+    }
+  }
+  return layer.config.text || '';
+}
 
 // --------- 拖拽进画布 ---------
 function onDragOver(e: DragEvent) {
@@ -269,6 +331,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMove);
   window.removeEventListener('mouseup', onUp);
   if (rafId) cancelAnimationFrame(rafId);
+  cleanupApiTimers();
 });
 
 // 画布背景（网格点）用 canvas 提高性能
@@ -280,6 +343,15 @@ watch(
       drawGrid(bgCanvas.value, props.config.width, props.config.height),
     ),
   { immediate: true },
+);
+
+onMounted(() => {
+  startPollingApis();
+});
+watch(
+  () => props.config.apiList,
+  () => startPollingApis(),
+  { immediate: true, deep: true },
 );
 </script>
 
@@ -458,7 +530,7 @@ watch(
           draggable="false"
           @dragstart.prevent
         >
-          {{ layer.config.text }}
+          {{ getLayerText(layer) }}
         </div>
         <!-- 右下角缩放点 -->
         <div
