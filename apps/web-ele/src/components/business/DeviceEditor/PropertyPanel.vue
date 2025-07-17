@@ -222,7 +222,6 @@ function handleSave() {
 
 
   emit('update', props.config);
-  alert("属性已保存！");
 
 }
 
@@ -556,6 +555,7 @@ watch(
               保存配置
             </button>
           </div>
+        </div>
 
         <!-- ================== 表格数据设置 ================== -->
         <div v-else-if="selectedLayer.type === 'table'" class="mt-4 border-t pt-3">
@@ -617,4 +617,3 @@ watch(
     </div>
   </div>
 </template>
-
