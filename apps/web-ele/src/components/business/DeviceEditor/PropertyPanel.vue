@@ -131,6 +131,8 @@ const cardText = ref('文本');
 const cardFontSize = ref(14);
 const cardColor = ref('#ffffff');
 const cardBackground = ref('#2d323c');
+const cardApiId = ref('');
+const cardDataKey = ref('');
 
 // —— 推送相关
 const usePush = ref(false);
@@ -255,6 +257,8 @@ function handleSaveCard() {
   selectedLayer.value.config.fontSize = cardFontSize.value;
   selectedLayer.value.config.color = cardColor.value;
   selectedLayer.value.config.background = cardBackground.value;
+  selectedLayer.value.config.apiId = cardApiId.value;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
   emit('update', props.config);
   alert('属性已保存！');
 }
@@ -285,12 +289,14 @@ watch(tableScrollY, () => {
   emit('update', props.config);
 });
 
-watch([cardText, cardFontSize, cardColor, cardBackground], () => {
+watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
   selectedLayer.value.config.text = cardText.value;
   selectedLayer.value.config.fontSize = cardFontSize.value;
   selectedLayer.value.config.color = cardColor.value;
   selectedLayer.value.config.background = cardBackground.value;
+  selectedLayer.value.config.apiId = cardApiId.value;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
   emit('update', props.config);
 });
 
@@ -315,6 +321,8 @@ watch(
     cardFontSize.value = layer.type === 'card' ? layer.config.fontSize || 14 : 14;
     cardColor.value = layer.type === 'card' ? layer.config.color || '#ffffff' : '#ffffff';
     cardBackground.value = layer.type === 'card' ? layer.config.background || '#2d323c' : '#2d323c';
+    cardApiId.value = layer.type === 'card' ? layer.config.apiId || '' : '';
+    cardDataKey.value = layer.type === 'card' ? layer.config.dataKey || '' : '';
 
     // 恢复映射
     const mapping = layer.config.statusMapping || {};
@@ -615,6 +623,19 @@ watch(
           <div class="mb-2">
             <label>文本：</label>
             <input v-model="cardText" class="border p-1 w-full" />
+          </div>
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="cardApiId" class="border p-1">
+              <option value="">(无)</option>
+              <option v-for="api in apiList" :key="api.id" :value="api.id">
+                {{ api.name }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label>取值 Key：</label>
+            <input v-model="cardDataKey" class="border p-1" />
           </div>
           <div class="mb-2">
             <label>字体大小：</label>

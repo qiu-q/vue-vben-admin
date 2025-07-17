@@ -137,6 +137,21 @@ function getTableHeaders(layer: any) {
   return [];
 }
 
+function getByKey(obj: any, path: string) {
+  return path.split('.').reduce((acc: any, key: string) => (acc ? acc[key] : undefined), obj);
+}
+
+function getLayerText(layer: any) {
+  if (layer.config.apiId && layer.config.dataKey) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (apiResp && !apiResp.error) {
+      const val = getByKey(apiResp, layer.config.dataKey);
+      if (val !== undefined && val !== null) return String(val);
+    }
+  }
+  return layer.config.text || '';
+}
+
 // ========== 端口移入/移出事件 ==========
 function handlePortMouseEnter(layer: any) {
   if (!layer.config.dynamic) return;
@@ -292,7 +307,7 @@ watch(
           alignItems: 'center',
         }"
       >
-        {{ layer.config.text }}
+        {{ getLayerText(layer) }}
       </div>
     </template>
     <!-- 悬浮 IP 气泡 -->

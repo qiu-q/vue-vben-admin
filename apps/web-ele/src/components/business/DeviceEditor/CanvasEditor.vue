@@ -111,6 +111,8 @@ function onDrop(e: DragEvent) {
         fontSize: 14,
         color: '#ffffff',
         background: '#2d323c',
+        apiId: '',
+        dataKey: '',
       },
     };
   } else if (url) {
@@ -131,6 +133,8 @@ function onDrop(e: DragEvent) {
           dynamic: false, // 默认不开启动态端口
           dataSource: null,
           statusMap: {},
+          apiId: '',
+          dataKey: '',
         },
       };
     } else {
@@ -145,6 +149,8 @@ function onDrop(e: DragEvent) {
           width: 120,
           height: 80,
           src: url,
+          apiId: '',
+          dataKey: '',
         },
       };
     }
