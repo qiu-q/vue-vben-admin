@@ -18,6 +18,7 @@ const props = defineProps<{
   config: any;
   materialsList?: MaterialItem[];
   selectedLayerId?: null | string;
+  allApiList?: any[];
 }>();
 const emit = defineEmits(['update']);
 
@@ -27,6 +28,13 @@ const emit = defineEmits(['update']);
 const selectedLayer = computed(() => {
   if (!props.selectedLayerId) return null;
   return props.config.layers.find((l: any) => l.id === props.selectedLayerId);
+});
+
+const availableApis = computed(() => {
+  const map = new Map<string, any>();
+  (props.allApiList || []).forEach((api) => map.set(api.id, api));
+  apiList.value.forEach((api) => map.set(api.id, api));
+  return Array.from(map.values());
 });
 
 // =============================================
@@ -289,6 +297,20 @@ watch(tableScrollY, () => {
   emit('update', props.config);
 });
 
+watch(selectedApiId, () => {
+  const api = availableApis.value.find((a) => a.id === selectedApiId.value);
+  if (api && api.lastSample) {
+    portMap.value = extractPortMap(api.lastSample);
+    const keys = Object.keys(portMap.value);
+    portKey.value = keys[0] || '';
+    updateStatusList();
+  } else {
+    portMap.value = {};
+    portKey.value = '';
+    statusList.value = [];
+  }
+});
+
 watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
   selectedLayer.value.config.text = cardText.value;
@@ -331,6 +353,13 @@ watch(
       label: mapping[k].label || '',
       iconUrl: mapping[k].iconUrl || '',
     }));
+
+    const api = availableApis.value.find(a => a.id === selectedApiId.value);
+    if (api && api.lastSample) {
+      portMap.value = extractPortMap(api.lastSample);
+    } else {
+      portMap.value = {};
+    }
   },
   { immediate: true },
 );
@@ -425,8 +454,17 @@ watch(
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>
 
-          <div v-if="dynamicPort" class="mt-2">
-            <!-- 推送设置 -->
+        <div v-if="dynamicPort" class="mt-2">
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="selectedApiId" class="border p-1 w-44">
+              <option value="">(无)</option>
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+                {{ api.name }}
+              </option>
+            </select>
+          </div>
+          <!-- 推送设置 -->
 
 
             <!-- 接口列表 -->
@@ -602,7 +640,7 @@ watch(
             <label>绑定接口：</label>
             <select v-model="tableApiId" class="border p-1">
               <option value="">(无)</option>
-              <option v-for="api in apiList" :key="api.id" :value="api.id">
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
                 {{ api.name }}
               </option>
             </select>
@@ -628,7 +666,7 @@ watch(
             <label>绑定接口：</label>
             <select v-model="cardApiId" class="border p-1">
               <option value="">(无)</option>
-              <option v-for="api in apiList" :key="api.id" :value="api.id">
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
                 {{ api.name }}
               </option>
             </select>

@@ -70,6 +70,7 @@ const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
 const deviceIdFromRoute = route.params.deviceId as string | undefined;
 
 const deviceOptions = ref<{ label: string; value: string }[]>([]);
+const deviceRows = ref<any[]>([]);
 const selectedDeviceId = ref(deviceIdFromRoute ?? '');
 // 是否处于新增模式
 const creatingNew = ref(false);
@@ -81,6 +82,28 @@ const config = ref<Config>({
   layers: [],
   materialsTree: [],
 });
+
+const allApis = ref<any[]>([]);
+
+function rebuildAllApis() {
+  const map = new Map<string, any>();
+  for (const row of deviceRows.value) {
+    if (row.deviceJson) {
+      try {
+        const parsed = JSON.parse(row.deviceJson);
+        if (Array.isArray(parsed.apiList)) {
+          for (const api of parsed.apiList) {
+            map.set(api.id, api);
+          }
+        }
+      } catch {}
+    }
+  }
+  if (Array.isArray(config.value.apiList)) {
+    for (const api of config.value.apiList) map.set(api.id, api);
+  }
+  allApis.value = Array.from(map.values());
+}
 
 const deviceInfo = ref<DeviceInfo>({
   cabinetId: 0,
@@ -146,12 +169,14 @@ async function fetchDeviceList() {
     const json = await resp.json();
     if (json.code === 200) {
       const rows = Array.isArray(json.rows) ? json.rows : [];
+      deviceRows.value = rows;
       deviceOptions.value = rows.map((r: any) => ({
         value: String(r.deviceId),
         label: r.deviceName || `设备${r.deviceId}`,
       }));
       if (!selectedDeviceId.value && deviceOptions.value.length > 0)
         selectedDeviceId.value = deviceOptions.value[0].value;
+      rebuildAllApis();
     }
   } catch (error) {
     console.error('fetchDeviceList error', error);
@@ -178,6 +203,7 @@ function startNewDevice() {
     deviceCommunity: '',
   };
   showDeviceInfoModal.value = true;
+  rebuildAllApis();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -247,6 +273,7 @@ async function loadConfig(id: string) {
         deviceCommunity: json.data.deviceCommunity ?? '',
       };
       creatingNew.value = false;
+      rebuildAllApis();
     }
   } catch (error) {
     console.error('加载设备配置失败', error);
@@ -284,6 +311,7 @@ function handleMaterialsTreeUpdate(newTree: any[]) {
 function handleConfigUpdate(updated: Config) {
   config.value = deepClone(updated);
   pushHistory();
+  rebuildAllApis();
 }
 function handleSelectLayer(layerId: string) {
   selectedLayerId.value = layerId;
@@ -519,6 +547,7 @@ async function handlePreview() {
           :config="config"
           :selected-layer-id="selectedLayerId"
           :materials-list="materialsList"
+          :all-api-list="allApis"
           @update="handleConfigUpdate"
         />
       </template>
