@@ -231,6 +231,59 @@ function startNewDevice() {
   rebuildAllApis();
 }
 
+function cloneView(type: ViewType): Config {
+  return deepClone(
+    type === 'front'
+      ? frontConfig.value
+      : type === 'back'
+        ? backConfig.value
+        : detailConfig.value,
+  );
+}
+
+function copyView(from: ViewType, to: ViewType) {
+  const data = cloneView(from);
+  if (to === 'front') frontConfig.value = data;
+  else if (to === 'back') backConfig.value = data;
+  else detailConfig.value = data;
+  pushHistory();
+  rebuildAllApis();
+}
+
+function moveView(from: ViewType, to: ViewType) {
+  copyView(from, to);
+  const empty = createDefaultConfig();
+  if (from === 'front') frontConfig.value = empty;
+  else if (from === 'back') backConfig.value = empty;
+  else detailConfig.value = empty;
+  pushHistory();
+  rebuildAllApis();
+}
+
+function handleCopyView() {
+  const target = prompt(
+    '选择要复制到的页面(front/back/detail)',
+    viewType.value === 'front' ? 'back' : 'front',
+  );
+  if (!target) return;
+  const t = target.trim() as ViewType;
+  if (t === viewType.value || !['front', 'back', 'detail'].includes(t)) return;
+  copyView(viewType.value, t);
+  alert('复制成功！');
+}
+
+function handleMoveView() {
+  const target = prompt(
+    '选择要迁移到的页面(front/back/detail)',
+    viewType.value === 'front' ? 'back' : 'front',
+  );
+  if (!target) return;
+  const t = target.trim() as ViewType;
+  if (t === viewType.value || !['front', 'back', 'detail'].includes(t)) return;
+  moveView(viewType.value, t);
+  alert('迁移成功！');
+}
+
 /* -------------------------------------------------------------------------- */
 /* 历史撤销栈                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -453,6 +506,18 @@ async function handlePreview() {
         <option value="back">背面</option>
         <option value="detail">详情</option>
       </select>
+      <button
+        @click="handleCopyView"
+        class="btn-primary border-[#3ae0ff] hover:bg-[#23242a]"
+      >
+        复制
+      </button>
+      <button
+        @click="handleMoveView"
+        class="btn-primary border-[#ff6384] hover:bg-[#23242a]"
+      >
+        迁移
+      </button>
       <button
         @click="startNewDevice"
         class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]"
