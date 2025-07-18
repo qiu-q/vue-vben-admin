@@ -314,8 +314,17 @@ function addDevice() {
     x: Math.floor(60 + Math.random() * 500),
     y: Math.floor(60 + Math.random() * 300),
   };
-  newDev.scaleX = 1;
-  newDev.scaleY = 1;
+  if (tmpl.deviceId === 'POWER-CABINET') {
+    const w =
+      Number(window.prompt('配电柜宽度(px)', String(tmpl.width))) || tmpl.width;
+    const h =
+      Number(window.prompt('配电柜高度(px)', String(tmpl.height))) || tmpl.height;
+    newDev.scaleX = w / tmpl.width;
+    newDev.scaleY = h / tmpl.height;
+  } else {
+    newDev.scaleX = 1;
+    newDev.scaleY = 1;
+  }
   newDev.parentCabinetId = null;
   devicesOnCanvas.value.push(newDev);
 }
@@ -335,8 +344,8 @@ function onDragMove(e: MouseEvent) {
   if (!dragging.value || !dragDevice.value) return;
   let nx = e.clientX - dragStart.value.x;
   let ny = e.clientY - dragStart.value.y;
-  nx = Math.max(0, Math.min(nx, 1100));
-  ny = Math.max(0, Math.min(ny, 700));
+  nx = Math.max(0, Math.min(nx, 1820));
+  ny = Math.max(0, Math.min(ny, 980));
   // 如果拖动的是机柜，同步移动其子设备
   if (
     dragDevice.value &&
@@ -504,8 +513,8 @@ function getEdgePositions(edge: any) {
     const roomList = Object.keys(topoConfigs.value);
     const idx = roomList.indexOf((edge.target as any).externalRoom);
     const canvasRect = canvasDomRef.value?.getBoundingClientRect?.();
-    const canvasWidth = canvasRect?.width || 1200;
-    const canvasHeight = canvasRect?.height || 800;
+    const canvasWidth = canvasRect?.width || 1920;
+    const canvasHeight = canvasRect?.height || 1080;
     const roomCount = roomList.length;
     const gapY = Math.max(60, (canvasHeight - 240) / Math.max(1, roomCount));
     target = {
@@ -720,8 +729,8 @@ onMounted(() => {
       </template>
       <!-- SVG连线层（内部线、外部线） -->
       <svg
-        :width="canvasDomRef?.offsetWidth || 1200"
-        :height="canvasDomRef?.offsetHeight || 800"
+        :width="canvasDomRef?.offsetWidth || 1920"
+        :height="canvasDomRef?.offsetHeight || 1080"
         style="
           position: absolute;
           top: 0;
@@ -782,7 +791,8 @@ onMounted(() => {
 <style scoped>
 .canvas-bg {
   position: relative;
-  width: 1200px; height: 800px
+  width: 1920px;
+  height: 1080px;
 }
 .canvas-bg::before {
   content: '';
