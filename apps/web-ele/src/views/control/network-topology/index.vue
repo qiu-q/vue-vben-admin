@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import html2canvas from 'html2canvas';
 
@@ -10,6 +11,8 @@ import CanvasRightPanel from './components/CanvasRightPanel.vue';
 import ExternalLines from './components/ExternalLines.vue';
 import InternalLines from './components/InternalLines.vue';
 import TopoToolbar from './components/TopoToolbar.vue';
+
+const router = useRouter();
 
 interface PortLayer {
   id: string;
@@ -336,6 +339,15 @@ function addDevice() {
   }
   newDev.parentCabinetId = null;
   devicesOnCanvas.value.push(newDev);
+}
+
+function openDeviceView(dev: RuntimeDevice) {
+  if (
+    dev.deviceId !== 'CABINET-42U' &&
+    dev.deviceId !== 'POWER-CABINET'
+  ) {
+    router.push(`/control/device-view/${dev.deviceId}`);
+  }
 }
 
 // 设备拖拽
@@ -674,6 +686,7 @@ function onKeyDown(e: KeyboardEvent) {
           class="device-wrap"
           :class="{ 'active-device': activeDeviceId === dev._uuid }"
           @click.stop="activeDeviceId = dev._uuid"
+          @dblclick.stop="openDeviceView(dev)"
           :style="{
             position: 'absolute',
             left: `${dev.position.x}px`,
