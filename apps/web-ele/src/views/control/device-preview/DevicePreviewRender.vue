@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useWs } from '#/services/ws';
 
 // props
-const props = defineProps<{ config: any }>();
+const props = defineProps<{ config: any; withRedisState?: boolean }>();
 
 // 数据存储
 const apiDataMap = ref<Record<string, any>>({});
@@ -20,14 +20,26 @@ const hoveredPortInfo = ref<null | {
 // ========== API 轮询 ==========
 async function fetchApi(api: any) {
   try {
-    const resp = await (api.method === 'POST'
-      ? fetch(api.url, {
+    if (api.method === 'POST') {
+      let params: any = {};
+      if (api.params) {
+        try { params = JSON.parse(api.params); } catch { params = {}; }
+      }
+      if (props.withRedisState && api.usePush) params.redisState = '1';
+      const resp = await fetch(api.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: api.params || '{}',
-      })
-      : fetch(api.url));
-    apiDataMap.value[api.id] = await resp.json();
+        body: JSON.stringify(params),
+      });
+      apiDataMap.value[api.id] = await resp.json();
+    } else {
+      let url = api.url;
+      if (props.withRedisState && api.usePush) {
+        url += (url.includes('?') ? '&' : '?') + 'redisState=1';
+      }
+      const resp = await fetch(url);
+      apiDataMap.value[api.id] = await resp.json();
+    }
   } catch {
     apiDataMap.value[api.id] = { error: '请求失败' };
   }
@@ -117,6 +129,62 @@ function bindDeviceIdToApis() {
   });
 }
 
+function getTableData(layer: any) {
+  if (layer.config.apiId) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (!apiResp || apiResp.error) return [];
+    let data = layer.config.dataKey ? getByKey(apiResp, layer.config.dataKey) : apiResp;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.rows)) return data.rows;
+    return [];
+  }
+  return Array.isArray(layer.config.data) ? layer.config.data : [];
+}
+
+function getTableHeaders(layer: any) {
+  const data = getTableData(layer);
+  if (Array.isArray(data) && data.length) return Object.keys(data[0]);
+  if (Array.isArray(layer.config.data) && layer.config.data.length)
+    return Object.keys(layer.config.data[0]);
+  return [];
+}
+
+function getByKey(obj: any, path: string): any {
+  if (!obj) return undefined;
+  if (path.includes('.')) {
+    const [head, ...rest] = path.split('.');
+    const next = getByKey(obj, head);
+    return rest.length ? getByKey(next, rest.join('.')) : next;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const val = getByKey(item, path);
+      if (val !== undefined) return val;
+    }
+    return undefined;
+  }
+  if (obj && typeof obj === 'object') {
+    if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
+    for (const key of Object.keys(obj)) {
+      const val = getByKey(obj[key], path);
+      if (val !== undefined) return val;
+    }
+  }
+  return undefined;
+}
+
+function getLayerText(layer: any) {
+  if (layer.config.apiId && layer.config.dataKey) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (apiResp && !apiResp.error) {
+      const val = getByKey(apiResp, layer.config.dataKey);
+      if (val !== undefined && val !== null) return String(val);
+    }
+  }
+  return layer.config.text || '';
+}
+
 // ========== 端口移入/移出事件 ==========
 function handlePortMouseEnter(layer: any) {
   if (!layer.config.dynamic) return;
@@ -161,8 +229,8 @@ watch(
     v-if="config && Array.isArray(config.layers)"
     :style="{
       position: 'relative',
-      width: `${config.width || 600}px`,
-      height: `${config.height || 400}px`,
+      width: `${config.width || 1920}px`,
+      height: `${config.height || 1080}px`,
       background: '#20222a',
       overflow: 'hidden',
     }"
@@ -212,6 +280,68 @@ watch(
           @mouseleave="handlePortMouseLeave"
         />
       </template>
+      <!-- 表格 -->
+      <div
+        v-else-if="layer.type === 'table'"
+        :style="{
+          position: 'absolute',
+          left: `${layer.config.x}px`,
+          top: `${layer.config.y}px`,
+          width: `${layer.config.width}px`,
+          height: `${layer.config.height}px`,
+          zIndex: layer.zIndex,
+          background: '#2d323c',
+          color: '#fff',
+          overflowX: 'auto',
+          overflowY: layer.config.scrollY ? 'auto' : 'hidden',
+        }"
+        class="text-xs"
+      >
+        <table class="w-full border-collapse">
+        <thead v-if="getTableHeaders(layer).length">
+          <tr>
+            <th
+              v-for="key in getTableHeaders(layer)"
+              :key="key"
+              class="border px-1 py-0.5"
+            >
+              {{ key }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
+            <td
+              v-for="key in getTableHeaders(layer)"
+              :key="key"
+              class="border px-1 py-0.5"
+            >
+              {{ row[key] }}
+            </td>
+          </tr>
+        </tbody>
+        </table>
+      </div>
+      <!-- 卡片 -->
+      <div
+        v-else-if="layer.type === 'card'"
+        :style="{
+          position: 'absolute',
+          left: `${layer.config.x}px`,
+          top: `${layer.config.y}px`,
+          width: `${layer.config.width}px`,
+          height: `${layer.config.height}px`,
+          zIndex: layer.zIndex,
+          background: layer.config.background,
+          color: layer.config.color,
+          fontSize: layer.config.fontSize + 'px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }"
+      >
+        {{ getLayerText(layer) }}
+      </div>
     </template>
     <!-- 悬浮 IP 气泡 -->
     <div

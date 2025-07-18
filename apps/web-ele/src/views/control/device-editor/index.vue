@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import CanvasEditor from '#/components/business/DeviceEditor/CanvasEditor.vue';
@@ -52,6 +52,12 @@ interface Config {
   materialsTree: any[];
 }
 
+interface MaterialItem {
+  id: string;
+  name: string;
+  url: string;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 基础状态                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -60,16 +66,44 @@ const route = useRoute();
 
 const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
 
-// 由路由携带的 deviceId —— 不存在则阻止保存
+// 路由携带的初始 deviceId（可为空）
 const deviceIdFromRoute = route.params.deviceId as string | undefined;
 
+const deviceOptions = ref<{ label: string; value: string }[]>([]);
+const deviceRows = ref<any[]>([]);
+const selectedDeviceId = ref(deviceIdFromRoute ?? '');
+// 是否处于新增模式
+const creatingNew = ref(false);
+
 const config = ref<Config>({
-  deviceId: deviceIdFromRoute ?? '',
-  width: 900,
-  height: 600,
+  deviceId: '',
+  width: 1920,
+  height: 1080,
   layers: [],
   materialsTree: [],
 });
+
+const allApis = ref<any[]>([]);
+
+function rebuildAllApis() {
+  const map = new Map<string, any>();
+  for (const row of deviceRows.value) {
+    if (row.deviceJson) {
+      try {
+        const parsed = JSON.parse(row.deviceJson);
+        if (Array.isArray(parsed.apiList)) {
+          for (const api of parsed.apiList) {
+            map.set(api.id, api);
+          }
+        }
+      } catch {}
+    }
+  }
+  if (Array.isArray(config.value.apiList)) {
+    for (const api of config.value.apiList) map.set(api.id, api);
+  }
+  allApis.value = Array.from(map.values());
+}
 
 const deviceInfo = ref<DeviceInfo>({
   cabinetId: 0,
@@ -83,10 +117,94 @@ const deviceInfo = ref<DeviceInfo>({
 
 const showDeviceInfoModal = ref(false);
 
-/* -------------------- 预览 -------------------- */
-const showPreview = ref(false);
-const previewConfig = ref<Config>(deepClone(config.value));
-const handleClosePreview = () => (showPreview.value = false);
+const editorWrapRef = ref<HTMLElement | null>(null);
+const editorScale = ref(1);
+function updateEditorScale() {
+  if (!editorWrapRef.value) return;
+  const { clientWidth, clientHeight } = editorWrapRef.value;
+  const w = config.value.width + 32;
+  const h = config.value.height + 32;
+  editorScale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+}
+
+const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
+const TABLE_ICON_URL =
+  'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
+const CARD_ICON_URL =
+  'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Ctext x%3D"28" y%3D"34" font-size%3D"20" text-anchor%3D"middle" fill%3D"%23ccc"%3ET%3C/text%3E%3C/svg%3E';
+
+const materialsList = computed<MaterialItem[]>(() => {
+  const list: MaterialItem[] = [];
+  const tree =
+    Array.isArray(config.value.materialsTree) && config.value.materialsTree.length
+      ? config.value.materialsTree
+      : [
+          {
+            id: 'root',
+            materials: [
+              { id: 'port-default', name: '端口', url: PORT_ICON_URL },
+              { id: 'table-default', name: '表格', url: TABLE_ICON_URL },
+              { id: 'card-default', name: '卡片', url: CARD_ICON_URL },
+            ],
+            children: [],
+          },
+        ];
+  function walk(nodes: any[]) {
+    for (const n of nodes || []) {
+      if (Array.isArray(n.materials)) {
+        for (const m of n.materials) {
+          list.push({ id: m.id, name: m.name, url: m.url });
+        }
+      }
+      if (Array.isArray(n.children)) walk(n.children);
+    }
+  }
+  walk(tree);
+  return list;
+});
+
+async function fetchDeviceList() {
+  try {
+    const resp = await fetch('/api/jx-device/Device/list?pageSize=0');
+    const json = await resp.json();
+    if (json.code === 200) {
+      const rows = Array.isArray(json.rows) ? json.rows : [];
+      deviceRows.value = rows;
+      deviceOptions.value = rows.map((r: any) => ({
+        value: String(r.deviceId),
+        label: r.deviceName || `设备${r.deviceId}`,
+      }));
+      if (!selectedDeviceId.value && deviceOptions.value.length > 0)
+        selectedDeviceId.value = deviceOptions.value[0].value;
+      rebuildAllApis();
+    }
+  } catch (error) {
+    console.error('fetchDeviceList error', error);
+  }
+}
+
+function startNewDevice() {
+  creatingNew.value = true;
+  selectedDeviceId.value = '';
+  config.value = {
+    deviceId: '',
+    width: 1920,
+    height: 1080,
+    layers: [],
+    materialsTree: [],
+  };
+  deviceInfo.value = {
+    cabinetId: 0,
+    deviceName: '',
+    deviceIpAddress: '',
+    deviceSerialNumber: '',
+    deviceGateway: '',
+    deviceMacAddress: '',
+    deviceCommunity: '',
+  };
+  showDeviceInfoModal.value = true;
+  rebuildAllApis();
+}
 
 /* -------------------------------------------------------------------------- */
 /* 历史撤销栈                                                                  */
@@ -120,17 +238,18 @@ function redo() {
 /* -------------------------------------------------------------------------- */
 /* 加载服务器配置                                                              */
 /* -------------------------------------------------------------------------- */
-async function loadConfig() {
-  if (!deviceIdFromRoute) return;
+async function loadConfig(id: string) {
+  if (!id) return;
 
   try {
-    const resp = await fetch(`/api/jx-device/Device/${deviceIdFromRoute}`);
+    const resp = await fetch(`/api/jx-device/Device/${id}`);
     const json = await resp.json();
 
     if (json.code === 200 && json.data) {
       let parsed: Partial<Config> = {};
       try {
         parsed = JSON.parse(json.data.deviceJson);
+        if (!parsed || typeof parsed !== 'object') parsed = {};
       } catch {
         console.error('deviceJson 解析失败，使用默认空配置');
       }
@@ -142,7 +261,7 @@ async function loadConfig() {
         : [];
 
       config.value = { ...config.value, ...parsed } as Config;
-      if (!config.value.deviceId) config.value.deviceId = deviceIdFromRoute;
+      config.value.deviceId = id;
 
       deviceInfo.value = {
         cabinetId: json.data.cabinetId ?? 0,
@@ -153,13 +272,32 @@ async function loadConfig() {
         deviceMacAddress: json.data.deviceMacAddress ?? '',
         deviceCommunity: json.data.deviceCommunity ?? '',
       };
+      creatingNew.value = false;
+      rebuildAllApis();
     }
   } catch (error) {
     console.error('加载设备配置失败', error);
   }
 }
 
-onMounted(loadConfig);
+onMounted(() => {
+  fetchDeviceList();
+  if (selectedDeviceId.value) loadConfig(selectedDeviceId.value);
+  updateEditorScale();
+  window.addEventListener('resize', updateEditorScale);
+});
+
+watch(selectedDeviceId, (id) => {
+  if (id) {
+    creatingNew.value = false;
+    loadConfig(id);
+  }
+});
+watch(
+  () => [config.value.width, config.value.height],
+  updateEditorScale,
+);
+onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
 
 /* -------------------------------------------------------------------------- */
 /* 编辑区交互                                                                  */
@@ -173,6 +311,7 @@ function handleMaterialsTreeUpdate(newTree: any[]) {
 function handleConfigUpdate(updated: Config) {
   config.value = deepClone(updated);
   pushHistory();
+  rebuildAllApis();
 }
 function handleSelectLayer(layerId: string) {
   selectedLayerId.value = layerId;
@@ -205,23 +344,22 @@ function syncMaterialsTree() {
 }
 
 async function handleSave() {
-  // 路由中若没有 deviceId，直接阻止保存
-  if (!deviceIdFromRoute) {
-    alert('当前路由缺少 deviceId，无法保存！');
+  if (!selectedDeviceId.value && !creatingNew.value) {
+    alert('请选择设备或点击新增后再保存！');
     return;
   }
 
   syncMaterialsTree();
 
   const payload = {
-    deviceId: deviceIdFromRoute, // ← 路由中的 id 同时写入请求体
+    deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
     deviceJson: JSON.stringify(config.value),
   };
 
   try {
     const resp = await fetch(`${BASE_URL}`, {
-      method: 'PUT',
+      method: creatingNew.value ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
@@ -229,6 +367,11 @@ async function handleSave() {
 
     if (json.code === 200) {
       alert('保存成功！');
+      if (creatingNew.value && json.data?.deviceId) {
+        selectedDeviceId.value = String(json.data.deviceId);
+        creatingNew.value = false;
+        fetchDeviceList();
+      }
     } else {
       alert(`保存失败：${json.msg ?? '未知错误'}`);
     }
@@ -242,15 +385,35 @@ async function handleSave() {
 /* -------------------------------------------------------------------------- */
 async function handlePreview() {
   await handleSave();
-  previewConfig.value = deepClone(config.value);
-  showPreview.value = true;
+  if (!selectedDeviceId.value) return;
+  router.push({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
 }
 </script>
 
 <template>
   <div class="device-editor flex h-full bg-[#181a20]">
     <!-- 工具栏 -->
-    <div class="fixed bottom-0 left-0 w-full z-50 flex justify-center gap-3 pb-4">
+    <div
+      class="fixed bottom-0 left-0 z-50 flex w-full justify-center gap-3 pb-4"
+    >
+      <select
+        v-model="selectedDeviceId"
+        class="rounded bg-white/90 px-2 py-1 text-black"
+      >
+        <option
+          v-for="opt in deviceOptions"
+          :key="opt.value"
+          :value="opt.value"
+        >
+          {{ opt.label }}
+        </option>
+      </select>
+      <button
+        @click="startNewDevice"
+        class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]"
+      >
+        新增
+      </button>
       <button
         @click="undo"
         :disabled="historyIndex === 0"
@@ -277,7 +440,7 @@ async function handlePreview() {
         @click="handlePreview"
         class="btn-primary border-[#3ae0ff] bg-[#2a69d7] hover:bg-[#154c8a]"
       >
-        预览
+        阅览
       </button>
       <button
         @click="showDeviceInfoModal = true"
@@ -352,13 +515,22 @@ async function handlePreview() {
     </aside>
 
     <!-- 画布编辑区 -->
-    <main class="relative flex-1 overflow-hidden bg-[#181a20]">
-      <CanvasEditor
-        :config="config"
-        :selected-layer-id="selectedLayerId"
-        @select="handleSelectLayer"
-        @update="handleConfigUpdate"
-      />
+    <main ref="editorWrapRef" class="relative flex-1 overflow-hidden bg-[#181a20]">
+      <div
+        :style="{
+          transform: `scale(${editorScale})`,
+          transformOrigin: 'top left',
+          width: `${config.width + 32}px`,
+          height: `${config.height + 32}px`,
+        }"
+      >
+        <CanvasEditor
+          :config="config"
+          :selected-layer-id="selectedLayerId"
+          @select="handleSelectLayer"
+          @update="handleConfigUpdate"
+        />
+      </div>
       <div
         v-if="!config"
         class="flex h-full items-center justify-center text-gray-400"
@@ -366,29 +538,6 @@ async function handlePreview() {
         加载中…
       </div>
 
-      <!-- 预览弹窗 -->
-      <div
-        v-if="showPreview"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      >
-        <div
-          class="relative rounded-lg bg-[#20222a] p-6 shadow-xl"
-          style="width: 920px; min-height: 640px"
-        >
-          <button
-            @click="handleClosePreview"
-            class="absolute right-3 top-2 text-lg font-bold text-[#888] hover:text-[#f44]"
-            title="关闭"
-          >
-            ×
-          </button>
-          <h3 class="mb-4 text-lg font-bold text-white">预览效果</h3>
-          <CanvasEditor
-            :config="previewConfig"
-            style="pointer-events: none; opacity: 1"
-          />
-        </div>
-      </div>
     </main>
 
     <!-- 属性面板 -->
@@ -397,6 +546,8 @@ async function handlePreview() {
         <PropertyPanel
           :config="config"
           :selected-layer-id="selectedLayerId"
+          :materials-list="materialsList"
+          :all-api-list="allApis"
           @update="handleConfigUpdate"
         />
       </template>

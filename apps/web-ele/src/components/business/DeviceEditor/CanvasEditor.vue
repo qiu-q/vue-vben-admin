@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 
 const props = defineProps<{
   config: any;
@@ -59,6 +66,98 @@ const rulerMajorStep = 160;
 const rulerColor = '#7faaff';
 const rulerMinorColor = '#476bb7';
 
+// --------- API 轮询 ---------
+const apiDataMap = ref<Record<string, any>>({});
+const apiTimers = ref<Record<string, number>>({});
+
+async function fetchApi(api: any) {
+  try {
+    const resp = await (api.method === 'POST'
+      ? fetch(api.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: api.params || '{}',
+        })
+      : fetch(api.url));
+    apiDataMap.value[api.id] = await resp.json();
+  } catch {
+    apiDataMap.value[api.id] = { error: '请求失败' };
+  }
+}
+
+function cleanupApiTimers() {
+  Object.values(apiTimers.value).forEach((t) => clearInterval(t));
+  apiTimers.value = {};
+}
+
+function startPollingApis() {
+  cleanupApiTimers();
+  if (!props.config?.apiList) return;
+  for (const api of props.config.apiList) {
+    fetchApi(api);
+    if (api.interval && api.interval > 0) {
+      apiTimers.value[api.id] = window.setInterval(
+        () => fetchApi(api),
+        api.interval,
+      );
+    }
+  }
+}
+
+function getByKey(obj: any, path: string): any {
+  if (!obj) return undefined;
+  if (path.includes('.')) {
+    const [head, ...rest] = path.split('.');
+    const next = getByKey(obj, head);
+    return rest.length ? getByKey(next, rest.join('.')) : next;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const val = getByKey(item, path);
+      if (val !== undefined) return val;
+    }
+    return undefined;
+  }
+  if (obj && typeof obj === 'object') {
+    if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
+    for (const key of Object.keys(obj)) {
+      const val = getByKey(obj[key], path);
+      if (val !== undefined) return val;
+    }
+  }
+  return undefined;
+}
+
+function getTableData(layer: any) {
+  if (layer.config.apiId) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (!apiResp || apiResp.error) return [];
+    let data = layer.config.dataKey ? getByKey(apiResp, layer.config.dataKey) : apiResp;
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.rows)) return data.rows;
+    return [];
+  }
+  return Array.isArray(layer.config.data) ? layer.config.data : [];
+}
+
+function getTableHeaders(layer: any) {
+  const data = getTableData(layer);
+  if (Array.isArray(data) && data.length) return Object.keys(data[0]);
+  return [];
+}
+
+function getLayerText(layer: any) {
+  if (layer.config.apiId && layer.config.dataKey) {
+    const apiResp = apiDataMap.value[layer.config.apiId];
+    if (apiResp && !apiResp.error) {
+      const val = getByKey(apiResp, layer.config.dataKey);
+      if (val !== undefined && val !== null) return String(val);
+    }
+  }
+  return layer.config.text || '';
+}
+
 // --------- 拖拽进画布 ---------
 function onDragOver(e: DragEvent) {
   e.preventDefault();
@@ -72,8 +171,51 @@ function onDrop(e: DragEvent) {
   const y = e.clientY - rect.top;
   const url = e.dataTransfer?.getData('image-url');
   const matType = e.dataTransfer?.getData('mat-type') || 'image'; // 关键：识别类型
-  if (url) {
-    let layer;
+  let layer;
+  if (matType === 'table') {
+    const DEFAULT_TABLE_DATA = [
+      { 设备名称: '设备A', 设备: '型号A', 序列号: 'SN001', ip: '192.168.1.10' },
+      { 设备名称: '设备B', 设备: '型号B', 序列号: 'SN002', ip: '192.168.1.11' },
+      { 设备名称: '设备C', 设备: '型号C', 序列号: 'SN003', ip: '192.168.1.12' },
+      { 设备名称: '设备D', 设备: '型号D', 序列号: 'SN004', ip: '192.168.1.13' },
+      { 设备名称: '设备E', 设备: '型号E', 序列号: 'SN005', ip: '192.168.1.14' },
+    ];
+    layer = {
+      id: `table-${Date.now()}`,
+      type: 'table',
+      zIndex: layers.value.length + 1,
+      name: `表格-${Date.now().toString().slice(-4)}`,
+      config: {
+        x: x - 40,
+        y: y - 20,
+        width: 160,
+        height: 120,
+        data: DEFAULT_TABLE_DATA,
+        apiId: '',
+        dataKey: '',
+        scrollY: false,
+      },
+    };
+  } else if (matType === 'card') {
+    layer = {
+      id: `card-${Date.now()}`,
+      type: 'card',
+      zIndex: layers.value.length + 1,
+      name: `卡片-${Date.now().toString().slice(-4)}`,
+      config: {
+        x: x - 40,
+        y: y - 20,
+        width: 160,
+        height: 60,
+        text: '文本',
+        fontSize: 14,
+        color: '#ffffff',
+        background: '#2d323c',
+        apiId: '',
+        dataKey: '',
+      },
+    };
+  } else if (url) {
     if (matType === 'port') {
       // 拖入端口组件
       layer = {
@@ -91,6 +233,8 @@ function onDrop(e: DragEvent) {
           dynamic: false, // 默认不开启动态端口
           dataSource: null,
           statusMap: {},
+          apiId: '',
+          dataKey: '',
         },
       };
     } else {
@@ -105,9 +249,13 @@ function onDrop(e: DragEvent) {
           width: 120,
           height: 80,
           src: url,
+          apiId: '',
+          dataKey: '',
         },
       };
     }
+  }
+  if (layer) {
     props.config.layers.push(layer);
     emit('update', JSON.parse(JSON.stringify(props.config)));
   }
@@ -221,6 +369,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMove);
   window.removeEventListener('mouseup', onUp);
   if (rafId) cancelAnimationFrame(rafId);
+  cleanupApiTimers();
 });
 
 // 画布背景（网格点）用 canvas 提高性能
@@ -233,12 +382,26 @@ watch(
     ),
   { immediate: true },
 );
+
+onMounted(() => {
+  startPollingApis();
+});
+watch(
+  () => props.config.apiList,
+  () => startPollingApis(),
+  { immediate: true, deep: true },
+);
 </script>
 
 <template>
   <div
     class="canvas-editor-wrap relative"
-    style="background: #23242a; border-radius: 8px"
+    :style="{
+      background: '#23242a',
+      borderRadius: '8px',
+      width: `${config.width + 32}px`,
+      height: `${config.height + 32}px`,
+    }"
   >
     <!-- 横向刻度 -->
     <div class="canvas-ruler-x">
@@ -336,11 +499,79 @@ watch(
           draggable="false"
           @dragstart.prevent
         />
+        <!-- 表格组件 -->
+        <div
+          v-else-if="layer.type === 'table'"
+          class="absolute text-xs text-white bg-[#2d323c] border border-[#444]"
+          :style="{
+            left: `${layer.config.x}px`,
+            top: `${layer.config.y}px`,
+            width: `${layer.config.width}px`,
+            height: `${layer.config.height}px`,
+            zIndex: layer.zIndex,
+            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
+            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+            overflowX: 'auto',
+            overflowY: layer.config.scrollY ? 'auto' : 'hidden',
+          }"
+          @mousedown="onMouseDownLayer($event, layer)"
+          @click.stop="selectLayer(layer.id)"
+          draggable="false"
+          @dragstart.prevent
+        >
+          <table class="w-full border-collapse text-[11px]">
+            <thead v-if="getTableHeaders(layer).length">
+              <tr>
+                <th
+                  v-for="key in getTableHeaders(layer)"
+                  :key="key"
+                  class="border px-1 py-0.5"
+                >
+                  {{ key }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
+                <td
+                  v-for="key in getTableHeaders(layer)"
+                  :key="key"
+                  class="border px-1 py-0.5"
+                >
+                  {{ row[key] }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- 卡片组件 -->
+        <div
+          v-else-if="layer.type === 'card'"
+          class="absolute flex items-center justify-center border border-[#444]"
+          :style="{
+            left: `${layer.config.x}px`,
+            top: `${layer.config.y}px`,
+            width: `${layer.config.width}px`,
+            height: `${layer.config.height}px`,
+            zIndex: layer.zIndex,
+            background: layer.config.background,
+            color: layer.config.color,
+            fontSize: layer.config.fontSize + 'px',
+            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
+            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+          }"
+          @mousedown="onMouseDownLayer($event, layer)"
+          @click.stop="selectLayer(layer.id)"
+          draggable="false"
+          @dragstart.prevent
+        >
+          {{ getLayerText(layer) }}
+        </div>
         <!-- 右下角缩放点 -->
         <div
           v-if="
             selectedId === layer.id &&
-            (layer.type === 'image' || layer.type === 'port')
+            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table' || layer.type === 'card')
           "
           class="resize-handle"
           :style="{

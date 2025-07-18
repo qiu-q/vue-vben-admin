@@ -18,6 +18,7 @@ const props = defineProps<{
   config: any;
   materialsList?: MaterialItem[];
   selectedLayerId?: null | string;
+  allApiList?: any[];
 }>();
 const emit = defineEmits(['update']);
 
@@ -28,6 +29,22 @@ const selectedLayer = computed(() => {
   if (!props.selectedLayerId) return null;
   return props.config.layers.find((l: any) => l.id === props.selectedLayerId);
 });
+
+const availableApis = computed(() => {
+  const map = new Map<string, any>();
+  (props.allApiList || []).forEach((api) => map.set(api.id, api));
+  apiList.value.forEach((api) => map.set(api.id, api));
+  return Array.from(map.values());
+});
+
+function getKeyOptions(apiId: string): string[] {
+  const api = availableApis.value.find((a) => a.id === apiId);
+  if (!api || !api.lastSample) return [];
+  return collectKeys(api.lastSample);
+}
+
+const cardKeyOptions = computed(() => getKeyOptions(cardApiId.value));
+const tableKeyOptions = computed(() => getKeyOptions(tableApiId.value));
 
 // =============================================
 // 页面级接口（apiList）管理
@@ -106,6 +123,23 @@ function extractPortMap(sample: any): Record<string, any> {
   return {};
 }
 
+function collectKeys(obj: any, prefix = ''): string[] {
+  const results: string[] = [];
+  if (prefix) results.push(prefix);
+  if (Array.isArray(obj)) {
+    // 若数组元素为对象，递归其首个元素以暴露子路径
+    if (obj.length && typeof obj[0] === 'object') {
+      results.push(...collectKeys(obj[0], prefix));
+    }
+  } else if (obj && typeof obj === 'object') {
+    for (const [k, v] of Object.entries(obj)) {
+      const p = prefix ? `${prefix}.${k}` : k;
+      results.push(...collectKeys(v, p));
+    }
+  }
+  return Array.from(new Set(results));
+}
+
 // =============================================
 // 动态端口 & 推送设置
 // =============================================
@@ -120,6 +154,20 @@ const portMap = ref<Record<string, any>>({});
 const statusList = ref<
   Array<{ iconUrl: string; label: string; value: number | string }>
 >([]);
+
+// ----- 表格配置 -----
+const tableDataStr = ref('');
+const tableApiId = ref('');
+const tableScrollY = ref(false);
+const tableDataKey = ref('');
+
+// ----- 卡片配置 -----
+const cardText = ref('文本');
+const cardFontSize = ref(14);
+const cardColor = ref('#ffffff');
+const cardBackground = ref('#2d323c');
+const cardApiId = ref('');
+const cardDataKey = ref('');
 
 // —— 推送相关
 const usePush = ref(false);
@@ -220,6 +268,37 @@ function handleSave() {
 
 }
 
+function handleSaveTable() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'table';
+  try {
+    selectedLayer.value.config.data = tableDataStr.value
+      ? JSON.parse(tableDataStr.value)
+      : [];
+  } catch {
+    alert('JSON 格式错误');
+    return;
+  }
+  selectedLayer.value.config.apiId = tableApiId.value;
+  selectedLayer.value.config.dataKey = tableDataKey.value;
+  selectedLayer.value.config.scrollY = tableScrollY.value;
+  emit('update', props.config);
+  alert('属性已保存！');
+}
+
+function handleSaveCard() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'card';
+  selectedLayer.value.config.text = cardText.value;
+  selectedLayer.value.config.fontSize = cardFontSize.value;
+  selectedLayer.value.config.color = cardColor.value;
+  selectedLayer.value.config.background = cardBackground.value;
+  selectedLayer.value.config.apiId = cardApiId.value;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
+  alert('属性已保存！');
+}
+
 function updateField(field: string, value: any) {
   if (!selectedLayer.value) return;
   selectedLayer.value.config[field] = value;
@@ -234,6 +313,67 @@ watch([usePush, pushService], () => {
   emit('update', props.config);
 });
 
+watch(tableApiId, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.apiId = tableApiId.value;
+  const opts = getKeyOptions(tableApiId.value);
+  if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
+  emit('update', props.config);
+});
+
+watch(tableScrollY, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.scrollY = tableScrollY.value;
+  emit('update', props.config);
+});
+
+watch(tableDataKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.dataKey = tableDataKey.value;
+  emit('update', props.config);
+});
+
+watch(cardDataKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
+});
+
+watch(cardApiId, () => {
+  const opts = getKeyOptions(cardApiId.value);
+  if (!cardDataKey.value && opts.length) cardDataKey.value = opts[0];
+});
+
+watch(tableApiId, () => {
+  const opts = getKeyOptions(tableApiId.value);
+  if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
+});
+
+watch(selectedApiId, () => {
+  const api = availableApis.value.find((a) => a.id === selectedApiId.value);
+  if (api && api.lastSample) {
+    portMap.value = extractPortMap(api.lastSample);
+    const keys = Object.keys(portMap.value);
+    portKey.value = keys[0] || '';
+    updateStatusList();
+  } else {
+    portMap.value = {};
+    portKey.value = '';
+    statusList.value = [];
+  }
+});
+
+watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+  selectedLayer.value.config.text = cardText.value;
+  selectedLayer.value.config.fontSize = cardFontSize.value;
+  selectedLayer.value.config.color = cardColor.value;
+  selectedLayer.value.config.background = cardBackground.value;
+  selectedLayer.value.config.apiId = cardApiId.value;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
+});
+
 // 初始化时恢复
 watch(
   () => selectedLayer.value,
@@ -245,6 +385,20 @@ watch(
     usePush.value = !!layer.config.usePush;
     pushService.value = layer.config.pushService || '';
 
+    tableApiId.value = layer.type === 'table' ? layer.config.apiId || '' : '';
+    tableDataStr.value = layer.type === 'table'
+      ? JSON.stringify(layer.config.data || [], null, 2)
+      : '';
+    tableDataKey.value = layer.type === 'table' ? layer.config.dataKey || '' : '';
+    tableScrollY.value = layer.type === 'table' ? !!layer.config.scrollY : false;
+
+    cardText.value = layer.type === 'card' ? layer.config.text || '文本' : '文本';
+    cardFontSize.value = layer.type === 'card' ? layer.config.fontSize || 14 : 14;
+    cardColor.value = layer.type === 'card' ? layer.config.color || '#ffffff' : '#ffffff';
+    cardBackground.value = layer.type === 'card' ? layer.config.background || '#2d323c' : '#2d323c';
+    cardApiId.value = layer.type === 'card' ? layer.config.apiId || '' : '';
+    cardDataKey.value = layer.type === 'card' ? layer.config.dataKey || '' : '';
+
     // 恢复映射
     const mapping = layer.config.statusMapping || {};
     statusList.value = Object.keys(mapping).map((k) => ({
@@ -252,6 +406,13 @@ watch(
       label: mapping[k].label || '',
       iconUrl: mapping[k].iconUrl || '',
     }));
+
+    const api = availableApis.value.find(a => a.id === selectedApiId.value);
+    if (api && api.lastSample) {
+      portMap.value = extractPortMap(api.lastSample);
+    } else {
+      portMap.value = {};
+    }
   },
   { immediate: true },
 );
@@ -341,115 +502,24 @@ watch(
         </div>
 
         <!-- ================== 动态端口设置 ================== -->
-        <div class="mt-4 border-t pt-3">
+        <div v-if="selectedLayer.type === 'port'" class="mt-4 border-t pt-3">
           <label>
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>
 
-          <div v-if="dynamicPort" class="mt-2">
-            <!-- 推送设置 -->
+        <div v-if="dynamicPort" class="mt-2">
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="selectedApiId" class="border p-1 w-44">
+              <option value="">(无)</option>
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+                {{ api.url || api.name }}
+              </option>
+            </select>
+          </div>
+          <!-- 推送设置 -->
 
 
-            <!-- 接口列表 -->
-            <div>
-              <b>页面数据源接口列表：</b>
-              <button
-                @click="addApi"
-                class="ml-2 rounded border px-2 py-1 text-xs"
-              >
-                +新增接口
-              </button>
-            </div>
-
-            <div
-              v-for="(api, idx) in apiList"
-              :key="api.id"
-              class="mb-1 rounded border p-2"
-            >
-              <!-- ✅ 每个接口是否启用 WS -->
-              <div class="mt-1">
-                <label>
-                  <input
-                    type="checkbox"
-                    v-model="api.usePush"
-                  />
-                  启用 WebSocket 推送
-                </label>
-                <select
-                  v-if="api.usePush"
-                  v-model="api.pushUrl"
-                  class="ml-2 w-44 border p-1"
-                >
-                  <option value="">选择推送通道</option>
-                  <option
-                    v-for="s in pushServices"
-                    :key="s"
-                    :value="s"
-                  >
-                    {{ s }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <input
-                  v-model="api.name"
-                  placeholder="接口名"
-                  class="mr-2 w-28 border px-2 py-1"
-                />
-                <select v-model="api.method" class="mr-2 w-16 border px-2 py-1">
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                </select>
-                <input
-                  v-model="api.url"
-                  placeholder="URL"
-                  class="mr-2 w-60 border px-2 py-1"
-                />
-                <input
-                  type="number"
-                  v-model="api.interval"
-                  :disabled="usePush"
-                  min="100"
-                  step="100"
-                  class="mr-2 w-20 border px-2 py-1"
-                  placeholder="轮询ms"
-                />
-                <button
-                  @click="testApi(idx)"
-                  class="rounded border px-2 py-1 text-xs"
-                >
-                  测试
-                </button>
-                <button
-                  @click="removeApi(idx)"
-                  class="ml-1 rounded border px-2 py-1 text-xs text-red-600"
-                >
-                  删除
-                </button>
-              </div>
-
-              <div v-if="api.method === 'POST'" class="mt-1">
-                <textarea
-                  v-model="api.params"
-                  class="w-full border p-1 text-xs"
-                  rows="2"
-                  placeholder="POST body JSON"
-                ></textarea>
-              </div>
-
-              <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
-                <span v-if="api.lastSample.error" style="color: #e55757">
-                  {{ api.lastSample.error }}
-                </span>
-                <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
-                <button
-                  @click="handleApiTestUse(idx)"
-                  class="ml-2 text-xs text-blue-500"
-                >
-                  选择本接口进行映射
-                </button>
-              </div>
-            </div>
 
             <!-- 端口 key & 状态映射 -->
             <div v-if="selectedApiId && Object.keys(portMap).length" class="mt-2">
@@ -516,6 +586,72 @@ watch(
             </button>
           </div>
         </div>
+
+        <!-- ================== 表格数据设置 ================== -->
+        <div v-else-if="selectedLayer.type === 'table'" class="mt-4 border-t pt-3">
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="tableApiId" class="border p-1">
+              <option value="">(无)</option>
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+                {{ api.url || api.name }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-2" v-if="tableApiId">
+            <label>取值 Key：</label>
+            <select v-model="tableDataKey" class="border p-1">
+              <option value="">(根)</option>
+              <option v-for="k in tableKeyOptions" :key="k" :value="k">{{ k }}</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label>
+              <input type="checkbox" v-model="tableScrollY" /> 启用纵向滚动
+            </label>
+          </div>
+          <div class="mb-2">
+            <label class="mb-1 block">静态 JSON 数据：</label>
+            <textarea v-model="tableDataStr" rows="4" class="w-full border p-1 text-xs"></textarea>
+          </div>
+          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveTable">保存配置</button>
+        </div>
+        <!-- ================== 卡片设置 ================== -->
+        <div v-else-if="selectedLayer.type === 'card'" class="mt-4 border-t pt-3">
+          <div class="mb-2">
+            <label>文本：</label>
+            <input v-model="cardText" class="border p-1 w-full" />
+          </div>
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="cardApiId" class="border p-1">
+              <option value="">(无)</option>
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+                {{ api.url || api.name }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label>取值 Key：</label>
+            <select v-model="cardDataKey" class="border p-1" :disabled="!cardApiId">
+              <option value="">(无)</option>
+              <option v-for="k in cardKeyOptions" :key="k" :value="k">{{ k }}</option>
+            </select>
+          </div>
+          <div class="mb-2">
+            <label>字体大小：</label>
+            <input type="number" v-model.number="cardFontSize" class="w-20 border p-1" />
+          </div>
+          <div class="mb-2">
+            <label>文字颜色：</label>
+            <input type="color" v-model="cardColor" />
+          </div>
+          <div class="mb-2">
+            <label>背景颜色：</label>
+            <input type="color" v-model="cardBackground" />
+          </div>
+          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveCard">保存配置</button>
+        </div>
       </div>
 
       <div v-else class="text-gray-400">该图层无可编辑属性</div>
@@ -524,6 +660,42 @@ watch(
     <!-- ================== 未选择图层 ================== -->
     <div v-else class="text-gray-400">请先点击选择一个图层</div>
 
+<div class="mt-4 border-t pt-3">
+  <div>
+    <b>页面数据源接口列表：</b>
+    <button @click="addApi" class="ml-2 rounded border px-2 py-1 text-xs">+新增接口</button>
+  </div>
+  <div v-for="(api, idx) in apiList" :key="api.id" class="mb-1 rounded border p-2">
+    <div class="mt-1">
+      <label>
+        <input type="checkbox" v-model="api.usePush" /> 启用 WebSocket 推送
+      </label>
+      <select v-if="api.usePush" v-model="api.pushUrl" class="ml-2 w-44 border p-1">
+        <option value="">选择推送通道</option>
+        <option v-for="s in pushServices" :key="s" :value="s">{{ s }}</option>
+      </select>
+    </div>
+    <div>
+      <input v-model="api.name" placeholder="接口名" class="mr-2 w-28 border px-2 py-1" />
+      <select v-model="api.method" class="mr-2 w-16 border px-2 py-1">
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+      </select>
+      <input v-model="api.url" placeholder="URL" class="mr-2 w-60 border px-2 py-1" />
+      <input type="number" v-model="api.interval" :disabled="usePush" min="100" step="100" class="mr-2 w-20 border px-2 py-1" placeholder="轮询ms" />
+      <button @click="testApi(idx)" class="rounded border px-2 py-1 text-xs">测试</button>
+      <button @click="removeApi(idx)" class="ml-1 rounded border px-2 py-1 text-xs text-red-600">删除</button>
+    </div>
+    <div v-if="api.method === 'POST'" class="mt-1">
+      <textarea v-model="api.params" class="w-full border p-1 text-xs" rows="2" placeholder="POST body JSON"></textarea>
+    </div>
+    <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
+      <span v-if="api.lastSample.error" style="color: #e55757">{{ api.lastSample.error }}</span>
+      <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
+      <button @click="handleApiTestUse(idx)" class="ml-2 text-xs text-blue-500">选择本接口进行映射</button>
+    </div>
+  </div>
+</div>
     <!-- ================== 图标选择弹窗 ================== -->
     <div
       v-if="iconSelectVisible"

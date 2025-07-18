@@ -8,7 +8,6 @@ import TopHeader from './components/TopHeader.vue';
 </script>
 <template>
   <div class="dashboard">
-
     <TopHeader />
     <div class="grid-container">
       <dv-border-box8 :reverse="true" class="left">
@@ -48,7 +47,9 @@ import TopHeader from './components/TopHeader.vue';
   grid-template-areas:
     'left main right-top'
     'bottom-left main bottom-right';
+  /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
   grid-template-rows: 1fr 1fr;
+  /* stylelint-disable-next-line declaration-block-no-redundant-longhand-properties */
   grid-template-columns: 250px 1fr 300px;
   gap: 8px;
   padding: 8px;
@@ -79,10 +80,11 @@ import TopHeader from './components/TopHeader.vue';
   border-radius: 4px;
   box-shadow: 0 2px 6px rgb(0 0 0 / 40%);
 }
+
 .box {
-  height: 100%;
-  width: 100%;
-  padding: 12px;
   box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
 }
 </style>
