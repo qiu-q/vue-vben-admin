@@ -324,18 +324,17 @@ async function loadConfig(id: string) {
     const json = await resp.json();
 
     if (json.code === 200 && json.data) {
-      let front: Partial<Config> = {};
-      let back: Partial<Config> = {};
-      let detail: Partial<Config> = {};
-      try {
-        front = JSON.parse(json.data.deviceJson || '{}');
-      } catch {}
-      try {
-        back = JSON.parse(json.data.deviceBack || '{}');
-      } catch {}
-      try {
-        detail = JSON.parse(json.data.deviceDetails || '{}');
-      } catch {}
+      const parseCfg = (val: any): Partial<Config> => {
+        try {
+          const obj = JSON.parse(val ?? '{}');
+          return obj && typeof obj === 'object' ? obj : {};
+        } catch {
+          return {};
+        }
+      };
+      const front = parseCfg(json.data.deviceJson);
+      const back = parseCfg(json.data.deviceBack);
+      const detail = parseCfg(json.data.deviceDetails);
 
       for (const obj of [front, back, detail]) {
         obj.layers = Array.isArray(obj.layers) ? obj.layers : [];
