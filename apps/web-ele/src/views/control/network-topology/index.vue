@@ -183,6 +183,10 @@ async function saveCurrentCanvasToConfigs() {
   saveConfigsToStorage();
   newConfigName.value = '';
   alert(`画布【${name}】已保存`);
+
+  // 清空当前画布方便继续新建
+  devicesOnCanvas.value = [];
+  edges.value = [];
 }
 
 function restoreConfigToCanvas(config: TopoConfig) {
