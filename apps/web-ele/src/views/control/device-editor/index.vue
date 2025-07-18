@@ -50,6 +50,7 @@ interface Config {
   height: number;
   layers: any[];
   materialsTree: any[];
+  apiList?: any[];
 }
 
 interface MaterialItem {
@@ -75,12 +76,37 @@ const selectedDeviceId = ref(deviceIdFromRoute ?? '');
 // 是否处于新增模式
 const creatingNew = ref(false);
 
-const config = ref<Config>({
-  deviceId: '',
-  width: 1920,
-  height: 1080,
-  layers: [],
-  materialsTree: [],
+function createDefaultConfig(): Config {
+  return {
+    deviceId: '',
+    width: 1920,
+    height: 1080,
+    layers: [],
+    materialsTree: [],
+    apiList: [],
+  };
+}
+
+const frontConfig = ref<Config>(createDefaultConfig());
+const backConfig = ref<Config>(createDefaultConfig());
+const detailConfig = ref<Config>(createDefaultConfig());
+
+type ViewType = 'front' | 'back' | 'detail';
+const viewType = ref<ViewType>('front');
+
+const config = computed<Config>({
+  get() {
+    return viewType.value === 'front'
+      ? frontConfig.value
+      : viewType.value === 'back'
+        ? backConfig.value
+        : detailConfig.value;
+  },
+  set(val: Config) {
+    if (viewType.value === 'front') frontConfig.value = val;
+    else if (viewType.value === 'back') backConfig.value = val;
+    else detailConfig.value = val;
+  },
 });
 
 const allApis = ref<any[]>([]);
@@ -88,15 +114,17 @@ const allApis = ref<any[]>([]);
 function rebuildAllApis() {
   const map = new Map<string, any>();
   for (const row of deviceRows.value) {
-    if (row.deviceJson) {
-      try {
-        const parsed = JSON.parse(row.deviceJson);
-        if (Array.isArray(parsed.apiList)) {
-          for (const api of parsed.apiList) {
-            map.set(api.id, api);
+    for (const field of ['deviceJson', 'deviceBack', 'deviceDetails']) {
+      if (row[field]) {
+        try {
+          const parsed = JSON.parse(row[field]);
+          if (Array.isArray(parsed.apiList)) {
+            for (const api of parsed.apiList) {
+              map.set(api.id, api);
+            }
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
   }
   if (Array.isArray(config.value.apiList)) {
@@ -186,13 +214,10 @@ async function fetchDeviceList() {
 function startNewDevice() {
   creatingNew.value = true;
   selectedDeviceId.value = '';
-  config.value = {
-    deviceId: '',
-    width: 1920,
-    height: 1080,
-    layers: [],
-    materialsTree: [],
-  };
+  viewType.value = 'front';
+  frontConfig.value = createDefaultConfig();
+  backConfig.value = createDefaultConfig();
+  detailConfig.value = createDefaultConfig();
   deviceInfo.value = {
     cabinetId: 0,
     deviceName: '',
@@ -246,22 +271,30 @@ async function loadConfig(id: string) {
     const json = await resp.json();
 
     if (json.code === 200 && json.data) {
-      let parsed: Partial<Config> = {};
+      let front: Partial<Config> = {};
+      let back: Partial<Config> = {};
+      let detail: Partial<Config> = {};
       try {
-        parsed = JSON.parse(json.data.deviceJson);
-        if (!parsed || typeof parsed !== 'object') parsed = {};
-      } catch {
-        console.error('deviceJson 解析失败，使用默认空配置');
+        front = JSON.parse(json.data.deviceJson || '{}');
+      } catch {}
+      try {
+        back = JSON.parse(json.data.deviceBack || '{}');
+      } catch {}
+      try {
+        detail = JSON.parse(json.data.deviceDetails || '{}');
+      } catch {}
+
+      for (const obj of [front, back, detail]) {
+        obj.layers = Array.isArray(obj.layers) ? obj.layers : [];
+        obj.materialsTree = Array.isArray(obj.materialsTree)
+          ? obj.materialsTree
+          : [];
+        obj.apiList = Array.isArray(obj.apiList) ? obj.apiList : [];
       }
 
-      // 保证字段安全
-      parsed.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
-      parsed.materialsTree = Array.isArray(parsed.materialsTree)
-        ? parsed.materialsTree
-        : [];
-
-      config.value = { ...config.value, ...parsed } as Config;
-      config.value.deviceId = id;
+      frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: id };
+      backConfig.value = { ...createDefaultConfig(), ...back, deviceId: id };
+      detailConfig.value = { ...createDefaultConfig(), ...detail, deviceId: id };
 
       deviceInfo.value = {
         cabinetId: json.data.cabinetId ?? 0,
@@ -292,6 +325,11 @@ watch(selectedDeviceId, (id) => {
     creatingNew.value = false;
     loadConfig(id);
   }
+});
+watch(viewType, () => {
+  selectedLayerId.value = null;
+  rebuildAllApis();
+  updateEditorScale();
 });
 watch(
   () => [config.value.width, config.value.height],
@@ -354,7 +392,9 @@ async function handleSave() {
   const payload = {
     deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
-    deviceJson: JSON.stringify(config.value),
+    deviceJson: JSON.stringify(frontConfig.value),
+    deviceBack: JSON.stringify(backConfig.value),
+    deviceDetails: JSON.stringify(detailConfig.value),
   };
 
   try {
@@ -407,6 +447,11 @@ async function handlePreview() {
         >
           {{ opt.label }}
         </option>
+      </select>
+      <select v-model="viewType" class="rounded bg-white/90 px-2 py-1 text-black">
+        <option value="front">正面</option>
+        <option value="back">背面</option>
+        <option value="detail">详情</option>
       </select>
       <button
         @click="startNewDevice"
