@@ -64,6 +64,16 @@ function createCabinetTemplate(): DeviceTemplate {
   };
 }
 
+function createPowerCabinetTemplate(): DeviceTemplate {
+  return {
+    deviceId: 'POWER-CABINET',
+    width: 480,
+    height: 700,
+    layers: [],
+    materialsTree: [],
+  };
+}
+
 interface TopoConfig {
   devices: {
     _uuid: string;
@@ -277,6 +287,10 @@ async function fetchDevices() {
     if (!allDeviceOptions.value.find((d) => d.deviceId === 'CABINET-42U')) {
       allDeviceOptions.value.push(createCabinetTemplate());
     }
+    // 配电柜模板
+    if (!allDeviceOptions.value.find((d) => d.deviceId === 'POWER-CABINET')) {
+      allDeviceOptions.value.push(createPowerCabinetTemplate());
+    }
 
     if (allDeviceOptions.value.length > 0)
       selectedDeviceId.value = allDeviceOptions.value[0].deviceId;
@@ -324,7 +338,11 @@ function onDragMove(e: MouseEvent) {
   nx = Math.max(0, Math.min(nx, 1100));
   ny = Math.max(0, Math.min(ny, 700));
   // 如果拖动的是机柜，同步移动其子设备
-  if (dragDevice.value && dragDevice.value.deviceId === 'CABINET-42U') {
+  if (
+    dragDevice.value &&
+    (dragDevice.value.deviceId === 'CABINET-42U' ||
+      dragDevice.value.deviceId === 'POWER-CABINET')
+  ) {
     const cab = dragDevice.value as RuntimeDevice;
     const dx = nx - cab.position.x;
     const dy = ny - cab.position.y;
@@ -338,7 +356,11 @@ function onDragMove(e: MouseEvent) {
   dragDevice.value.position.x = nx;
   dragDevice.value.position.y = ny;
   // 计算当前悬停的机柜（仅拖普通设备时）
-  if (dragDevice.value && dragDevice.value.deviceId !== 'CABINET-42U') {
+  if (
+    dragDevice.value &&
+    dragDevice.value.deviceId !== 'CABINET-42U' &&
+    dragDevice.value.deviceId !== 'POWER-CABINET'
+  ) {
     const device = dragDevice.value as RuntimeDevice;
     const devPos = device.position;
 
@@ -367,13 +389,17 @@ function onDragMove(e: MouseEvent) {
 }
 function stopDragDevice() {
   // -------- Auto‑scale when dropping into cabinet -------
-  if (dragDevice.value && dragDevice.value.deviceId !== 'CABINET-42U') {
+  if (
+    dragDevice.value &&
+    dragDevice.value.deviceId !== 'CABINET-42U' &&
+    dragDevice.value.deviceId !== 'POWER-CABINET'
+  ) {
     const device = dragDevice.value as RuntimeDevice;
 
     // 找覆盖该设备左上角的机柜
     const cabinet = devicesOnCanvas.value.find(
       (d) =>
-        d.deviceId === 'CABINET-42U' &&
+        (d.deviceId === 'CABINET-42U' || d.deviceId === 'POWER-CABINET') &&
         device.position.x >= d.position.x &&
         device.position.x <= d.position.x + d.width &&
         device.position.y >= d.position.y &&
@@ -381,33 +407,39 @@ function stopDragDevice() {
     ) as RuntimeDevice | undefined;
 
     if (cabinet) {
-      const innerWidth = cabinet.width - 20; // 可用宽度
-      const promptTxt = '该设备占用多少 U？(1-42)';
-      let units = Number(window.prompt(promptTxt, '1'));
-      if (!units || units < 1 || units > 42 || Number.isNaN(units)) units = 1;
+      if (cabinet.deviceId === 'CABINET-42U') {
+        const innerWidth = cabinet.width - 20; // 可用宽度
+        const promptTxt = '该设备占用多少 U？(1-42)';
+        let units = Number(window.prompt(promptTxt, '1'));
+        if (!units || units < 1 || units > 42 || Number.isNaN(units)) units = 1;
 
-      // 计算吸附起始行
-      const relY = device.position.y - cabinet.position.y;
-      let startIdx = Math.floor(relY / U_HEIGHT);
-      startIdx = Math.max(0, Math.min(42 - units, startIdx));
+        // 计算吸附起始行
+        const relY = device.position.y - cabinet.position.y;
+        let startIdx = Math.floor(relY / U_HEIGHT);
+        startIdx = Math.max(0, Math.min(42 - units, startIdx));
 
-      // X/Y 独立缩放：先按宽度铺满，再按高度向上取整到整数像素，避免空隙
-      device.scaleX = innerWidth / device.width;
+        // X/Y 独立缩放：先按宽度铺满，再按高度向上取整到整数像素，避免空隙
+        device.scaleX = innerWidth / device.width;
 
-      const rawScaleY = (units * U_HEIGHT) / device.height;
-      // 向上取整到千分位，确保视觉完全覆盖
-      device.scaleY = Math.ceil(rawScaleY * 1000) / 1000;
+        const rawScaleY = (units * U_HEIGHT) / device.height;
+        // 向上取整到千分位，确保视觉完全覆盖
+        device.scaleY = Math.ceil(rawScaleY * 1000) / 1000;
 
-      // 重新定位
-      device.position.x =
-        cabinet.position.x + (cabinet.width - device.width * device.scaleX) / 2;
-      device.position.y = cabinet.position.y + startIdx * U_HEIGHT;
+        // 重新定位
+        device.position.x =
+          cabinet.position.x +
+          (cabinet.width - device.width * device.scaleX) / 2;
+        device.position.y = cabinet.position.y + startIdx * U_HEIGHT;
+
+        // 高亮更新（松手后显示实际占用行）
+        hoveredUSlots.value = Array.from(
+          { length: units },
+          (_, i) => startIdx + i,
+        );
+      }
 
       // 绑定父机柜
       device.parentCabinetId = cabinet._uuid;
-
-      // 高亮更新（松手后显示实际占用行）
-      hoveredUSlots.value = Array.from({ length: units }, (_, i) => startIdx + i);
     }
     else {
       device.parentCabinetId = null;
@@ -605,7 +637,10 @@ onMounted(() => {
             top: `${dev.position.y}px`,
             transform: `scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`,
             transformOrigin: 'top left',
-            zIndex: dev.deviceId === 'CABINET-42U' ? 10 : 20,
+            zIndex:
+              dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
+                ? 10
+                : 20,
           }"
           @mousedown="startDragDevice(dev, $event)"
         >
@@ -630,6 +665,9 @@ onMounted(() => {
                 <div class="slot-content" :data-u="42 - u + 1"></div>
               </div>
             </div>
+          </template>
+          <template v-else-if="dev.deviceId === 'POWER-CABINET'">
+            <div class="power-cabinet">配电柜</div>
           </template>
           <template v-else>
             <!-- 底图层 -->
@@ -823,5 +861,16 @@ onMounted(() => {
 .cabinet-slot-hover-u {
   border: 1px solid #01aaff !important;
   box-shadow: inset 0 0 8px 2px #01aaff;
+}
+.power-cabinet {
+  width: 480px;
+  height: 700px;
+  background: #2d2d2d;
+  border: 2px solid #888;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
 }
 </style>
