@@ -263,8 +263,8 @@ function handleSave() {
   }
   syncApiList(); // 记得同步回 props.config.apiList
 
-
   emit('update', props.config);
+  alert('属性已保存！');
 
 }
 
@@ -308,35 +308,48 @@ function updateField(field: string, value: any) {
 // 推送设置 watch ⽀持及时写回图层
 watch([usePush, pushService], () => {
   if (!selectedLayer.value) return;
-  selectedLayer.value.config.usePush = usePush.value;
-  selectedLayer.value.config.pushService = pushService.value;
-  emit('update', props.config);
+  if (
+    selectedLayer.value.config.usePush !== usePush.value ||
+    selectedLayer.value.config.pushService !== pushService.value
+  ) {
+    selectedLayer.value.config.usePush = usePush.value;
+    selectedLayer.value.config.pushService = pushService.value;
+    emit('update', props.config);
+  }
 });
 
 watch(tableApiId, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
-  selectedLayer.value.config.apiId = tableApiId.value;
   const opts = getKeyOptions(tableApiId.value);
   if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
-  emit('update', props.config);
+  if (selectedLayer.value.config.apiId !== tableApiId.value) {
+    selectedLayer.value.config.apiId = tableApiId.value;
+    emit('update', props.config);
+  }
 });
 
 watch(tableScrollY, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
-  selectedLayer.value.config.scrollY = tableScrollY.value;
-  emit('update', props.config);
+  if (selectedLayer.value.config.scrollY !== tableScrollY.value) {
+    selectedLayer.value.config.scrollY = tableScrollY.value;
+    emit('update', props.config);
+  }
 });
 
 watch(tableDataKey, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
-  selectedLayer.value.config.dataKey = tableDataKey.value;
-  emit('update', props.config);
+  if (selectedLayer.value.config.dataKey !== tableDataKey.value) {
+    selectedLayer.value.config.dataKey = tableDataKey.value;
+    emit('update', props.config);
+  }
 });
 
 watch(cardDataKey, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
-  selectedLayer.value.config.dataKey = cardDataKey.value;
-  emit('update', props.config);
+  if (selectedLayer.value.config.dataKey !== cardDataKey.value) {
+    selectedLayer.value.config.dataKey = cardDataKey.value;
+    emit('update', props.config);
+  }
 });
 
 watch(cardApiId, () => {
@@ -365,13 +378,23 @@ watch(selectedApiId, () => {
 
 watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
-  selectedLayer.value.config.text = cardText.value;
-  selectedLayer.value.config.fontSize = cardFontSize.value;
-  selectedLayer.value.config.color = cardColor.value;
-  selectedLayer.value.config.background = cardBackground.value;
-  selectedLayer.value.config.apiId = cardApiId.value;
-  selectedLayer.value.config.dataKey = cardDataKey.value;
-  emit('update', props.config);
+  const cfg = selectedLayer.value.config;
+  if (
+    cfg.text !== cardText.value ||
+    cfg.fontSize !== cardFontSize.value ||
+    cfg.color !== cardColor.value ||
+    cfg.background !== cardBackground.value ||
+    cfg.apiId !== cardApiId.value ||
+    cfg.dataKey !== cardDataKey.value
+  ) {
+    cfg.text = cardText.value;
+    cfg.fontSize = cardFontSize.value;
+    cfg.color = cardColor.value;
+    cfg.background = cardBackground.value;
+    cfg.apiId = cardApiId.value;
+    cfg.dataKey = cardDataKey.value;
+    emit('update', props.config);
+  }
 });
 
 // 初始化时恢复
