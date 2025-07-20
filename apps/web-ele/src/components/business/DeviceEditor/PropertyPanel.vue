@@ -333,6 +333,26 @@ watch(tableDataKey, () => {
   emit('update', props.config);
 });
 
+watch(portKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'port') return;
+  selectedLayer.value.config.portKey = portKey.value;
+  emit('update', props.config);
+});
+
+watch(
+  statusList,
+  (list) => {
+    if (!selectedLayer.value || selectedLayer.value.type !== 'port') return;
+    const mapping: Record<number | string, any> = {};
+    for (const row of list) {
+      mapping[row.value] = { iconUrl: row.iconUrl, label: row.label };
+    }
+    selectedLayer.value.config.statusMapping = mapping;
+    emit('update', props.config);
+  },
+  { deep: true },
+);
+
 watch(cardDataKey, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
   selectedLayer.value.config.dataKey = cardDataKey.value;
