@@ -48,7 +48,10 @@ async function loadConfig() {
 }
 
 onMounted(loadConfig);
-watch(config, updateScale);
+watch(
+  () => [config.value?.width, config.value?.height],
+  updateScale,
+);
 onMounted(() => {
   window.addEventListener('resize', updateScale);
   updateScale();
