@@ -194,10 +194,13 @@ function handlePortMouseEnter(layer: any) {
   if (!apiResp || apiResp.error) return;
   const x = layer.config.x + (layer.config.width || 0) / 2;
   const y = layer.config.y;
+  const ipMap = extractPortIpMap(apiResp);
+  const ips = ipMap[portKey];
+  const ipText = Array.isArray(ips) ? ips.join(', ') : ips;
   hoveredPortInfo.value = {
     x,
     y,
-    label: String(portKey),
+    label: ipText ? `${portKey}\n${ipText}` : String(portKey),
   };
 }
 function handlePortMouseLeave() {
@@ -359,7 +362,8 @@ watch(
         pointerEvents: 'none',
         zIndex: 99,
         minWidth: '80px',
-        textAlign: 'center'
+        textAlign: 'center',
+        whiteSpace: 'pre-wrap'
       }"
     >
       {{ hoveredPortInfo.label }}
