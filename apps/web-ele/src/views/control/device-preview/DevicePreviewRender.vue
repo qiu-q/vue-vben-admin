@@ -14,8 +14,8 @@ const wsUnsubs = ref<Record<string, () => void>>({});
 const hoveredPortInfo = ref<null | {
   x: number,
   y: number,
-  ip: string,
-}> (null);
+  label: string,
+}>(null);
 
 // ========== API 轮询 ==========
 async function fetchApi(api: any) {
@@ -192,13 +192,12 @@ function handlePortMouseEnter(layer: any) {
   const { apiId, portKey } = layer.config;
   const apiResp = apiDataMap.value[apiId];
   if (!apiResp || apiResp.error) return;
-  const ipMap = extractPortIpMap(apiResp);
   const x = layer.config.x + (layer.config.width || 0) / 2;
   const y = layer.config.y;
   hoveredPortInfo.value = {
     x,
     y,
-    ip: ipMap[portKey] || '无IP',
+    label: String(portKey),
   };
 }
 function handlePortMouseLeave() {
@@ -363,7 +362,7 @@ watch(
         textAlign: 'center'
       }"
     >
-      {{ hoveredPortInfo.ip }}
+      {{ hoveredPortInfo.label }}
     </div>
   </div>
   <div v-else class="p-8 text-center text-gray-500">
