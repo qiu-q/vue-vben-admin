@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import { uploadFile } from '#/api/device';
 import { WS_URLS } from '#/constants/ws';
 
+const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
 
 // 允许直接设置像素高度，不再限制 U 数
 
@@ -190,10 +191,6 @@ const cardBackground = ref('#2d323c');
 const cardApiId = ref('');
 const cardDataKey = ref('');
 
-// —— 推送相关
-const usePush = ref(false);
-const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
-const pushService = ref<'' | keyof typeof WS_URLS>('');
 
 // =============================================
 // 端口状态测试 & 映射
@@ -270,25 +267,12 @@ function handleSave() {
   selectedLayer.value.config.dynamic = dynamicPort.value;
   selectedLayer.value.config.apiId = selectedApiId.value;
   selectedLayer.value.config.portKey = portKey.value;
-  selectedLayer.value.config.usePush = usePush.value;
-  selectedLayer.value.config.pushService = pushService.value;
-
   // 状态映射
   const mapping: Record<number | string, any> = {};
   for (const row of statusList.value) {
     mapping[row.value] = { iconUrl: row.iconUrl, label: row.label };
   }
   selectedLayer.value.config.statusMapping = mapping;
-// 同步 push 设置到 apiList 中对应接口
-  const api = apiList.value.find(a => a.id === selectedApiId.value);
-  if (api) {
-    api.usePush = usePush.value;
-    if (usePush.value && pushService.value) {
-      api.pushUrl = pushService.value;
-    } else {
-      delete api.pushUrl;
-    }
-  }
   syncApiList(); // 记得同步回 props.config.apiList
 
   emit('update', props.config);
@@ -364,18 +348,6 @@ function updateField(field: string, value: any) {
   emit('update', props.config);
 }
 
-// 推送设置 watch ⽀持及时写回图层
-watch([usePush, pushService], () => {
-  if (!selectedLayer.value) return;
-  if (
-    selectedLayer.value.config.usePush !== usePush.value ||
-    selectedLayer.value.config.pushService !== pushService.value
-  ) {
-    selectedLayer.value.config.usePush = usePush.value;
-    selectedLayer.value.config.pushService = pushService.value;
-    emit('update', props.config);
-  }
-});
 
 watch(tableApiId, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
@@ -533,9 +505,6 @@ watch(
     dynamicPort.value = !!layer.config.dynamic;
     selectedApiId.value = layer.config.apiId || '';
     portKey.value = layer.config.portKey || '';
-    usePush.value = !!layer.config.usePush;
-    pushService.value = layer.config.pushService || '';
-
     tableApiId.value = layer.type === 'table' ? layer.config.apiId || '' : '';
     tableDataStr.value = layer.type === 'table'
       ? JSON.stringify(layer.config.data || [], null, 2)
@@ -657,10 +626,6 @@ watch(
               </option>
             </select>
           </div>
-          <!-- 推送设置 -->
-
-
-
             <!-- 端口 key & 状态映射 -->
             <div v-if="selectedApiId && Object.keys(portMap).length" class="mt-2">
               <label>选择端口 key：</label>
@@ -822,7 +787,7 @@ watch(
         <option value="POST">POST</option>
       </select>
       <input v-model="api.url" placeholder="URL" class="mr-2 w-60 border px-2 py-1" />
-      <input type="number" v-model="api.interval" :disabled="usePush" min="100" step="100" class="mr-2 w-20 border px-2 py-1" placeholder="轮询ms" />
+        <input type="number" v-model="api.interval" :disabled="api.usePush" min="100" step="100" class="mr-2 w-20 border px-2 py-1" placeholder="轮询ms" />
       <button @click="testApi(idx)" class="rounded border px-2 py-1 text-xs">测试</button>
       <button @click="removeApi(idx)" class="ml-1 rounded border px-2 py-1 text-xs text-red-600">删除</button>
     </div>
