@@ -66,6 +66,24 @@ function createDefaultConfig(): Config {
   return { deviceId: '', width: 1920, height: 1080, layers: [], materialsTree: [], apiList: [] };
 }
 
+function syncApiPush(cfg: Config) {
+  const map = new Map<string, any>();
+  (cfg.apiList || []).forEach((api) => map.set(api.id, api));
+  (cfg.layers || []).forEach((layer: any) => {
+    const id = layer.config?.apiId;
+    if (!id) return;
+    const api = map.get(id);
+    if (!api) return;
+    if (typeof api.usePush === 'boolean') {
+      layer.config.usePush = api.usePush;
+      layer.config.pushService = api.usePush ? api.pushUrl || '' : '';
+    } else if (typeof layer.config.usePush === 'boolean') {
+      api.usePush = layer.config.usePush;
+      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
+    }
+  });
+}
+
 const frontConfig = ref<Config>(createDefaultConfig());
 const backConfig = ref<Config>(createDefaultConfig());
 const detailConfig = ref<Config>(createDefaultConfig());
@@ -223,6 +241,7 @@ async function loadConfig(id: string) {
         cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
         cfg.materialsTree = Array.isArray(cfg.materialsTree) ? cfg.materialsTree : [];
         cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+        syncApiPush(cfg);
       }
       frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: id };
       backConfig.value = { ...createDefaultConfig(), ...back, deviceId: id };
@@ -252,7 +271,12 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
 
-watch(selectedDeviceId, (id) => id && loadConfig(id));
+// 上次加载的设备 id，用于复用设备数据
+const lastLoadedDeviceId = ref<string>('');
+watch(selectedDeviceId, (id, prev) => {
+  if (prev) lastLoadedDeviceId.value = prev;
+  if (id) loadConfig(id);
+});
 watch(viewType, () => {
   selectedLayerId.value = null;
   rebuildAllApis();
@@ -327,6 +351,7 @@ async function handleSave() {
     return;
   }
   syncMaterialsTree();
+  [frontConfig.value, backConfig.value, detailConfig.value].forEach(syncApiPush);
   const payload = {
     deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
@@ -398,6 +423,98 @@ function handleMoveView() {
     alert('迁移成功！');
   }
 }
+
+/**
+ * 复用上一个设备的所有视图配置
+ */
+async function handleReuseDevice() {
+  const reuseId = lastLoadedDeviceId.value;
+  if (!reuseId) {
+    alert('没有可复用的设备');
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/jx-device/Device/${reuseId}`);
+    const json = await resp.json();
+    if (json.code === 200 && json.data) {
+      const parseCfg = (val: any): Partial<Config> => {
+        try {
+          const obj = JSON.parse(val ?? '{}');
+          return obj && typeof obj === 'object' ? obj : {};
+        } catch {
+          return {};
+        }
+      };
+      const front = parseCfg(json.data.deviceJson);
+      const back = parseCfg(json.data.deviceBack);
+      const detail = parseCfg(json.data.deviceDetails);
+      for (const cfg of [front, back, detail]) {
+        cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
+        cfg.materialsTree = Array.isArray(cfg.materialsTree) ? cfg.materialsTree : [];
+        cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+        syncApiPush(cfg);
+      }
+      frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: selectedDeviceId.value };
+      backConfig.value = { ...createDefaultConfig(), ...back, deviceId: selectedDeviceId.value };
+      detailConfig.value = { ...createDefaultConfig(), ...detail, deviceId: selectedDeviceId.value };
+      pushHistory();
+      rebuildAllApis();
+      alert('复用成功！');
+    } else {
+      alert(`复用失败：${json.msg ?? '未知错误'}`);
+    }
+  } catch (err) {
+    console.error('reuse device error', err);
+    alert('复用请求失败，请检查网络或服务器');
+  }
+}
+
+/**
+ * 导出当前设备所有视图 JSON
+ */
+function handleExportJson() {
+  const data = JSON.stringify(
+    {
+      front: frontConfig.value,
+      back: backConfig.value,
+      detail: detailConfig.value,
+    },
+    null,
+    2,
+  );
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `device_${selectedDeviceId.value || 'new'}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const importInputRef = ref<HTMLInputElement>();
+function triggerImport() {
+  importInputRef.value?.click();
+}
+async function handleImportJson(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const obj = JSON.parse(text);
+    if (obj.front) frontConfig.value = { ...createDefaultConfig(), ...obj.front };
+    if (obj.back) backConfig.value = { ...createDefaultConfig(), ...obj.back };
+    if (obj.detail)
+      detailConfig.value = { ...createDefaultConfig(), ...obj.detail };
+    pushHistory();
+    rebuildAllApis();
+    alert('导入成功！');
+  } catch (err) {
+    console.error('import json error', err);
+    alert('导入失败，文件格式错误');
+  } finally {
+    (e.target as HTMLInputElement).value = '';
+  }
+}
 </script>
 
 <template>
@@ -417,6 +534,10 @@ function handleMoveView() {
       <button @click="handleCopyView" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a]">复制</button>
       <button @click="handleMoveView" class="btn-primary border-[#ff6384] hover:bg-[#23242a]">迁移</button>
       <button @click="startNewDevice" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">新增</button>
+      <button @click="handleReuseDevice" class="btn-primary border-[#38dbb8] hover:bg-[#23242a]">复用设备</button>
+      <button @click="handleExportJson" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a]">导出JSON</button>
+      <button @click="triggerImport" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a]">导入JSON</button>
+      <input ref="importInputRef" type="file" accept=".json" class="hidden" @change="handleImportJson" />
       <button @click="undo" :disabled="historyIndex === 0" title="Ctrl+Z" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50">撤销</button>
       <button @click="redo" :disabled="historyIndex === history.length - 1" title="Ctrl+Shift+Z / Ctrl+Y" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50">反撤销</button>
       <button @click="handleSave" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">保存</button>

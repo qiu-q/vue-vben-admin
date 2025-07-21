@@ -4,10 +4,9 @@ import { computed, ref, watch } from 'vue';
 import { uploadFile } from '#/api/device';
 import { WS_URLS } from '#/constants/ws';
 
+const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
 
-const uOptions = [1, 2, 3, 4, 6, 8, 10];
-const uCount = ref<number | 'custom'>(1); // 当前选择的U数
-const customU = ref<number>(1);           // 自定义U数输入
+// 允许直接设置像素高度，不再限制 U 数
 
 
 // =============================================
@@ -105,6 +104,29 @@ function updateApiField(idx: number, field: string, val: any) {
   syncApiList();
 }
 
+// 当接口启用或修改推送通道时，同步到引用它的所有图层
+watch(
+  apiList,
+  (list) => {
+    const map = new Map(list.map((a) => [a.id, a]));
+    let changed = false;
+    props.config.layers.forEach((layer: any) => {
+      const cfg = layer.config || {};
+      const api = map.get(cfg.apiId);
+      if (api && typeof api.usePush === 'boolean') {
+        const pushUrl = api.usePush ? api.pushUrl || '' : '';
+        if (cfg.usePush !== api.usePush || cfg.pushService !== pushUrl) {
+          cfg.usePush = api.usePush;
+          cfg.pushService = pushUrl;
+          changed = true;
+        }
+      }
+    });
+    if (changed) emit('update', props.config);
+  },
+  { deep: true },
+);
+
 // =============================================
 // ⚡ 新增：解析接口返回中的 “端口 → 状态” 字典
 // =============================================
@@ -169,10 +191,6 @@ const cardBackground = ref('#2d323c');
 const cardApiId = ref('');
 const cardDataKey = ref('');
 
-// —— 推送相关
-const usePush = ref(false);
-const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
-const pushService = ref<'' | keyof typeof WS_URLS>('');
 
 // =============================================
 // 端口状态测试 & 映射
@@ -198,10 +216,17 @@ function updateStatusList() {
 
   // 去重得到所有状态值，如 "1"、"2"
   const uniq = Array.from(new Set(Object.values(portMap.value)));
+
+  const prevRows = new Map(
+    statusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+  );
+  const cfgMap =
+    (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
+
   statusList.value = uniq.map((v) => ({
     value: v,
-    label: '',
-    iconUrl: '',
+    label: prevRows.get(v)?.label || cfgMap[v]?.label || '',
+    iconUrl: prevRows.get(v)?.iconUrl || cfgMap[v]?.iconUrl || '',
   }));
 }
 function addStatus() {
@@ -238,29 +263,16 @@ async function handleUploadIcon(e: Event, idx: number) {
 // =============================================
 function handleSave() {
   if (!selectedLayer.value) return;
-  selectedLayer.value.type = 'port';
-  selectedLayer.value.config.dynamic = true;
+  selectedLayer.value.type = dynamicPort.value ? 'port' : 'image';
+  selectedLayer.value.config.dynamic = dynamicPort.value;
   selectedLayer.value.config.apiId = selectedApiId.value;
   selectedLayer.value.config.portKey = portKey.value;
-  selectedLayer.value.config.usePush = usePush.value;
-  selectedLayer.value.config.pushService = pushService.value;
-
   // 状态映射
   const mapping: Record<number | string, any> = {};
   for (const row of statusList.value) {
     mapping[row.value] = { iconUrl: row.iconUrl, label: row.label };
   }
   selectedLayer.value.config.statusMapping = mapping;
-// 同步 push 设置到 apiList 中对应接口
-  const api = apiList.value.find(a => a.id === selectedApiId.value);
-  if (api) {
-    api.usePush = usePush.value;
-    if (usePush.value && pushService.value) {
-      api.pushUrl = pushService.value;
-    } else {
-      delete api.pushUrl;
-    }
-  }
   syncApiList(); // 记得同步回 props.config.apiList
 
   emit('update', props.config);
@@ -336,18 +348,6 @@ function updateField(field: string, value: any) {
   emit('update', props.config);
 }
 
-// 推送设置 watch ⽀持及时写回图层
-watch([usePush, pushService], () => {
-  if (!selectedLayer.value) return;
-  if (
-    selectedLayer.value.config.usePush !== usePush.value ||
-    selectedLayer.value.config.pushService !== pushService.value
-  ) {
-    selectedLayer.value.config.usePush = usePush.value;
-    selectedLayer.value.config.pushService = pushService.value;
-    emit('update', props.config);
-  }
-});
 
 watch(tableApiId, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
@@ -405,6 +405,14 @@ watch(selectedApiId, () => {
     portKey.value = '';
     statusList.value = [];
   }
+});
+
+watch(dynamicPort, () => {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.config.dynamic = dynamicPort.value;
+  if (dynamicPort.value) selectedLayer.value.type = 'port';
+  else if (selectedLayer.value.type === 'port') selectedLayer.value.type = 'image';
+  emit('update', props.config);
 });
 
 watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
@@ -494,12 +502,9 @@ watch(
   () => selectedLayer.value,
   (layer) => {
     if (!layer) return;
-    dynamicPort.value = layer.type === 'port' && !!layer.config.dynamic;
+    dynamicPort.value = !!layer.config.dynamic;
     selectedApiId.value = layer.config.apiId || '';
     portKey.value = layer.config.portKey || '';
-    usePush.value = !!layer.config.usePush;
-    pushService.value = layer.config.pushService || '';
-
     tableApiId.value = layer.type === 'table' ? layer.config.apiId || '' : '';
     tableDataStr.value = layer.type === 'table'
       ? JSON.stringify(layer.config.data || [], null, 2)
@@ -582,26 +587,15 @@ watch(
           >600标准</button>
 
           <label class="ml-4">高：</label>
-          <select
-            v-model="uCount"
-            @change="onUCountChange"
-            class="border p-1"
-            style="width:80px"
-          >
-            <option v-for="u in uOptions" :key="u" :value="u">{{ u }}U</option>
-            <option value="custom">自定义</option>
-          </select>
           <input
-            v-if="uCount === 'custom'"
             type="number"
             min="1"
-            :value="customU"
-            @input="onCustomUInput"
-            class="w-16 border p-1 ml-1"
-            placeholder="U数"
-            style="width:70px"
+            :value="selectedLayer.config.height"
+            @input="updateField('height', ($event.target as HTMLInputElement).valueAsNumber)"
+            class="w-20 border p-1"
+            style="width:90px"
+            placeholder="高度px"
           />
-          <span class="ml-2 text-xs text-gray-400">= {{ selectedLayer.config.height || 0 }} px</span>
         </div>
         <div class="mb-2">
           <label>Z-Index：</label>
@@ -617,7 +611,7 @@ watch(
         </div>
 
         <!-- ================== 动态端口设置 ================== -->
-        <div v-if="selectedLayer.type === 'port'" class="mt-4 border-t pt-3">
+        <div v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image'" class="mt-4 border-t pt-3">
           <label>
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>
@@ -632,10 +626,6 @@ watch(
               </option>
             </select>
           </div>
-          <!-- 推送设置 -->
-
-
-
             <!-- 端口 key & 状态映射 -->
             <div v-if="selectedApiId && Object.keys(portMap).length" class="mt-2">
               <label>选择端口 key：</label>
@@ -783,26 +773,91 @@ watch(
   <div v-for="(api, idx) in apiList" :key="api.id" class="mb-1 rounded border p-2">
     <div class="mt-1">
       <label>
-        <input type="checkbox" v-model="api.usePush" /> 启用 WebSocket 推送
+        <input
+          type="checkbox"
+          :checked="api.usePush"
+          @change="
+            updateApiField(
+              idx,
+              'usePush',
+              ($event.target as HTMLInputElement).checked,
+            )
+          "
+        />
+        启用 WebSocket 推送
       </label>
-      <select v-if="api.usePush" v-model="api.pushUrl" class="ml-2 w-44 border p-1">
+      <select
+        v-if="api.usePush"
+        :value="api.pushUrl"
+        @change="
+          updateApiField(
+            idx,
+            'pushUrl',
+            ($event.target as HTMLSelectElement).value,
+          )
+        "
+        class="ml-2 w-44 border p-1"
+      >
         <option value="">选择推送通道</option>
         <option v-for="s in pushServices" :key="s" :value="s">{{ s }}</option>
       </select>
     </div>
     <div>
-      <input v-model="api.name" placeholder="接口名" class="mr-2 w-28 border px-2 py-1" />
-      <select v-model="api.method" class="mr-2 w-16 border px-2 py-1">
+      <input
+        :value="api.name"
+        @input="
+          updateApiField(idx, 'name', ($event.target as HTMLInputElement).value)
+        "
+        placeholder="接口名"
+        class="mr-2 w-28 border px-2 py-1"
+      />
+      <select
+        :value="api.method"
+        @change="
+          updateApiField(idx, 'method', ($event.target as HTMLSelectElement).value)
+        "
+        class="mr-2 w-16 border px-2 py-1"
+      >
         <option value="GET">GET</option>
         <option value="POST">POST</option>
       </select>
-      <input v-model="api.url" placeholder="URL" class="mr-2 w-60 border px-2 py-1" />
-      <input type="number" v-model="api.interval" :disabled="usePush" min="100" step="100" class="mr-2 w-20 border px-2 py-1" placeholder="轮询ms" />
+      <input
+        :value="api.url"
+        @input="
+          updateApiField(idx, 'url', ($event.target as HTMLInputElement).value)
+        "
+        placeholder="URL"
+        class="mr-2 w-60 border px-2 py-1"
+      />
+      <input
+        type="number"
+        :value="api.interval"
+        :disabled="api.usePush"
+        min="100"
+        step="100"
+        class="mr-2 w-20 border px-2 py-1"
+        placeholder="轮询ms"
+        @input="
+          updateApiField(
+            idx,
+            'interval',
+            ($event.target as HTMLInputElement).valueAsNumber,
+          )
+        "
+      />
       <button @click="testApi(idx)" class="rounded border px-2 py-1 text-xs">测试</button>
       <button @click="removeApi(idx)" class="ml-1 rounded border px-2 py-1 text-xs text-red-600">删除</button>
     </div>
     <div v-if="api.method === 'POST'" class="mt-1">
-      <textarea v-model="api.params" class="w-full border p-1 text-xs" rows="2" placeholder="POST body JSON"></textarea>
+      <textarea
+        :value="api.params"
+        class="w-full border p-1 text-xs"
+        rows="2"
+        placeholder="POST body JSON"
+        @input="
+          updateApiField(idx, 'params', ($event.target as HTMLTextAreaElement).value)
+        "
+      ></textarea>
     </div>
     <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
       <span v-if="api.lastSample.error" style="color: #e55757">{{ api.lastSample.error }}</span>

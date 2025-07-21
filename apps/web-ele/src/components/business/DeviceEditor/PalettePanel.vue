@@ -57,7 +57,11 @@ function initFolderTree() {
       : JSON.parse(JSON.stringify(defaultFolderTree));
 }
 onMounted(initFolderTree);
-watch(() => props.config?.materialsTree, initFolderTree, { immediate: true });
+watch(
+  () => JSON.stringify(props.config?.materialsTree || []),
+  initFolderTree,
+  { immediate: true },
+);
 
 // ========== 业务逻辑不变 ==========
 const selectedFolderId = ref('root');

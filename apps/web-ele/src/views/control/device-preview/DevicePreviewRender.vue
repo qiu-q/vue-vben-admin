@@ -12,10 +12,31 @@ const wsUnsubs = ref<Record<string, () => void>>({});
 
 // 用于显示 IP 气泡
 const hoveredPortInfo = ref<null | {
-  x: number,
-  y: number,
-  ip: string,
-}> (null);
+  x: number;
+  y: number;
+  port: string;
+  ips: string[];
+  found: Set<string>;
+}>(null);
+
+async function queryExistingIps(ips: string[]): Promise<Set<string>> {
+  const exists = new Set<string>();
+  if (!ips.length) return exists;
+  try {
+    const resp = await fetch('/api/jx-device/Device/listByIps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ips),
+    });
+    const json = await resp.json();
+    if (json.code === 200 && Array.isArray(json.data)) {
+      json.data.forEach((d: any) => exists.add(d.deviceIpAddress));
+    }
+  } catch {
+    /* ignore */
+  }
+  return exists;
+}
 
 // ========== API 轮询 ==========
 async function fetchApi(api: any) {
@@ -53,7 +74,8 @@ function startPollingApis() {
   if (!props.config?.apiList) return;
   for (const api of props.config.apiList) {
     fetchApi(api);
-    if (!api.usePush && api.interval && api.interval > 0) {
+    const usePush = Boolean((api as any).usePush);
+    if (!usePush && api.interval && api.interval > 0) {
       apiTimers.value[api.id] = window.setInterval(
         () => fetchApi(api),
         api.interval,
@@ -186,18 +208,25 @@ function getLayerText(layer: any) {
 }
 
 // ========== 端口移入/移出事件 ==========
-function handlePortMouseEnter(layer: any) {
+async function handlePortMouseEnter(layer: any) {
   if (!layer.config.dynamic) return;
   const { apiId, portKey } = layer.config;
   const apiResp = apiDataMap.value[apiId];
   if (!apiResp || apiResp.error) return;
-  const ipMap = extractPortIpMap(apiResp);
   const x = layer.config.x + (layer.config.width || 0) / 2;
   const y = layer.config.y;
+  const ipMap = extractPortIpMap(apiResp);
+  let ips: string[] = [];
+  const val = ipMap[portKey];
+  if (Array.isArray(val)) ips = val.filter(Boolean);
+  else if (val) ips = [String(val)];
+  const found = await queryExistingIps(ips);
   hoveredPortInfo.value = {
     x,
     y,
-    ip: ipMap[portKey] || '无IP',
+    port: portKey,
+    ips,
+    found,
   };
 }
 function handlePortMouseLeave() {
@@ -359,10 +388,18 @@ watch(
         pointerEvents: 'none',
         zIndex: 99,
         minWidth: '80px',
-        textAlign: 'center'
+        textAlign: 'center',
+        whiteSpace: 'pre-wrap'
       }"
     >
-      {{ hoveredPortInfo.ip }}
+      <div>{{ hoveredPortInfo.port }}</div>
+      <div v-if="hoveredPortInfo.ips.length">
+        <span
+          v-for="ip in hoveredPortInfo.ips"
+          :key="ip"
+          :style="{ color: hoveredPortInfo.found.has(ip) ? 'red' : '#0ff', marginRight: '4px' }"
+        >{{ ip }}</span>
+      </div>
     </div>
   </div>
   <div v-else class="p-8 text-center text-gray-500">
