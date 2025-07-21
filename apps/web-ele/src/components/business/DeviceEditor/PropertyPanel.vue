@@ -773,26 +773,91 @@ watch(
   <div v-for="(api, idx) in apiList" :key="api.id" class="mb-1 rounded border p-2">
     <div class="mt-1">
       <label>
-        <input type="checkbox" v-model="api.usePush" /> 启用 WebSocket 推送
+        <input
+          type="checkbox"
+          :checked="api.usePush"
+          @change="
+            updateApiField(
+              idx,
+              'usePush',
+              ($event.target as HTMLInputElement).checked,
+            )
+          "
+        />
+        启用 WebSocket 推送
       </label>
-      <select v-if="api.usePush" v-model="api.pushUrl" class="ml-2 w-44 border p-1">
+      <select
+        v-if="api.usePush"
+        :value="api.pushUrl"
+        @change="
+          updateApiField(
+            idx,
+            'pushUrl',
+            ($event.target as HTMLSelectElement).value,
+          )
+        "
+        class="ml-2 w-44 border p-1"
+      >
         <option value="">选择推送通道</option>
         <option v-for="s in pushServices" :key="s" :value="s">{{ s }}</option>
       </select>
     </div>
     <div>
-      <input v-model="api.name" placeholder="接口名" class="mr-2 w-28 border px-2 py-1" />
-      <select v-model="api.method" class="mr-2 w-16 border px-2 py-1">
+      <input
+        :value="api.name"
+        @input="
+          updateApiField(idx, 'name', ($event.target as HTMLInputElement).value)
+        "
+        placeholder="接口名"
+        class="mr-2 w-28 border px-2 py-1"
+      />
+      <select
+        :value="api.method"
+        @change="
+          updateApiField(idx, 'method', ($event.target as HTMLSelectElement).value)
+        "
+        class="mr-2 w-16 border px-2 py-1"
+      >
         <option value="GET">GET</option>
         <option value="POST">POST</option>
       </select>
-      <input v-model="api.url" placeholder="URL" class="mr-2 w-60 border px-2 py-1" />
-        <input type="number" v-model="api.interval" :disabled="api.usePush" min="100" step="100" class="mr-2 w-20 border px-2 py-1" placeholder="轮询ms" />
+      <input
+        :value="api.url"
+        @input="
+          updateApiField(idx, 'url', ($event.target as HTMLInputElement).value)
+        "
+        placeholder="URL"
+        class="mr-2 w-60 border px-2 py-1"
+      />
+      <input
+        type="number"
+        :value="api.interval"
+        :disabled="api.usePush"
+        min="100"
+        step="100"
+        class="mr-2 w-20 border px-2 py-1"
+        placeholder="轮询ms"
+        @input="
+          updateApiField(
+            idx,
+            'interval',
+            ($event.target as HTMLInputElement).valueAsNumber,
+          )
+        "
+      />
       <button @click="testApi(idx)" class="rounded border px-2 py-1 text-xs">测试</button>
       <button @click="removeApi(idx)" class="ml-1 rounded border px-2 py-1 text-xs text-red-600">删除</button>
     </div>
     <div v-if="api.method === 'POST'" class="mt-1">
-      <textarea v-model="api.params" class="w-full border p-1 text-xs" rows="2" placeholder="POST body JSON"></textarea>
+      <textarea
+        :value="api.params"
+        class="w-full border p-1 text-xs"
+        rows="2"
+        placeholder="POST body JSON"
+        @input="
+          updateApiField(idx, 'params', ($event.target as HTMLTextAreaElement).value)
+        "
+      ></textarea>
     </div>
     <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
       <span v-if="api.lastSample.error" style="color: #e55757">{{ api.lastSample.error }}</span>
