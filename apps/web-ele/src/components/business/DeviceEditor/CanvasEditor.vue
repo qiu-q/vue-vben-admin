@@ -165,10 +165,13 @@ function onDragOver(e: DragEvent) {
 }
 function onDrop(e: DragEvent) {
   e.preventDefault();
-  // 画布左上的实际 offset（考虑刻度的 32px 偏移）
+  // 画布左上的实际 offset，并考虑缩放比例
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
+  const scaleX = rect.width / props.config.width;
+  const scaleY = rect.height / props.config.height;
+  const scale = Math.min(scaleX || 1, scaleY || 1);
+  const x = (e.clientX - rect.left) / scale;
+  const y = (e.clientY - rect.top) / scale;
   const url = e.dataTransfer?.getData('image-url');
   const matType = e.dataTransfer?.getData('mat-type') || 'image'; // 关键：识别类型
   let layer;
@@ -257,6 +260,8 @@ function onDrop(e: DragEvent) {
   }
   if (layer) {
     props.config.layers.push(layer);
+    selectedId.value = layer.id;
+    emit('select', layer.id);
     emit('update', JSON.parse(JSON.stringify(props.config)));
   }
 }
