@@ -103,6 +103,29 @@ function updateApiField(idx: number, field: string, val: any) {
   syncApiList();
 }
 
+// 当接口启用或修改推送通道时，同步到引用它的所有图层
+watch(
+  apiList,
+  (list) => {
+    const map = new Map(list.map((a) => [a.id, a]));
+    let changed = false;
+    props.config.layers.forEach((layer: any) => {
+      const cfg = layer.config || {};
+      const api = map.get(cfg.apiId);
+      if (api) {
+        const pushUrl = api.usePush ? api.pushUrl || '' : '';
+        if (cfg.usePush !== api.usePush || cfg.pushService !== pushUrl) {
+          cfg.usePush = api.usePush;
+          cfg.pushService = pushUrl;
+          changed = true;
+        }
+      }
+    });
+    if (changed) emit('update', props.config);
+  },
+  { deep: true },
+);
+
 // =============================================
 // ⚡ 新增：解析接口返回中的 “端口 → 状态” 字典
 // =============================================
