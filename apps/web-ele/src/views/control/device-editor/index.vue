@@ -252,7 +252,12 @@ onMounted(() => {
 });
 onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
 
-watch(selectedDeviceId, (id) => id && loadConfig(id));
+// 上次加载的设备 id，用于复用设备数据
+const lastLoadedDeviceId = ref<string>('');
+watch(selectedDeviceId, (id, prev) => {
+  if (prev) lastLoadedDeviceId.value = prev;
+  if (id) loadConfig(id);
+});
 watch(viewType, () => {
   selectedLayerId.value = null;
   rebuildAllApis();
@@ -398,6 +403,50 @@ function handleMoveView() {
     alert('迁移成功！');
   }
 }
+
+/**
+ * 复用上一个设备的所有视图配置
+ */
+async function handleReuseDevice() {
+  const reuseId = lastLoadedDeviceId.value;
+  if (!reuseId) {
+    alert('没有可复用的设备');
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/jx-device/Device/${reuseId}`);
+    const json = await resp.json();
+    if (json.code === 200 && json.data) {
+      const parseCfg = (val: any): Partial<Config> => {
+        try {
+          const obj = JSON.parse(val ?? '{}');
+          return obj && typeof obj === 'object' ? obj : {};
+        } catch {
+          return {};
+        }
+      };
+      const front = parseCfg(json.data.deviceJson);
+      const back = parseCfg(json.data.deviceBack);
+      const detail = parseCfg(json.data.deviceDetails);
+      for (const cfg of [front, back, detail]) {
+        cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
+        cfg.materialsTree = Array.isArray(cfg.materialsTree) ? cfg.materialsTree : [];
+        cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+      }
+      frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: selectedDeviceId.value };
+      backConfig.value = { ...createDefaultConfig(), ...back, deviceId: selectedDeviceId.value };
+      detailConfig.value = { ...createDefaultConfig(), ...detail, deviceId: selectedDeviceId.value };
+      pushHistory();
+      rebuildAllApis();
+      alert('复用成功！');
+    } else {
+      alert(`复用失败：${json.msg ?? '未知错误'}`);
+    }
+  } catch (err) {
+    console.error('reuse device error', err);
+    alert('复用请求失败，请检查网络或服务器');
+  }
+}
 </script>
 
 <template>
@@ -417,6 +466,7 @@ function handleMoveView() {
       <button @click="handleCopyView" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a]">复制</button>
       <button @click="handleMoveView" class="btn-primary border-[#ff6384] hover:bg-[#23242a]">迁移</button>
       <button @click="startNewDevice" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">新增</button>
+      <button @click="handleReuseDevice" class="btn-primary border-[#38dbb8] hover:bg-[#23242a]">复用设备</button>
       <button @click="undo" :disabled="historyIndex === 0" title="Ctrl+Z" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50">撤销</button>
       <button @click="redo" :disabled="historyIndex === history.length - 1" title="Ctrl+Shift+Z / Ctrl+Y" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50">反撤销</button>
       <button @click="handleSave" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">保存</button>
