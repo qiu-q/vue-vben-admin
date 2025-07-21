@@ -74,12 +74,12 @@ function syncApiPush(cfg: Config) {
     if (!id) return;
     const api = map.get(id);
     if (!api) return;
-    if (typeof layer.config.usePush === 'boolean') {
-      api.usePush = layer.config.usePush;
-      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
-    } else if (typeof api.usePush === 'boolean') {
+    if (typeof api.usePush === 'boolean') {
       layer.config.usePush = api.usePush;
       layer.config.pushService = api.usePush ? api.pushUrl || '' : '';
+    } else if (typeof layer.config.usePush === 'boolean') {
+      api.usePush = layer.config.usePush;
+      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
     }
   });
 }
@@ -351,6 +351,7 @@ async function handleSave() {
     return;
   }
   syncMaterialsTree();
+  [frontConfig.value, backConfig.value, detailConfig.value].forEach(syncApiPush);
   const payload = {
     deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
@@ -451,6 +452,7 @@ async function handleReuseDevice() {
         cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
         cfg.materialsTree = Array.isArray(cfg.materialsTree) ? cfg.materialsTree : [];
         cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+        syncApiPush(cfg);
       }
       frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: selectedDeviceId.value };
       backConfig.value = { ...createDefaultConfig(), ...back, deviceId: selectedDeviceId.value };
