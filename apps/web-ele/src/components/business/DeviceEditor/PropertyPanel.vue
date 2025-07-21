@@ -196,10 +196,17 @@ function updateStatusList() {
 
   // 去重得到所有状态值，如 "1"、"2"
   const uniq = Array.from(new Set(Object.values(portMap.value)));
+
+  const prevRows = new Map(
+    statusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+  );
+  const cfgMap =
+    (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
+
   statusList.value = uniq.map((v) => ({
     value: v,
-    label: '',
-    iconUrl: '',
+    label: prevRows.get(v)?.label || cfgMap[v]?.label || '',
+    iconUrl: prevRows.get(v)?.iconUrl || cfgMap[v]?.iconUrl || '',
   }));
 }
 function addStatus() {
