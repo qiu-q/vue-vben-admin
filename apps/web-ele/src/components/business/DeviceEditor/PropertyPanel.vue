@@ -5,9 +5,7 @@ import { uploadFile } from '#/api/device';
 import { WS_URLS } from '#/constants/ws';
 
 
-const uOptions = [1, 2, 3, 4, 6, 8, 10];
-const uCount = ref<number | 'custom'>(1); // 当前选择的U数
-const customU = ref<number>(1);           // 自定义U数输入
+// 允许直接设置像素高度，不再限制 U 数
 
 
 // =============================================
@@ -238,8 +236,8 @@ async function handleUploadIcon(e: Event, idx: number) {
 // =============================================
 function handleSave() {
   if (!selectedLayer.value) return;
-  selectedLayer.value.type = 'port';
-  selectedLayer.value.config.dynamic = true;
+  selectedLayer.value.type = dynamicPort.value ? 'port' : 'image';
+  selectedLayer.value.config.dynamic = dynamicPort.value;
   selectedLayer.value.config.apiId = selectedApiId.value;
   selectedLayer.value.config.portKey = portKey.value;
   selectedLayer.value.config.usePush = usePush.value;
@@ -407,6 +405,14 @@ watch(selectedApiId, () => {
   }
 });
 
+watch(dynamicPort, () => {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.config.dynamic = dynamicPort.value;
+  if (dynamicPort.value) selectedLayer.value.type = 'port';
+  else if (selectedLayer.value.type === 'port') selectedLayer.value.type = 'image';
+  emit('update', props.config);
+});
+
 watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
   const cfg = selectedLayer.value.config;
@@ -494,7 +500,7 @@ watch(
   () => selectedLayer.value,
   (layer) => {
     if (!layer) return;
-    dynamicPort.value = layer.type === 'port' && !!layer.config.dynamic;
+    dynamicPort.value = !!layer.config.dynamic;
     selectedApiId.value = layer.config.apiId || '';
     portKey.value = layer.config.portKey || '';
     usePush.value = !!layer.config.usePush;
@@ -582,26 +588,15 @@ watch(
           >600标准</button>
 
           <label class="ml-4">高：</label>
-          <select
-            v-model="uCount"
-            @change="onUCountChange"
-            class="border p-1"
-            style="width:80px"
-          >
-            <option v-for="u in uOptions" :key="u" :value="u">{{ u }}U</option>
-            <option value="custom">自定义</option>
-          </select>
           <input
-            v-if="uCount === 'custom'"
             type="number"
             min="1"
-            :value="customU"
-            @input="onCustomUInput"
-            class="w-16 border p-1 ml-1"
-            placeholder="U数"
-            style="width:70px"
+            :value="selectedLayer.config.height"
+            @input="updateField('height', ($event.target as HTMLInputElement).valueAsNumber)"
+            class="w-20 border p-1"
+            style="width:90px"
+            placeholder="高度px"
           />
-          <span class="ml-2 text-xs text-gray-400">= {{ selectedLayer.config.height || 0 }} px</span>
         </div>
         <div class="mb-2">
           <label>Z-Index：</label>
@@ -617,7 +612,7 @@ watch(
         </div>
 
         <!-- ================== 动态端口设置 ================== -->
-        <div v-if="selectedLayer.type === 'port'" class="mt-4 border-t pt-3">
+        <div v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image'" class="mt-4 border-t pt-3">
           <label>
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>
