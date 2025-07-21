@@ -66,6 +66,24 @@ function createDefaultConfig(): Config {
   return { deviceId: '', width: 1920, height: 1080, layers: [], materialsTree: [], apiList: [] };
 }
 
+function syncApiPush(cfg: Config) {
+  const map = new Map<string, any>();
+  (cfg.apiList || []).forEach((api) => map.set(api.id, api));
+  (cfg.layers || []).forEach((layer: any) => {
+    const id = layer.config?.apiId;
+    if (!id) return;
+    const api = map.get(id);
+    if (!api) return;
+    if (typeof layer.config.usePush === 'boolean') {
+      api.usePush = layer.config.usePush;
+      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
+    } else if (typeof api.usePush === 'boolean') {
+      layer.config.usePush = api.usePush;
+      layer.config.pushService = api.usePush ? api.pushUrl || '' : '';
+    }
+  });
+}
+
 const frontConfig = ref<Config>(createDefaultConfig());
 const backConfig = ref<Config>(createDefaultConfig());
 const detailConfig = ref<Config>(createDefaultConfig());
@@ -223,6 +241,7 @@ async function loadConfig(id: string) {
         cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
         cfg.materialsTree = Array.isArray(cfg.materialsTree) ? cfg.materialsTree : [];
         cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+        syncApiPush(cfg);
       }
       frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: id };
       backConfig.value = { ...createDefaultConfig(), ...back, deviceId: id };

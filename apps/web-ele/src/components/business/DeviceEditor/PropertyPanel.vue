@@ -112,7 +112,7 @@ watch(
     props.config.layers.forEach((layer: any) => {
       const cfg = layer.config || {};
       const api = map.get(cfg.apiId);
-      if (api) {
+      if (api && typeof api.usePush === 'boolean') {
         const pushUrl = api.usePush ? api.pushUrl || '' : '';
         if (cfg.usePush !== api.usePush || cfg.pushService !== pushUrl) {
           cfg.usePush = api.usePush;
