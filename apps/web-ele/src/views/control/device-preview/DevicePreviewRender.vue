@@ -53,7 +53,8 @@ function startPollingApis() {
   if (!props.config?.apiList) return;
   for (const api of props.config.apiList) {
     fetchApi(api);
-    if (!api.usePush && api.interval && api.interval > 0) {
+    const usePush = Boolean((api as any).usePush);
+    if (!usePush && api.interval && api.interval > 0) {
       apiTimers.value[api.id] = window.setInterval(
         () => fetchApi(api),
         api.interval,

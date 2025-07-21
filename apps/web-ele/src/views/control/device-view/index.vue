@@ -19,6 +19,24 @@ function updateScale() {
   scale.value = Math.min(clientWidth / w, clientHeight / h);
 }
 
+function syncApiPush(cfg: any) {
+  const map = new Map<string, any>();
+  (cfg.apiList || []).forEach((api: any) => map.set(api.id, api));
+  (cfg.layers || []).forEach((layer: any) => {
+    const id = layer.config?.apiId;
+    if (!id) return;
+    const api = map.get(id);
+    if (!api) return;
+    if (typeof api.usePush === 'boolean') {
+      layer.config.usePush = api.usePush;
+      layer.config.pushService = api.usePush ? api.pushUrl || '' : '';
+    } else if (typeof layer.config.usePush === 'boolean') {
+      api.usePush = layer.config.usePush;
+      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
+    }
+  });
+}
+
 async function loadConfig() {
   loading.value = true;
   error.value = '';
@@ -36,7 +54,14 @@ async function loadConfig() {
       parsed.materialsTree = Array.isArray(parsed.materialsTree)
         ? parsed.materialsTree
         : [];
-      config.value = { deviceId: deviceId.value, width: 1920, height: 1080, ...parsed };
+      parsed.apiList = Array.isArray(parsed.apiList) ? parsed.apiList : [];
+      syncApiPush(parsed);
+      config.value = {
+        deviceId: deviceId.value,
+        width: 1920,
+        height: 1080,
+        ...parsed,
+      };
     } else {
       error.value = json.msg || '未找到设备配置';
     }
