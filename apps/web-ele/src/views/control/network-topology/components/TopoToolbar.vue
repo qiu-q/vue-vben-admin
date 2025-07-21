@@ -13,10 +13,35 @@
 
     <!-- 添加普通设备 -->
     <button @click="emit('add-device')">添加设备到画布</button>
-
+    
     <!-- ★ 新增：添加机柜按钮 -->
     <button @click="emit('add-cabinet')" style="background:#444;color:#fff">
       添加机柜
+    </button>
+
+    <!-- 画布大小设置 -->
+    <label style="margin-left:8px">W:</label>
+    <input
+      type="number"
+      :value="canvasWidth"
+      style="width:80px"
+      @input="
+        emit('update:canvas-width', ($event.target as HTMLInputElement).valueAsNumber)
+      "
+    />
+    <label>H:</label>
+    <input
+      type="number"
+      :value="canvasHeight"
+      style="width:80px"
+      @input="
+        emit('update:canvas-height', ($event.target as HTMLInputElement).valueAsNumber)
+      "
+    />
+
+    <!-- 删除选中设备 -->
+    <button @click="emit('remove-selected-device')" style="color:#f44">
+      删除设备
     </button>
 
     <!-- 保存画布相关 -->
@@ -59,13 +84,17 @@
 </template>
 
 <script setup lang="ts">
+import { toRefs } from 'vue';
 /* ---------- props / emits ---------- */
 const props = defineProps<{
   selectedDeviceId: string;
   allDeviceOptions: any[];
   newConfigName: string;
   connectMode: string;
+  canvasWidth: number;
+  canvasHeight: number;
 }>();
+const { canvasWidth, canvasHeight } = toRefs(props);
 
 const emit = defineEmits([
   'update:selected-device-id',
@@ -74,6 +103,9 @@ const emit = defineEmits([
   'add-cabinet', // ★ 新增
   'save-current-canvas-to-configs',
   'set-connect-mode',
+  'update:canvas-width',
+  'update:canvas-height',
+  'remove-selected-device',
 ]);
 
 /* ---------- methods ---------- */

@@ -3,7 +3,7 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useWs } from '#/services/ws';
 
 // props
-const props = defineProps<{ config: any }>();
+const props = defineProps<{ config: any; withRedisState?: boolean }>();
 
 // 数据存储
 const apiDataMap = ref<Record<string, any>>({});
@@ -20,14 +20,26 @@ const hoveredPortInfo = ref<null | {
 // ========== API 轮询 ==========
 async function fetchApi(api: any) {
   try {
-    const resp = await (api.method === 'POST'
-      ? fetch(api.url, {
+    if (api.method === 'POST') {
+      let params: any = {};
+      if (api.params) {
+        try { params = JSON.parse(api.params); } catch { params = {}; }
+      }
+      if (props.withRedisState && api.usePush) params.redisState = '1';
+      const resp = await fetch(api.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: api.params || '{}',
-      })
-      : fetch(api.url));
-    apiDataMap.value[api.id] = await resp.json();
+        body: JSON.stringify(params),
+      });
+      apiDataMap.value[api.id] = await resp.json();
+    } else {
+      let url = api.url;
+      if (props.withRedisState && api.usePush) {
+        url += (url.includes('?') ? '&' : '?') + 'redisState=1';
+      }
+      const resp = await fetch(url);
+      apiDataMap.value[api.id] = await resp.json();
+    }
   } catch {
     apiDataMap.value[api.id] = { error: '请求失败' };
   }

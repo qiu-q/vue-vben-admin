@@ -10,10 +10,6 @@ import PropertyPanel from '#/components/business/DeviceEditor/PropertyPanel.vue'
 /* -------------------------------------------------------------------------- */
 /* 工具函数                                                                    */
 /* -------------------------------------------------------------------------- */
-/**
- * 安全深拷贝：优先使用 `structuredClone`，当遇到无法克隆（包含函数 / 循环引用等）
- * 的对象时自动回退到 JSON 方法。
- */
 function deepClone<T>(source: T): T {
   try {
     return structuredClone(source);
@@ -21,12 +17,7 @@ function deepClone<T>(source: T): T {
     return JSON.parse(JSON.stringify(source));
   }
 }
-
-/** 键盘组合键监听（自动注册 / 反注册） */
-function useKeyStroke(
-  target: HTMLElement | Window,
-  keymap: (e: KeyboardEvent) => void,
-) {
+function useKeyStroke(target: HTMLElement | Window, keymap: (e: KeyboardEvent) => void) {
   onMounted(() => target.addEventListener('keydown', keymap));
   onUnmounted(() => target.removeEventListener('keydown', keymap));
 }
@@ -43,15 +34,14 @@ interface DeviceInfo {
   deviceMacAddress: string;
   deviceCommunity: string;
 }
-
 interface Config {
   deviceId: string;
   width: number;
   height: number;
   layers: any[];
   materialsTree: any[];
+  apiList?: any[];
 }
-
 interface MaterialItem {
   id: string;
   name: string;
@@ -59,49 +49,61 @@ interface MaterialItem {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 基础状态                                                                    */
+/* 状态定义                                                                    */
 /* -------------------------------------------------------------------------- */
 const router = useRouter();
 const route = useRoute();
 
 const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
-
-// 路由携带的初始 deviceId（可为空）
 const deviceIdFromRoute = route.params.deviceId as string | undefined;
 
 const deviceOptions = ref<{ label: string; value: string }[]>([]);
 const deviceRows = ref<any[]>([]);
 const selectedDeviceId = ref(deviceIdFromRoute ?? '');
-// 是否处于新增模式
 const creatingNew = ref(false);
 
-const config = ref<Config>({
-  deviceId: '',
-  width: 1920,
-  height: 1080,
-  layers: [],
-  materialsTree: [],
+function createDefaultConfig(): Config {
+  return { deviceId: '', width: 1920, height: 1080, layers: [], materialsTree: [], apiList: [] };
+}
+
+const frontConfig = ref<Config>(createDefaultConfig());
+const backConfig = ref<Config>(createDefaultConfig());
+const detailConfig = ref<Config>(createDefaultConfig());
+
+type ViewType = 'front' | 'back' | 'detail';
+const viewType = ref<ViewType>('front');
+
+const config = computed<Config>({
+  get() {
+    return viewType.value === 'front'
+      ? frontConfig.value
+      : viewType.value === 'back'
+        ? backConfig.value
+        : detailConfig.value;
+  },
+  set(val) {
+    if (viewType.value === 'front') frontConfig.value = val;
+    else if (viewType.value === 'back') backConfig.value = val;
+    else detailConfig.value = val;
+  },
 });
 
 const allApis = ref<any[]>([]);
-
 function rebuildAllApis() {
   const map = new Map<string, any>();
   for (const row of deviceRows.value) {
-    if (row.deviceJson) {
-      try {
-        const parsed = JSON.parse(row.deviceJson);
-        if (Array.isArray(parsed.apiList)) {
-          for (const api of parsed.apiList) {
-            map.set(api.id, api);
+    for (const field of ['deviceJson', 'deviceBack', 'deviceDetails']) {
+      if (row[field]) {
+        try {
+          const parsed = JSON.parse(row[field]);
+          if (Array.isArray(parsed.apiList)) {
+            parsed.apiList.forEach((api: any) => map.set(api.id, api));
           }
-        }
-      } catch {}
+        } catch {}
+      }
     }
   }
-  if (Array.isArray(config.value.apiList)) {
-    for (const api of config.value.apiList) map.set(api.id, api);
-  }
+  config.value.apiList?.forEach((api) => map.set(api.id, api));
   allApis.value = Array.from(map.values());
 }
 
@@ -114,48 +116,42 @@ const deviceInfo = ref<DeviceInfo>({
   deviceMacAddress: '',
   deviceCommunity: '',
 });
-
 const showDeviceInfoModal = ref(false);
 
+/* -------------------------------------------------------------------------- */
+/* 缩放适配                                                                    */
+/* -------------------------------------------------------------------------- */
 const editorWrapRef = ref<HTMLElement | null>(null);
 const editorScale = ref(1);
 function updateEditorScale() {
   if (!editorWrapRef.value) return;
   const { clientWidth, clientHeight } = editorWrapRef.value;
-  const w = config.value.width + 32;
-  const h = config.value.height + 32;
-  editorScale.value = Math.min(clientWidth / w, clientHeight / h, 1);
+  editorScale.value = Math.min(clientWidth / (config.value.width + 32), clientHeight / (config.value.height + 32), 1);
 }
 
+/* -------------------------------------------------------------------------- */
+/* 素材图标                                                                    */
+/* -------------------------------------------------------------------------- */
 const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
-const TABLE_ICON_URL =
-  'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
-const CARD_ICON_URL =
-  'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Ctext x%3D"28" y%3D"34" font-size%3D"20" text-anchor%3D"middle" fill%3D"%23ccc"%3ET%3C/text%3E%3C/svg%3E';
+const TABLE_ICON_URL = 'data:image/svg+xml,...';
+const CARD_ICON_URL = 'data:image/svg+xml,...';
 
 const materialsList = computed<MaterialItem[]>(() => {
   const list: MaterialItem[] = [];
-  const tree =
-    Array.isArray(config.value.materialsTree) && config.value.materialsTree.length
-      ? config.value.materialsTree
-      : [
-          {
-            id: 'root',
-            materials: [
-              { id: 'port-default', name: '端口', url: PORT_ICON_URL },
-              { id: 'table-default', name: '表格', url: TABLE_ICON_URL },
-              { id: 'card-default', name: '卡片', url: CARD_ICON_URL },
-            ],
-            children: [],
-          },
-        ];
+  const tree = config.value.materialsTree?.length ? config.value.materialsTree : [
+    {
+      id: 'root',
+      materials: [
+        { id: 'port-default', name: '端口', url: PORT_ICON_URL },
+        { id: 'table-default', name: '表格', url: TABLE_ICON_URL },
+        { id: 'card-default', name: '卡片', url: CARD_ICON_URL },
+      ],
+      children: [],
+    },
+  ];
   function walk(nodes: any[]) {
     for (const n of nodes || []) {
-      if (Array.isArray(n.materials)) {
-        for (const m of n.materials) {
-          list.push({ id: m.id, name: m.name, url: m.url });
-        }
-      }
+      if (Array.isArray(n.materials)) list.push(...n.materials);
       if (Array.isArray(n.children)) walk(n.children);
     }
   }
@@ -163,36 +159,35 @@ const materialsList = computed<MaterialItem[]>(() => {
   return list;
 });
 
+/* -------------------------------------------------------------------------- */
+/* 初始化与数据加载                                                            */
+/* -------------------------------------------------------------------------- */
 async function fetchDeviceList() {
   try {
     const resp = await fetch('/api/jx-device/Device/list?pageSize=0');
     const json = await resp.json();
     if (json.code === 200) {
-      const rows = Array.isArray(json.rows) ? json.rows : [];
-      deviceRows.value = rows;
-      deviceOptions.value = rows.map((r: any) => ({
+      deviceRows.value = Array.isArray(json.rows) ? json.rows : [];
+      deviceOptions.value = deviceRows.value.map((r) => ({
         value: String(r.deviceId),
         label: r.deviceName || `设备${r.deviceId}`,
       }));
-      if (!selectedDeviceId.value && deviceOptions.value.length > 0)
+      if (!selectedDeviceId.value && deviceOptions.value.length > 0) {
         selectedDeviceId.value = deviceOptions.value[0].value;
+      }
       rebuildAllApis();
     }
-  } catch (error) {
-    console.error('fetchDeviceList error', error);
+  } catch (err) {
+    console.error('fetchDeviceList error', err);
   }
 }
 
 function startNewDevice() {
   creatingNew.value = true;
   selectedDeviceId.value = '';
-  config.value = {
-    deviceId: '',
-    width: 1920,
-    height: 1080,
-    layers: [],
-    materialsTree: [],
-  };
+  frontConfig.value = createDefaultConfig();
+  backConfig.value = createDefaultConfig();
+  detailConfig.value = createDefaultConfig();
   deviceInfo.value = {
     cabinetId: 0,
     deviceName: '',
@@ -202,22 +197,95 @@ function startNewDevice() {
     deviceMacAddress: '',
     deviceCommunity: '',
   };
+  viewType.value = 'front';
   showDeviceInfoModal.value = true;
   rebuildAllApis();
 }
 
+async function loadConfig(id: string) {
+  if (!id) return;
+  try {
+    const resp = await fetch(`/api/jx-device/Device/${id}`);
+    const json = await resp.json();
+    if (json.code === 200 && json.data) {
+      const parseCfg = (val: any): Partial<Config> => {
+        try {
+          const obj = JSON.parse(val ?? '{}');
+          return obj && typeof obj === 'object' ? obj : {};
+        } catch {
+          return {};
+        }
+      };
+      const front = parseCfg(json.data.deviceJson);
+      const back = parseCfg(json.data.deviceBack);
+      const detail = parseCfg(json.data.deviceDetails);
+      for (const cfg of [front, back, detail]) {
+        cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
+        cfg.materialsTree = Array.isArray(cfg.materialsTree) ? cfg.materialsTree : [];
+        cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+      }
+      frontConfig.value = { ...createDefaultConfig(), ...front, deviceId: id };
+      backConfig.value = { ...createDefaultConfig(), ...back, deviceId: id };
+      detailConfig.value = { ...createDefaultConfig(), ...detail, deviceId: id };
+      deviceInfo.value = {
+        cabinetId: json.data.cabinetId ?? 0,
+        deviceName: json.data.deviceName ?? '',
+        deviceIpAddress: json.data.deviceIpAddress ?? '',
+        deviceSerialNumber: json.data.deviceSerialNumber ?? '',
+        deviceGateway: json.data.deviceGateway ?? '',
+        deviceMacAddress: json.data.deviceMacAddress ?? '',
+        deviceCommunity: json.data.deviceCommunity ?? '',
+      };
+      creatingNew.value = false;
+      rebuildAllApis();
+    }
+  } catch (err) {
+    console.error('loadConfig error', err);
+  }
+}
+
+onMounted(() => {
+  fetchDeviceList();
+  if (selectedDeviceId.value) loadConfig(selectedDeviceId.value);
+  updateEditorScale();
+  window.addEventListener('resize', updateEditorScale);
+});
+onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
+
+watch(selectedDeviceId, (id) => id && loadConfig(id));
+watch(viewType, () => {
+  selectedLayerId.value = null;
+  rebuildAllApis();
+  updateEditorScale();
+});
+watch(() => [config.value.width, config.value.height], updateEditorScale);
+
 /* -------------------------------------------------------------------------- */
-/* 历史撤销栈                                                                  */
+/* 编辑器逻辑                                                                  */
 /* -------------------------------------------------------------------------- */
+const selectedLayerId = ref<null | string>(null);
+function handleMaterialsTreeUpdate(newTree: any[]) {
+  config.value.materialsTree = deepClone(newTree);
+  pushHistory();
+}
+function handleConfigUpdate(updated: Config) {
+  config.value = deepClone(updated);
+  pushHistory();
+  rebuildAllApis();
+}
+function handleSelectLayer(layerId: string) {
+  selectedLayerId.value = layerId;
+}
+function handleCanvasSizeChange(field: 'width' | 'height', value: number) {
+  (config.value as any)[field] = value;
+  pushHistory();
+}
+
+/* 撤销 / 重做 */
 const history = ref<Config[]>([deepClone(config.value)]);
 const historyIndex = ref(0);
-
 function pushHistory() {
-  if (
-    JSON.stringify(config.value) ===
-    JSON.stringify(history.value[historyIndex.value])
-  )
-    return;
+  if (JSON.stringify(config.value) === JSON.stringify(history.value[historyIndex.value])) return;
   history.value = history.value.slice(0, historyIndex.value + 1);
   history.value.push(deepClone(config.value));
   historyIndex.value++;
@@ -234,94 +302,6 @@ function redo() {
     config.value = deepClone(history.value[historyIndex.value]);
   }
 }
-
-/* -------------------------------------------------------------------------- */
-/* 加载服务器配置                                                              */
-/* -------------------------------------------------------------------------- */
-async function loadConfig(id: string) {
-  if (!id) return;
-
-  try {
-    const resp = await fetch(`/api/jx-device/Device/${id}`);
-    const json = await resp.json();
-
-    if (json.code === 200 && json.data) {
-      let parsed: Partial<Config> = {};
-      try {
-        parsed = JSON.parse(json.data.deviceJson);
-        if (!parsed || typeof parsed !== 'object') parsed = {};
-      } catch {
-        console.error('deviceJson 解析失败，使用默认空配置');
-      }
-
-      // 保证字段安全
-      parsed.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
-      parsed.materialsTree = Array.isArray(parsed.materialsTree)
-        ? parsed.materialsTree
-        : [];
-
-      config.value = { ...config.value, ...parsed } as Config;
-      config.value.deviceId = id;
-
-      deviceInfo.value = {
-        cabinetId: json.data.cabinetId ?? 0,
-        deviceName: json.data.deviceName ?? '',
-        deviceIpAddress: json.data.deviceIpAddress ?? '',
-        deviceSerialNumber: json.data.deviceSerialNumber ?? '',
-        deviceGateway: json.data.deviceGateway ?? '',
-        deviceMacAddress: json.data.deviceMacAddress ?? '',
-        deviceCommunity: json.data.deviceCommunity ?? '',
-      };
-      creatingNew.value = false;
-      rebuildAllApis();
-    }
-  } catch (error) {
-    console.error('加载设备配置失败', error);
-  }
-}
-
-onMounted(() => {
-  fetchDeviceList();
-  if (selectedDeviceId.value) loadConfig(selectedDeviceId.value);
-  updateEditorScale();
-  window.addEventListener('resize', updateEditorScale);
-});
-
-watch(selectedDeviceId, (id) => {
-  if (id) {
-    creatingNew.value = false;
-    loadConfig(id);
-  }
-});
-watch(
-  () => [config.value.width, config.value.height],
-  updateEditorScale,
-);
-onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
-
-/* -------------------------------------------------------------------------- */
-/* 编辑区交互                                                                  */
-/* -------------------------------------------------------------------------- */
-const selectedLayerId = ref<null | string>(null);
-
-function handleMaterialsTreeUpdate(newTree: any[]) {
-  config.value.materialsTree = deepClone(newTree);
-  pushHistory();
-}
-function handleConfigUpdate(updated: Config) {
-  config.value = deepClone(updated);
-  pushHistory();
-  rebuildAllApis();
-}
-function handleSelectLayer(layerId: string) {
-  selectedLayerId.value = layerId;
-}
-function handleCanvasSizeChange(field: 'height' | 'width', value: number) {
-  (config.value as any)[field] = value;
-  pushHistory();
-}
-
-/* 快捷键撤销 / 重做 */
 useKeyStroke(window, (e) => {
   if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
     e.shiftKey ? redo() : undo();
@@ -333,38 +313,34 @@ useKeyStroke(window, (e) => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* 保存到后端                                                                  */
+/* 保存 & 预览                                                                 */
 /* -------------------------------------------------------------------------- */
-const BASE_URL = '/api/jx-device/Device' as const;
-
+const BASE_URL = '/api/jx-device/Device';
 function syncMaterialsTree() {
   if (palettePanelRef.value?.getMaterialsTree) {
     config.value.materialsTree = palettePanelRef.value.getMaterialsTree();
   }
 }
-
 async function handleSave() {
   if (!selectedDeviceId.value && !creatingNew.value) {
     alert('请选择设备或点击新增后再保存！');
     return;
   }
-
   syncMaterialsTree();
-
   const payload = {
     deviceId: selectedDeviceId.value,
     ...deviceInfo.value,
-    deviceJson: JSON.stringify(config.value),
+    deviceJson: JSON.stringify(frontConfig.value),
+    deviceBack: JSON.stringify(backConfig.value),
+    deviceDetails: JSON.stringify(detailConfig.value),
   };
-
   try {
-    const resp = await fetch(`${BASE_URL}`, {
+    const resp = await fetch(BASE_URL, {
       method: creatingNew.value ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     const json = await resp.json();
-
     if (json.code === 200) {
       alert('保存成功！');
       if (creatingNew.value && json.data?.deviceId) {
@@ -379,82 +355,77 @@ async function handleSave() {
     alert('保存请求失败，请检查网络或服务器');
   }
 }
-
-/* -------------------------------------------------------------------------- */
-/* 预览                                                                       */
-/* -------------------------------------------------------------------------- */
 async function handlePreview() {
   await handleSave();
-  if (!selectedDeviceId.value) return;
-  router.push({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
+  if (selectedDeviceId.value) {
+    router.push({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* 复制与迁移视图                                                              */
+/* -------------------------------------------------------------------------- */
+function copyView(from: ViewType, to: ViewType) {
+  const cfg = deepClone(
+    from === 'front' ? frontConfig.value : from === 'back' ? backConfig.value : detailConfig.value
+  );
+  if (to === 'front') frontConfig.value = cfg;
+  else if (to === 'back') backConfig.value = cfg;
+  else detailConfig.value = cfg;
+  pushHistory();
+  rebuildAllApis();
+}
+function moveView(from: ViewType, to: ViewType) {
+  copyView(from, to);
+  const empty = createDefaultConfig();
+  if (from === 'front') frontConfig.value = empty;
+  else if (from === 'back') backConfig.value = empty;
+  else detailConfig.value = empty;
+  pushHistory();
+  rebuildAllApis();
+}
+function handleCopyView() {
+  const target = prompt('复制到 (front/back/detail)：', viewType.value === 'front' ? 'back' : 'front');
+  if (target && target !== viewType.value && ['front', 'back', 'detail'].includes(target)) {
+    copyView(viewType.value, target as ViewType);
+    alert('复制成功！');
+  }
+}
+function handleMoveView() {
+  const target = prompt('迁移到 (front/back/detail)：', viewType.value === 'front' ? 'back' : 'front');
+  if (target && target !== viewType.value && ['front', 'back', 'detail'].includes(target)) {
+    moveView(viewType.value, target as ViewType);
+    alert('迁移成功！');
+  }
 }
 </script>
 
 <template>
   <div class="device-editor flex h-full bg-[#181a20]">
     <!-- 工具栏 -->
-    <div
-      class="fixed bottom-0 left-0 z-50 flex w-full justify-center gap-3 pb-4"
-    >
-      <select
-        v-model="selectedDeviceId"
-        class="rounded bg-white/90 px-2 py-1 text-black"
-      >
-        <option
-          v-for="opt in deviceOptions"
-          :key="opt.value"
-          :value="opt.value"
-        >
+    <div class="fixed bottom-0 left-0 z-50 flex w-full justify-center gap-3 pb-4">
+      <select v-model="selectedDeviceId" class="rounded bg-white/90 px-2 py-1 text-black">
+        <option v-for="opt in deviceOptions" :key="opt.value" :value="opt.value">
           {{ opt.label }}
         </option>
       </select>
-      <button
-        @click="startNewDevice"
-        class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]"
-      >
-        新增
-      </button>
-      <button
-        @click="undo"
-        :disabled="historyIndex === 0"
-        title="Ctrl+Z"
-        class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50"
-      >
-        撤销
-      </button>
-      <button
-        @click="redo"
-        :disabled="historyIndex === history.length - 1"
-        title="Ctrl+Shift+Z / Ctrl+Y"
-        class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50"
-      >
-        反撤销
-      </button>
-      <button
-        @click="handleSave"
-        class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]"
-      >
-        保存
-      </button>
-      <button
-        @click="handlePreview"
-        class="btn-primary border-[#3ae0ff] bg-[#2a69d7] hover:bg-[#154c8a]"
-      >
-        阅览
-      </button>
-      <button
-        @click="showDeviceInfoModal = true"
-        class="btn-primary border-[#ffb638] bg-[#d78a2a] hover:bg-[#8a5b15]"
-      >
-        设备信息
-      </button>
+      <select v-model="viewType" class="rounded bg-white/90 px-2 py-1 text-black">
+        <option value="front">正面</option>
+        <option value="back">背面</option>
+        <option value="detail">详情</option>
+      </select>
+      <button @click="handleCopyView" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a]">复制</button>
+      <button @click="handleMoveView" class="btn-primary border-[#ff6384] hover:bg-[#23242a]">迁移</button>
+      <button @click="startNewDevice" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">新增</button>
+      <button @click="undo" :disabled="historyIndex === 0" title="Ctrl+Z" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50">撤销</button>
+      <button @click="redo" :disabled="historyIndex === history.length - 1" title="Ctrl+Shift+Z / Ctrl+Y" class="btn-primary border-[#3ae0ff] hover:bg-[#23242a] disabled:opacity-50">反撤销</button>
+      <button @click="handleSave" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">保存</button>
+      <button @click="handlePreview" class="btn-primary border-[#3ae0ff] bg-[#2a69d7] hover:bg-[#154c8a]">阅览</button>
+      <button @click="showDeviceInfoModal = true" class="btn-primary border-[#ffb638] bg-[#d78a2a] hover:bg-[#8a5b15]">设备信息</button>
     </div>
 
     <!-- 设备信息弹窗 -->
-    <div
-      v-if="showDeviceInfoModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-    >
+    <div v-if="showDeviceInfoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
       <div class="w-[600px] rounded-lg bg-[#20222a] p-6">
         <h3 class="mb-4 text-lg font-bold text-white">设备信息</h3>
         <form @submit.prevent="showDeviceInfoModal = false">
@@ -479,39 +450,19 @@ async function handlePreview() {
             />
           </div>
           <div class="flex justify-end gap-2">
-            <button
-              type="button"
-              @click="showDeviceInfoModal = false"
-              class="rounded bg-gray-500 px-4 py-2 text-white"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              class="rounded bg-blue-500 px-4 py-2 text-white"
-            >
-              确定
-            </button>
+            <button type="button" @click="showDeviceInfoModal = false" class="rounded bg-gray-500 px-4 py-2 text-white">取消</button>
+            <button type="submit" class="rounded bg-blue-500 px-4 py-2 text-white">确定</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- 左侧面板：素材 & 图层 -->
+    <!-- 左侧面板 -->
     <aside class="w-1/6 overflow-y-auto border-r bg-[#181a20] p-2">
-      <PalettePanel
-        ref="palettePanelRef"
-        :config="config"
-        @update="handleMaterialsTreeUpdate"
-      />
+      <PalettePanel ref="palettePanelRef" :config="config" @update="handleMaterialsTreeUpdate" />
     </aside>
     <aside class="w-1/6 overflow-y-auto border-r bg-[#181a20] p-2">
-      <LayerList
-        :config="config"
-        :selected-layer-id="selectedLayerId"
-        @select="handleSelectLayer"
-        @update="handleConfigUpdate"
-      />
+      <LayerList :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @update="handleConfigUpdate" />
     </aside>
 
     <!-- 画布编辑区 -->
@@ -524,20 +475,9 @@ async function handlePreview() {
           height: `${config.height + 32}px`,
         }"
       >
-        <CanvasEditor
-          :config="config"
-          :selected-layer-id="selectedLayerId"
-          @select="handleSelectLayer"
-          @update="handleConfigUpdate"
-        />
+        <CanvasEditor :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @update="handleConfigUpdate" />
       </div>
-      <div
-        v-if="!config"
-        class="flex h-full items-center justify-center text-gray-400"
-      >
-        加载中…
-      </div>
-
+      <div v-if="!config" class="flex h-full items-center justify-center text-gray-400">加载中…</div>
     </main>
 
     <!-- 属性面板 -->
@@ -559,36 +499,23 @@ async function handlePreview() {
             <input
               type="number"
               :value="config.width"
-              @input="
-                handleCanvasSizeChange(
-                  'width',
-                  ($event.target as HTMLInputElement).valueAsNumber,
-                )
-              "
+              @input="handleCanvasSizeChange('width', ($event.target as HTMLInputElement).valueAsNumber)"
               class="w-20 border p-1"
             />
             <label class="ml-2">高度：</label>
             <input
               type="number"
               :value="config.height"
-              @input="
-                handleCanvasSizeChange(
-                  'height',
-                  ($event.target as HTMLInputElement).valueAsNumber,
-                )
-              "
+              @input="handleCanvasSizeChange('height', ($event.target as HTMLInputElement).valueAsNumber)"
               class="w-20 border p-1"
             />
           </div>
-          <div class="text-gray-400">
-            请先选择一个图层，或拖入素材到画布上。
-          </div>
+          <div class="text-gray-400">请先选择一个图层，或拖入素材到画布上。</div>
         </div>
       </template>
     </aside>
   </div>
 </template>
-
 <style scoped>
 .btn-primary {
   @apply rounded border bg-[#303848] px-3 py-1 text-white;

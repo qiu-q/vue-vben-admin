@@ -73,7 +73,7 @@ onUnmounted(() => window.removeEventListener('resize', updateScale));
           height: `${config.height}px`,
         }"
       >
-        <DevicePreviewRender :config="config" />
+        <DevicePreviewRender :config="config" with-redis-state />
       </div>
     </div>
   </div>

@@ -299,6 +299,37 @@ function handleSaveCard() {
   alert('属性已保存！');
 }
 
+function handleSaveTable() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'table';
+  try {
+    selectedLayer.value.config.data = tableDataStr.value
+      ? JSON.parse(tableDataStr.value)
+      : [];
+  } catch {
+    alert('JSON 格式错误');
+    return;
+  }
+  selectedLayer.value.config.apiId = tableApiId.value;
+  selectedLayer.value.config.dataKey = tableDataKey.value;
+  selectedLayer.value.config.scrollY = tableScrollY.value;
+  emit('update', props.config);
+  alert('属性已保存！');
+}
+
+function handleSaveCard() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'card';
+  selectedLayer.value.config.text = cardText.value;
+  selectedLayer.value.config.fontSize = cardFontSize.value;
+  selectedLayer.value.config.color = cardColor.value;
+  selectedLayer.value.config.background = cardBackground.value;
+  selectedLayer.value.config.apiId = cardApiId.value;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
+  alert('属性已保存！');
+}
+
 function updateField(field: string, value: any) {
   if (!selectedLayer.value) return;
   selectedLayer.value.config[field] = value;
@@ -395,6 +426,67 @@ watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey
     cfg.dataKey = cardDataKey.value;
     emit('update', props.config);
   }
+});
+
+watch(tableApiId, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.apiId = tableApiId.value;
+  const opts = getKeyOptions(tableApiId.value);
+  if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
+  emit('update', props.config);
+});
+
+watch(tableScrollY, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.scrollY = tableScrollY.value;
+  emit('update', props.config);
+});
+
+watch(tableDataKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.dataKey = tableDataKey.value;
+  emit('update', props.config);
+});
+
+watch(cardDataKey, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
+});
+
+watch(cardApiId, () => {
+  const opts = getKeyOptions(cardApiId.value);
+  if (!cardDataKey.value && opts.length) cardDataKey.value = opts[0];
+});
+
+watch(tableApiId, () => {
+  const opts = getKeyOptions(tableApiId.value);
+  if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
+});
+
+watch(selectedApiId, () => {
+  const api = availableApis.value.find((a) => a.id === selectedApiId.value);
+  if (api && api.lastSample) {
+    portMap.value = extractPortMap(api.lastSample);
+    const keys = Object.keys(portMap.value);
+    portKey.value = keys[0] || '';
+    updateStatusList();
+  } else {
+    portMap.value = {};
+    portKey.value = '';
+    statusList.value = [];
+  }
+});
+
+watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+  selectedLayer.value.config.text = cardText.value;
+  selectedLayer.value.config.fontSize = cardFontSize.value;
+  selectedLayer.value.config.color = cardColor.value;
+  selectedLayer.value.config.background = cardBackground.value;
+  selectedLayer.value.config.apiId = cardApiId.value;
+  selectedLayer.value.config.dataKey = cardDataKey.value;
+  emit('update', props.config);
 });
 
 // 初始化时恢复

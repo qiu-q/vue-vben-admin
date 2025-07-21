@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import html2canvas from 'html2canvas';
 
@@ -10,6 +11,8 @@ import CanvasRightPanel from './components/CanvasRightPanel.vue';
 import ExternalLines from './components/ExternalLines.vue';
 import InternalLines from './components/InternalLines.vue';
 import TopoToolbar from './components/TopoToolbar.vue';
+
+const router = useRouter();
 
 interface PortLayer {
   id: string;
@@ -64,6 +67,16 @@ function createCabinetTemplate(): DeviceTemplate {
   };
 }
 
+function createPowerCabinetTemplate(): DeviceTemplate {
+  return {
+    deviceId: 'POWER-CABINET',
+    width: 480,
+    height: 700,
+    layers: [],
+    materialsTree: [],
+  };
+}
+
 interface TopoConfig {
   devices: {
     _uuid: string;
@@ -76,6 +89,8 @@ interface TopoConfig {
   edges: any[];
   saveTime?: number;
   cover?: string;
+  width?: number;
+  height?: number;
 }
 
 // 状态
@@ -101,6 +116,9 @@ const dragStart = ref({ x: 0, y: 0 });
 const dragDevice = ref<any>(null);
 const canvasRef = ref<HTMLElement | null>(null);
 const canvasDomRef = ref<HTMLElement | null>(null);
+const canvasWidth = ref(1920);
+const canvasHeight = ref(1080);
+const activeDeviceId = ref<string | null>(null);
 
 // 画布保存
 const topoConfigs = ref<Record<string, TopoConfig>>({});
@@ -178,11 +196,17 @@ async function saveCurrentCanvasToConfigs() {
     edges: deepClone(edges.value),
     saveTime: Date.now(),
     cover: coverBase64,
+    width: canvasWidth.value,
+    height: canvasHeight.value,
   };
   topoConfigs.value[name] = config;
   saveConfigsToStorage();
   newConfigName.value = '';
   alert(`画布【${name}】已保存`);
+
+  // 清空当前画布方便继续新建
+  devicesOnCanvas.value = [];
+  edges.value = [];
 }
 
 function restoreConfigToCanvas(config: TopoConfig) {
@@ -200,6 +224,8 @@ function restoreConfigToCanvas(config: TopoConfig) {
     return dev;
   });
   edges.value = deepClone(config.edges);
+  if (config.width) canvasWidth.value = config.width;
+  if (config.height) canvasHeight.value = config.height;
 }
 
 function removeConfig(name: string) {
@@ -273,6 +299,10 @@ async function fetchDevices() {
     if (!allDeviceOptions.value.find((d) => d.deviceId === 'CABINET-42U')) {
       allDeviceOptions.value.push(createCabinetTemplate());
     }
+    // 配电柜模板
+    if (!allDeviceOptions.value.find((d) => d.deviceId === 'POWER-CABINET')) {
+      allDeviceOptions.value.push(createPowerCabinetTemplate());
+    }
 
     if (allDeviceOptions.value.length > 0)
       selectedDeviceId.value = allDeviceOptions.value[0].deviceId;
@@ -296,14 +326,33 @@ function addDevice() {
     x: Math.floor(60 + Math.random() * 500),
     y: Math.floor(60 + Math.random() * 300),
   };
-  newDev.scaleX = 1;
-  newDev.scaleY = 1;
+  if (tmpl.deviceId === 'POWER-CABINET') {
+    const w =
+      Number(window.prompt('配电柜宽度(px)', String(tmpl.width))) || tmpl.width;
+    const h =
+      Number(window.prompt('配电柜高度(px)', String(tmpl.height))) || tmpl.height;
+    newDev.scaleX = w / tmpl.width;
+    newDev.scaleY = h / tmpl.height;
+  } else {
+    newDev.scaleX = 1;
+    newDev.scaleY = 1;
+  }
   newDev.parentCabinetId = null;
   devicesOnCanvas.value.push(newDev);
 }
 
+function openDeviceView(dev: RuntimeDevice) {
+  if (
+    dev.deviceId !== 'CABINET-42U' &&
+    dev.deviceId !== 'POWER-CABINET'
+  ) {
+    router.push(`/control/device-view/${dev.deviceId}`);
+  }
+}
+
 // 设备拖拽
 function startDragDevice(dev: any, evt: MouseEvent) {
+  activeDeviceId.value = dev._uuid;
   dragging.value = true;
   dragDevice.value = dev;
   dragStart.value = {
@@ -317,10 +366,14 @@ function onDragMove(e: MouseEvent) {
   if (!dragging.value || !dragDevice.value) return;
   let nx = e.clientX - dragStart.value.x;
   let ny = e.clientY - dragStart.value.y;
-  nx = Math.max(0, Math.min(nx, 1100));
-  ny = Math.max(0, Math.min(ny, 700));
+  nx = Math.max(0, Math.min(nx, canvasWidth.value - 100));
+  ny = Math.max(0, Math.min(ny, canvasHeight.value - 100));
   // 如果拖动的是机柜，同步移动其子设备
-  if (dragDevice.value && dragDevice.value.deviceId === 'CABINET-42U') {
+  if (
+    dragDevice.value &&
+    (dragDevice.value.deviceId === 'CABINET-42U' ||
+      dragDevice.value.deviceId === 'POWER-CABINET')
+  ) {
     const cab = dragDevice.value as RuntimeDevice;
     const dx = nx - cab.position.x;
     const dy = ny - cab.position.y;
@@ -334,7 +387,11 @@ function onDragMove(e: MouseEvent) {
   dragDevice.value.position.x = nx;
   dragDevice.value.position.y = ny;
   // 计算当前悬停的机柜（仅拖普通设备时）
-  if (dragDevice.value && dragDevice.value.deviceId !== 'CABINET-42U') {
+  if (
+    dragDevice.value &&
+    dragDevice.value.deviceId !== 'CABINET-42U' &&
+    dragDevice.value.deviceId !== 'POWER-CABINET'
+  ) {
     const device = dragDevice.value as RuntimeDevice;
     const devPos = device.position;
 
@@ -363,13 +420,17 @@ function onDragMove(e: MouseEvent) {
 }
 function stopDragDevice() {
   // -------- Auto‑scale when dropping into cabinet -------
-  if (dragDevice.value && dragDevice.value.deviceId !== 'CABINET-42U') {
+  if (
+    dragDevice.value &&
+    dragDevice.value.deviceId !== 'CABINET-42U' &&
+    dragDevice.value.deviceId !== 'POWER-CABINET'
+  ) {
     const device = dragDevice.value as RuntimeDevice;
 
     // 找覆盖该设备左上角的机柜
     const cabinet = devicesOnCanvas.value.find(
       (d) =>
-        d.deviceId === 'CABINET-42U' &&
+        (d.deviceId === 'CABINET-42U' || d.deviceId === 'POWER-CABINET') &&
         device.position.x >= d.position.x &&
         device.position.x <= d.position.x + d.width &&
         device.position.y >= d.position.y &&
@@ -377,33 +438,39 @@ function stopDragDevice() {
     ) as RuntimeDevice | undefined;
 
     if (cabinet) {
-      const innerWidth = cabinet.width - 20; // 可用宽度
-      const promptTxt = '该设备占用多少 U？(1-42)';
-      let units = Number(window.prompt(promptTxt, '1'));
-      if (!units || units < 1 || units > 42 || Number.isNaN(units)) units = 1;
+      if (cabinet.deviceId === 'CABINET-42U') {
+        const innerWidth = cabinet.width - 20; // 可用宽度
+        const promptTxt = '该设备占用多少 U？(1-42)';
+        let units = Number(window.prompt(promptTxt, '1'));
+        if (!units || units < 1 || units > 42 || Number.isNaN(units)) units = 1;
 
-      // 计算吸附起始行
-      const relY = device.position.y - cabinet.position.y;
-      let startIdx = Math.floor(relY / U_HEIGHT);
-      startIdx = Math.max(0, Math.min(42 - units, startIdx));
+        // 计算吸附起始行
+        const relY = device.position.y - cabinet.position.y;
+        let startIdx = Math.floor(relY / U_HEIGHT);
+        startIdx = Math.max(0, Math.min(42 - units, startIdx));
 
-      // X/Y 独立缩放：先按宽度铺满，再按高度向上取整到整数像素，避免空隙
-      device.scaleX = innerWidth / device.width;
+        // X/Y 独立缩放：先按宽度铺满，再按高度向上取整到整数像素，避免空隙
+        device.scaleX = innerWidth / device.width;
 
-      const rawScaleY = (units * U_HEIGHT) / device.height;
-      // 向上取整到千分位，确保视觉完全覆盖
-      device.scaleY = Math.ceil(rawScaleY * 1000) / 1000;
+        const rawScaleY = (units * U_HEIGHT) / device.height;
+        // 向上取整到千分位，确保视觉完全覆盖
+        device.scaleY = Math.ceil(rawScaleY * 1000) / 1000;
 
-      // 重新定位
-      device.position.x =
-        cabinet.position.x + (cabinet.width - device.width * device.scaleX) / 2;
-      device.position.y = cabinet.position.y + startIdx * U_HEIGHT;
+        // 重新定位
+        device.position.x =
+          cabinet.position.x +
+          (cabinet.width - device.width * device.scaleX) / 2;
+        device.position.y = cabinet.position.y + startIdx * U_HEIGHT;
+
+        // 高亮更新（松手后显示实际占用行）
+        hoveredUSlots.value = Array.from(
+          { length: units },
+          (_, i) => startIdx + i,
+        );
+      }
 
       // 绑定父机柜
       device.parentCabinetId = cabinet._uuid;
-
-      // 高亮更新（松手后显示实际占用行）
-      hoveredUSlots.value = Array.from({ length: units }, (_, i) => startIdx + i);
     }
     else {
       device.parentCabinetId = null;
@@ -416,6 +483,17 @@ function stopDragDevice() {
   dragDevice.value = null;
   window.removeEventListener('mousemove', onDragMove);
   window.removeEventListener('mouseup', stopDragDevice);
+}
+
+function removeSelectedDevice() {
+  if (!activeDeviceId.value) return;
+  const id = activeDeviceId.value;
+  devicesOnCanvas.value = devicesOnCanvas.value.filter((d) => d._uuid !== id);
+  edges.value = edges.value.filter((e) => {
+    const tgt = (e.target as any).devUUid;
+    return e.source.devUUid !== id && (tgt ? tgt !== id : true);
+  });
+  activeDeviceId.value = null;
 }
 
 // 连线时鼠标
@@ -468,8 +546,8 @@ function getEdgePositions(edge: any) {
     const roomList = Object.keys(topoConfigs.value);
     const idx = roomList.indexOf((edge.target as any).externalRoom);
     const canvasRect = canvasDomRef.value?.getBoundingClientRect?.();
-    const canvasWidth = canvasRect?.width || 1200;
-    const canvasHeight = canvasRect?.height || 800;
+    const canvasWidth = canvasRect?.width || 1920;
+    const canvasHeight = canvasRect?.height || 1080;
     const roomCount = roomList.length;
     const gapY = Math.max(60, (canvasHeight - 240) / Math.max(1, roomCount));
     target = {
@@ -565,7 +643,13 @@ function connectToExternalRoom(roomName: string) {
 onMounted(() => {
   fetchDevices();
   loadConfigsFromStorage();
+  window.addEventListener('keydown', onKeyDown);
 });
+onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
+
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Delete') removeSelectedDevice();
+}
 </script>
 
 <template>
@@ -574,7 +658,7 @@ onMounted(() => {
     <div
       class="canvas-bg"
       ref="canvasDomRef"
-      style="position: relative; width: 100%; height: 100vh"
+      :style="{ position: 'relative', width: canvasWidth + 'px', height: canvasHeight + 'px' }"
       @mousemove="onMouseMove"
       @mouseup="onCanvasMouseUp"
     >
@@ -585,23 +669,34 @@ onMounted(() => {
         :all-device-options="allDeviceOptions"
         :new-config-name="newConfigName"
         :connect-mode="connectMode"
+        :canvas-width="canvasWidth"
+        :canvas-height="canvasHeight"
         @update:selected-device-id="(val) => (selectedDeviceId = val)"
         @update:new-config-name="(val) => (newConfigName = val)"
         @add-device="addDevice"
         @save-current-canvas-to-configs="saveCurrentCanvasToConfigs"
         @set-connect-mode="setConnectMode"
+        @update:canvas-width="(val: number) => (canvasWidth = val)"
+        @update:canvas-height="(val: number) => (canvasHeight = val)"
+        @remove-selected-device="removeSelectedDevice"
       />
       <!-- 设备实例渲染 -->
       <template v-for="dev in devicesOnCanvas" :key="dev._uuid">
         <div
           class="device-wrap"
+          :class="{ 'active-device': activeDeviceId === dev._uuid }"
+          @click.stop="activeDeviceId = dev._uuid"
+          @dblclick.stop="openDeviceView(dev)"
           :style="{
             position: 'absolute',
             left: `${dev.position.x}px`,
             top: `${dev.position.y}px`,
             transform: `scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`,
             transformOrigin: 'top left',
-            zIndex: dev.deviceId === 'CABINET-42U' ? 10 : 20,
+            zIndex:
+              dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
+                ? 10
+                : 20,
           }"
           @mousedown="startDragDevice(dev, $event)"
         >
@@ -626,6 +721,9 @@ onMounted(() => {
                 <div class="slot-content" :data-u="42 - u + 1"></div>
               </div>
             </div>
+          </template>
+          <template v-else-if="dev.deviceId === 'POWER-CABINET'">
+            <div class="power-cabinet">配电柜</div>
           </template>
           <template v-else>
             <!-- 底图层 -->
@@ -678,8 +776,8 @@ onMounted(() => {
       </template>
       <!-- SVG连线层（内部线、外部线） -->
       <svg
-        :width="canvasDomRef?.offsetWidth || 1200"
-        :height="canvasDomRef?.offsetHeight || 800"
+        :width="canvasDomRef?.offsetWidth || 1920"
+        :height="canvasDomRef?.offsetHeight || 1080"
         style="
           position: absolute;
           top: 0;
@@ -740,7 +838,6 @@ onMounted(() => {
 <style scoped>
 .canvas-bg {
   position: relative;
-  width: 1200px; height: 800px
 }
 .canvas-bg::before {
   content: '';
@@ -755,6 +852,9 @@ onMounted(() => {
 }
 .device-wrap {
   user-select: none;
+}
+.active-device {
+  outline: 2px dashed #f44;
 }
 .port-spot {
   box-sizing: border-box;
@@ -819,5 +919,16 @@ onMounted(() => {
 .cabinet-slot-hover-u {
   border: 1px solid #01aaff !important;
   box-shadow: inset 0 0 8px 2px #01aaff;
+}
+.power-cabinet {
+  width: 480px;
+  height: 700px;
+  background: #2d2d2d;
+  border: 2px solid #888;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
 }
 </style>
