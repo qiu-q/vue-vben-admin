@@ -145,10 +145,19 @@ function getTableData(layer: any) {
   return [];
 }
 
-function getTableHeaders(layer: any) {
+function getTableColumns(layer: any) {
+  if (Array.isArray(layer.config.columns) && layer.config.columns.length) {
+    return layer.config.columns;
+  }
   const data = getTableData(layer);
-  if (Array.isArray(data) && data.length) return Object.keys(data[0]);
+  if (Array.isArray(data) && data.length) {
+    return Object.keys(data[0]).map((k) => ({ field: k, title: k }));
+  }
   return [];
+}
+
+function getTableHeaders(layer: any) {
+  return getTableColumns(layer).map((c: any) => c.title || c.field);
 }
 
 function getLayerText(layer: any) {
@@ -518,6 +527,7 @@ watch(
             width: `${layer.config.width}px`,
             height: `${layer.config.height}px`,
             zIndex: layer.zIndex,
+            fontSize: layer.config.fontSize || '11px',
             outline: selectedId === layer.id ? '2px solid #1976d2' : '',
             boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
             overflowX: 'auto',
@@ -528,26 +538,29 @@ watch(
           draggable="false"
           @dragstart.prevent
         >
-          <table class="w-full border-collapse text-[11px]">
-            <thead v-if="getTableHeaders(layer).length">
+          <table class="w-full border-collapse">
+            <thead
+              v-if="getTableColumns(layer).length"
+              :style="{ lineHeight: layer.config.headerSize || undefined }"
+            >
               <tr>
                 <th
-                  v-for="key in getTableHeaders(layer)"
-                  :key="key"
+                  v-for="col in getTableColumns(layer)"
+                  :key="col.field"
                   class="border px-1 py-0.5"
                 >
-                  {{ key }}
+                  {{ col.title || col.field }}
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
                 <td
-                  v-for="key in getTableHeaders(layer)"
-                  :key="key"
+                  v-for="col in getTableColumns(layer)"
+                  :key="col.field"
                   class="border px-1 py-0.5"
                 >
-                  {{ row[key] }}
+                  {{ row[col.field] }}
                 </td>
               </tr>
             </tbody>
