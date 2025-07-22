@@ -34,6 +34,7 @@
     "tree": "树形表格",
     "fixed": "固定表头/列",
     "virtual": "虚拟滚动",
+    "snmpContent": "SNMP 表格",
     "editCell": "单元格编辑",
     "editRow": "行编辑",
     "custom-cell": "自定义单元格",

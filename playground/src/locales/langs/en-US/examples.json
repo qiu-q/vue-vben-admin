@@ -31,6 +31,7 @@
     "tree": "Tree Table",
     "fixed": "Fixed Header/Column",
     "virtual": "Virtual Scroll",
+    "snmpContent": "SNMP Content",
     "editCell": "Edit Cell",
     "editRow": "Edit Row",
     "custom-cell": "Custom Cell",

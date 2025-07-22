@@ -74,6 +74,8 @@ const {
   tableTitleHelp,
   showSearchForm,
   separator,
+  headerSize,
+  fontSize,
 } = usePriorityValues(props, state);
 
 const { isMobile } = usePreferences();
@@ -337,6 +339,13 @@ const isCompactForm = computed(() => {
   return formApi.getState()?.compact;
 });
 
+const gridStyle = computed(() => {
+  return {
+    ...(headerSize.value ? { '--vben-vxe-header-size': headerSize.value } : {}),
+    ...(fontSize.value ? { '--vben-vxe-font-size': fontSize.value } : {}),
+  };
+});
+
 onMounted(() => {
   props.api?.mount?.(gridRef.value, formApi);
   init();
@@ -349,7 +358,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div :class="cn('bg-card h-full rounded-md', className)">
+  <div :class="cn('bg-card h-full rounded-md', className)" :style="gridStyle">
     <VxeGrid
       ref="gridRef"
       :class="

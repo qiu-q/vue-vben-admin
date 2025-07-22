@@ -32,6 +32,8 @@
   /* table */
   --vxe-ui-table-header-background-color: hsl(var(--accent));
   --vxe-ui-table-border-color: hsl(var(--border));
+  --vben-vxe-header-size: 2.2em;
+  --vben-vxe-font-size: 0.875rem;
   --vxe-ui-table-row-hover-background-color: hsl(var(--accent-hover));
   --vxe-ui-table-row-striped-background-color: hsl(var(--accent) / 60%);
   --vxe-ui-table-row-hover-striped-background-color: hsl(var(--accent));
@@ -114,4 +116,12 @@
 
 .vxe-grid--layout-body-content-wrapper {
   overflow: hidden;
+}
+
+.vxe-header--row {
+  line-height: var(--vben-vxe-header-size);
+}
+.vxe-header--column,
+.vxe-body--column {
+  font-size: var(--vben-vxe-font-size);
 }

@@ -72,6 +72,10 @@ export interface VxeGridProps {
    * 搜索表单与表格主体之间的分隔条
    */
   separator?: boolean | SeparatorOptions;
+  /** 表头高度，css单位 */
+  headerSize?: string;
+  /** 表格字体大小，css单位 */
+  fontSize?: string;
 }
 
 export type ExtendedVxeGridApi = VxeGridApi & {
