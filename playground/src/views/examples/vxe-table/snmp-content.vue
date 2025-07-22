@@ -16,6 +16,7 @@ const rawData = {
 const tableData = parseSnmpContent(rawData);
 
 const gridOptions: VxeGridProps<{
+  index: number;
   key: string;
   value: string;
 }> = {

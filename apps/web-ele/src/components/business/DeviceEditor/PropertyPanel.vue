@@ -412,11 +412,13 @@ watch(tableApiId, () => {
 watch(selectedApiId, () => {
   const api = availableApis.value.find((a) => a.id === selectedApiId.value);
   if (api && api.lastSample) {
+    testResult.value = api.lastSample;
     portMap.value = extractPortMap(api.lastSample);
     const keys = Object.keys(portMap.value);
     portKey.value = keys[0] || '';
     updateStatusList();
   } else {
+    testResult.value = null;
     portMap.value = {};
     portKey.value = '';
     statusList.value = [];
@@ -457,6 +459,8 @@ watch(tableApiId, () => {
   selectedLayer.value.config.apiId = tableApiId.value;
   const opts = getKeyOptions(tableApiId.value);
   if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
+  const api = availableApis.value.find((a) => a.id === tableApiId.value);
+  testResult.value = api?.lastSample || null;
   emit('update', props.config);
 });
 
@@ -572,8 +576,10 @@ watch(
 
     const api = availableApis.value.find(a => a.id === selectedApiId.value);
     if (api && api.lastSample) {
+      testResult.value = api.lastSample;
       portMap.value = extractPortMap(api.lastSample);
     } else {
+      testResult.value = null;
       portMap.value = {};
     }
   },

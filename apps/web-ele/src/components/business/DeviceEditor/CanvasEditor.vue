@@ -7,6 +7,7 @@ import {
   ref,
   watch,
 } from 'vue';
+import { parseSnmpContent } from '@vben/utils';
 
 const props = defineProps<{
   config: any;
@@ -129,16 +130,19 @@ function getByKey(obj: any, path: string): any {
 }
 
 function getTableData(layer: any) {
+  let data: any;
   if (layer.config.apiId) {
     const apiResp = apiDataMap.value[layer.config.apiId];
     if (!apiResp || apiResp.error) return [];
-    let data = layer.config.dataKey ? getByKey(apiResp, layer.config.dataKey) : apiResp;
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.rows)) return data.rows;
-    return [];
+    data = layer.config.dataKey ? getByKey(apiResp, layer.config.dataKey) : apiResp;
+  } else {
+    data = layer.config.data;
   }
-  return Array.isArray(layer.config.data) ? layer.config.data : [];
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.rows)) return data.rows;
+  if (data && typeof data === 'object') return parseSnmpContent(data);
+  return [];
 }
 
 function getTableHeaders(layer: any) {
