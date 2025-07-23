@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useWs } from '#/services/ws';
 import { parseSnmpContent } from '@vben/utils';
 
@@ -10,6 +11,7 @@ const props = defineProps<{ config: any; withRedisState?: boolean }>();
 const apiDataMap = ref<Record<string, any>>({});
 const apiTimers = ref<Record<string, number>>({});
 const wsUnsubs = ref<Record<string, () => void>>({});
+const router = useRouter();
 
 // 用于显示 IP 气泡
 const hoveredPortInfo = ref<null | {
@@ -244,6 +246,40 @@ function handlePortMouseLeave() {
   hoveredPortInfo.value = null;
 }
 
+async function handlePortClick(layer: any) {
+  if (!layer.config.dynamic) return;
+  const { apiId, portKey } = layer.config;
+  const apiResp = apiDataMap.value[apiId];
+  if (!apiResp || apiResp.error) return;
+  const ipMap = extractPortIpMap(apiResp);
+  let ips: string[] = [];
+  const val = ipMap[portKey];
+  if (Array.isArray(val)) ips = val.filter(Boolean);
+  else if (val) ips = [String(val)];
+  const exist = await queryExistingIps(ips);
+  const targets = ips.filter((ip) => exist.has(ip));
+  if (!targets.length) {
+    window.alert('没有找到对应设备');
+    return;
+  }
+  for (const ip of targets) {
+    try {
+      const resp = await fetch(
+        `/api/jx-device/Device/list?deviceIpAddress=${encodeURIComponent(ip)}`,
+      );
+      const json = await resp.json();
+      const row = Array.isArray(json.rows) && json.rows[0];
+      if (row && row.deviceId) {
+        router.push(`/control/device-view/${row.deviceId}`);
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  window.alert('没有找到对应设备');
+}
+
 async function handlePortDblClick(layer: any) {
   if (!layer.config.dynamic) return;
   const { apiId, portKey } = layer.config;
@@ -334,9 +370,10 @@ watch(
             zIndex: layer.zIndex,
             border: layer.config.dynamic ? '2px solid #0ff8' : 'none',
             borderRadius: layer.config.dynamic ? '7px' : '0',
-            cursor: layer.config.dynamic ? 'pointer' : 'default'
+          cursor: layer.config.dynamic ? 'pointer' : 'default'
           }"
           draggable="false"
+          @click="handlePortClick(layer)"
           @dblclick="handlePortDblClick(layer)"
           @mouseenter="handlePortMouseEnter(layer)"
           @mouseleave="handlePortMouseLeave"
