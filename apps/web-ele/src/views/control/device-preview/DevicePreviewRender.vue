@@ -244,6 +244,27 @@ function handlePortMouseLeave() {
   hoveredPortInfo.value = null;
 }
 
+async function handlePortDblClick(layer: any) {
+  if (!layer.config.dynamic) return;
+  const { apiId, portKey } = layer.config;
+  const apiResp = apiDataMap.value[apiId];
+  if (!apiResp || apiResp.error) return;
+  const portMap = extractPortMap(apiResp);
+  const raw = portMap[portKey];
+  if (String(raw) !== '3') return;
+  if (!window.confirm('端口状态异常，确认已恢复正常？')) return;
+  try {
+    await fetch('/api/jx-device/Port/deviceIdAndPortNameUpdate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: props.config.deviceId, portName: portKey }),
+    });
+  } catch (err) {
+    console.error(err);
+  }
+  startPollingApis();
+}
+
 // ========== 生命周期 ==========
 onMounted(() => {
   bindDeviceIdToApis();
@@ -316,6 +337,7 @@ watch(
             cursor: layer.config.dynamic ? 'pointer' : 'default'
           }"
           draggable="false"
+          @dblclick="handlePortDblClick(layer)"
           @mouseenter="handlePortMouseEnter(layer)"
           @mouseleave="handlePortMouseLeave"
         />
