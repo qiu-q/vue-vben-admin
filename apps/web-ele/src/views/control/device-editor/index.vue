@@ -141,11 +141,22 @@ const showDeviceInfoModal = ref(false);
 /* -------------------------------------------------------------------------- */
 const editorWrapRef = ref<HTMLElement | null>(null);
 const editorScale = ref(1);
+const userScale = ref(1);
 function updateEditorScale() {
   if (!editorWrapRef.value) return;
   const { clientWidth, clientHeight } = editorWrapRef.value;
   editorScale.value = Math.min(clientWidth / (config.value.width + 32), clientHeight / (config.value.height + 32), 1);
 }
+
+function handleWheel(e: WheelEvent) {
+  if (!e.ctrlKey) return;
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  userScale.value = Math.min(Math.max(userScale.value * factor, 0.5), 4);
+}
+
+onMounted(() => editorWrapRef.value?.addEventListener('wheel', handleWheel, { passive: false }));
+onUnmounted(() => editorWrapRef.value?.removeEventListener('wheel', handleWheel));
 
 /* -------------------------------------------------------------------------- */
 /* 素材图标                                                                    */
@@ -334,6 +345,17 @@ useKeyStroke(window, (e) => {
     redo();
     e.preventDefault();
   }
+});
+
+useKeyStroke(window, (e) => {
+  if (!selectedLayerId.value) return;
+  const layer = config.value.layers.find((l: any) => l.id === selectedLayerId.value);
+  if (!layer) return;
+  const step = e.shiftKey ? 10 : 1;
+  if (e.key === '2') { layer.config.y += step; pushHistory(); e.preventDefault(); }
+  else if (e.key === '8') { layer.config.y -= step; pushHistory(); e.preventDefault(); }
+  else if (e.key === '4') { layer.config.x -= step; pushHistory(); e.preventDefault(); }
+  else if (e.key === '6') { layer.config.x += step; pushHistory(); e.preventDefault(); }
 });
 
 /* -------------------------------------------------------------------------- */
@@ -587,10 +609,10 @@ async function handleImportJson(e: Event) {
     </aside>
 
     <!-- 画布编辑区 -->
-    <main ref="editorWrapRef" class="relative flex-1 overflow-hidden bg-[#181a20]">
+    <main ref="editorWrapRef" class="relative flex-1 overflow-auto bg-[#181a20]">
       <div
         :style="{
-          transform: `scale(${editorScale})`,
+          transform: `scale(${editorScale * userScale})`,
           transformOrigin: 'top left',
           width: `${config.width + 32}px`,
           height: `${config.height + 32}px`,
