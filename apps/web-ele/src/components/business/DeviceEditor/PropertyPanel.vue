@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { ElMessage } from 'element-plus';
 
 import { uploadFile } from '#/api/device';
 import { WS_URLS } from '#/constants/ws';
@@ -279,7 +280,7 @@ function handleSave() {
   syncApiList(); // 记得同步回 props.config.apiList
 
   emit('update', props.config);
-  alert('属性已保存！');
+  ElMessage.success('属性已保存！');
 
 }
 
@@ -342,7 +343,7 @@ function handleSaveTable() {
   selectedLayer.value.config.dataKey = tableDataKey.value;
   selectedLayer.value.config.scrollY = tableScrollY.value;
   emit('update', props.config);
-  alert('属性已保存！');
+  ElMessage.success('属性已保存！');
 }
 
 function handleSaveCard() {
@@ -355,7 +356,7 @@ function handleSaveCard() {
   selectedLayer.value.config.apiId = cardApiId.value;
   selectedLayer.value.config.dataKey = cardDataKey.value;
   emit('update', props.config);
-  alert('属性已保存！');
+  ElMessage.success('属性已保存！');
 }
 
 function updateField(field: string, value: any) {
