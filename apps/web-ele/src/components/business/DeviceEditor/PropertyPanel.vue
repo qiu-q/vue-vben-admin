@@ -182,6 +182,9 @@ const tableDataStr = ref('');
 const tableApiId = ref('');
 const tableScrollY = ref(false);
 const tableDataKey = ref('');
+const tableHeaderSize = ref('');
+const tableFontSize = ref('');
+const tableColumnsStr = ref('');
 
 // ----- 卡片配置 -----
 const cardText = ref('文本');
@@ -291,9 +294,22 @@ function handleSaveTable() {
     alert('JSON 格式错误');
     return;
   }
+  let columns: any = [];
+  if (tableColumnsStr.value) {
+    try {
+      columns = JSON.parse(tableColumnsStr.value);
+      if (!Array.isArray(columns)) throw new Error();
+    } catch {
+      alert('列配置 JSON 格式错误');
+      return;
+    }
+  }
   selectedLayer.value.config.apiId = tableApiId.value;
   selectedLayer.value.config.dataKey = tableDataKey.value;
   selectedLayer.value.config.scrollY = tableScrollY.value;
+  selectedLayer.value.config.columns = columns;
+  selectedLayer.value.config.headerSize = tableHeaderSize.value;
+  selectedLayer.value.config.fontSize = tableFontSize.value;
   emit('update', props.config);
   alert('属性已保存！');
 }
@@ -396,11 +412,13 @@ watch(tableApiId, () => {
 watch(selectedApiId, () => {
   const api = availableApis.value.find((a) => a.id === selectedApiId.value);
   if (api && api.lastSample) {
+    testResult.value = api.lastSample;
     portMap.value = extractPortMap(api.lastSample);
     const keys = Object.keys(portMap.value);
     portKey.value = keys[0] || '';
     updateStatusList();
   } else {
+    testResult.value = null;
     portMap.value = {};
     portKey.value = '';
     statusList.value = [];
@@ -441,6 +459,8 @@ watch(tableApiId, () => {
   selectedLayer.value.config.apiId = tableApiId.value;
   const opts = getKeyOptions(tableApiId.value);
   if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
+  const api = availableApis.value.find((a) => a.id === tableApiId.value);
+  testResult.value = api?.lastSample || null;
   emit('update', props.config);
 });
 
@@ -448,6 +468,28 @@ watch(tableScrollY, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
   selectedLayer.value.config.scrollY = tableScrollY.value;
   emit('update', props.config);
+});
+
+watch(tableHeaderSize, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.headerSize = tableHeaderSize.value;
+  emit('update', props.config);
+});
+
+watch(tableFontSize, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  selectedLayer.value.config.fontSize = tableFontSize.value;
+  emit('update', props.config);
+});
+
+watch(tableColumnsStr, () => {
+  if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
+  try {
+    const cols = tableColumnsStr.value ? JSON.parse(tableColumnsStr.value) : [];
+    if (!Array.isArray(cols) && tableColumnsStr.value) return;
+    selectedLayer.value.config.columns = cols;
+    emit('update', props.config);
+  } catch {}
 });
 
 watch(tableDataKey, () => {
@@ -511,6 +553,11 @@ watch(
       : '';
     tableDataKey.value = layer.type === 'table' ? layer.config.dataKey || '' : '';
     tableScrollY.value = layer.type === 'table' ? !!layer.config.scrollY : false;
+    tableHeaderSize.value = layer.type === 'table' ? layer.config.headerSize || '' : '';
+    tableFontSize.value = layer.type === 'table' ? layer.config.fontSize || '' : '';
+    tableColumnsStr.value = layer.type === 'table'
+      ? JSON.stringify(layer.config.columns || [], null, 2)
+      : '';
 
     cardText.value = layer.type === 'card' ? layer.config.text || '文本' : '文本';
     cardFontSize.value = layer.type === 'card' ? layer.config.fontSize || 14 : 14;
@@ -529,8 +576,10 @@ watch(
 
     const api = availableApis.value.find(a => a.id === selectedApiId.value);
     if (api && api.lastSample) {
+      testResult.value = api.lastSample;
       portMap.value = extractPortMap(api.lastSample);
     } else {
+      testResult.value = null;
       portMap.value = {};
     }
   },
@@ -711,13 +760,29 @@ watch(
             </select>
           </div>
           <div class="mb-2">
+            <label>表头高度：</label>
+            <input v-model="tableHeaderSize" class="w-24 border p-1" placeholder="如 2.4em" />
+          </div>
+          <div class="mb-2">
+            <label>字体大小：</label>
+            <input v-model="tableFontSize" class="w-24 border p-1" placeholder="如 14px" />
+          </div>
+          <div class="mb-2">
             <label>
               <input type="checkbox" v-model="tableScrollY" /> 启用纵向滚动
             </label>
           </div>
           <div class="mb-2">
+            <label class="mb-1 block">列配置(JSON)：</label>
+            <textarea v-model="tableColumnsStr" rows="2" class="w-full border p-1 text-xs"></textarea>
+          </div>
+          <div class="mb-2">
             <label class="mb-1 block">静态 JSON 数据：</label>
             <textarea v-model="tableDataStr" rows="4" class="w-full border p-1 text-xs"></textarea>
+          </div>
+          <div v-if="testResult" class="mb-2">
+            <label class="mb-1 block">接口返回：</label>
+            <pre class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white">{{ JSON.stringify(testResult, null, 2) }}</pre>
           </div>
           <button class="mt-2 rounded border px-3 py-1" @click="handleSaveTable">保存配置</button>
         </div>

@@ -258,6 +258,8 @@ useVbenVxeGrid 返回的第二个参数，是一个对象，包含了一些表�
 | formOptions | 表单参数 | `VbenFormProps` | - |
 | showSearchForm | 是否显示搜索表单 | `boolean` | - |
 | separator | 搜索表单与表格主体之间的分隔条 | `boolean\|SeparatorOptions` | >5.5.4 |
+| headerSize | 表头高度 | `string` | >5.5.4 |
+| fontSize | 表格字体大小 | `string` | >5.5.4 |
 
 ## Slots
 
