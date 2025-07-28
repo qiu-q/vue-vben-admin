@@ -327,36 +327,9 @@ function handleSaveCard() {
   alert('属性已保存！');
 }
 
-function handleSaveTable() {
-  if (!selectedLayer.value) return;
-  selectedLayer.value.type = 'table';
-  try {
-    selectedLayer.value.config.data = tableDataStr.value
-      ? JSON.parse(tableDataStr.value)
-      : [];
-  } catch {
-    alert('JSON 格式错误');
-    return;
-  }
-  selectedLayer.value.config.apiId = tableApiId.value;
-  selectedLayer.value.config.dataKey = tableDataKey.value;
-  selectedLayer.value.config.scrollY = tableScrollY.value;
-  emit('update', props.config);
-  alert('属性已保存！');
-}
 
-function handleSaveCard() {
-  if (!selectedLayer.value) return;
-  selectedLayer.value.type = 'card';
-  selectedLayer.value.config.text = cardText.value;
-  selectedLayer.value.config.fontSize = cardFontSize.value;
-  selectedLayer.value.config.color = cardColor.value;
-  selectedLayer.value.config.background = cardBackground.value;
-  selectedLayer.value.config.apiId = cardApiId.value;
-  selectedLayer.value.config.dataKey = cardDataKey.value;
-  emit('update', props.config);
-  alert('属性已保存！');
-}
+
+
 
 function updateField(field: string, value: any) {
   if (!selectedLayer.value) return;

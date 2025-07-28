@@ -161,7 +161,7 @@ onUnmounted(() => editorWrapRef.value?.removeEventListener('wheel', handleWheel)
 /* -------------------------------------------------------------------------- */
 /* 素材图标                                                                    */
 /* -------------------------------------------------------------------------- */
-const PORT_ICON_URL = 'http://192.168.1.99:9000/qiuqiu/green.gif';
+const PORT_ICON_URL = 'http://192.168.59.229:9000/qiuqiu/green.gif';
 const TABLE_ICON_URL = 'data:image/svg+xml,...';
 const CARD_ICON_URL = 'data:image/svg+xml,...';
 
