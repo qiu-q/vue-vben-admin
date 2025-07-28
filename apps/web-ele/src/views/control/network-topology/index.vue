@@ -52,6 +52,8 @@ interface RuntimeDevice extends DeviceTemplate {
   scaleX?: number;
   /** 高度缩放 */
   scaleY?: number;
+  /** 旋转角度 */
+  rotate?: number;
   /** 所属机柜 UUID；顶层设备为 null */
   parentCabinetId?: string | null;
 }
@@ -191,6 +193,7 @@ async function saveCurrentCanvasToConfigs() {
       position: dev.position,
       scaleX: dev.scaleX,
       scaleY: dev.scaleY,
+      rotate: dev.rotate,
       parentCabinetId: dev.parentCabinetId,
     })),
     edges: deepClone(edges.value),
@@ -220,6 +223,7 @@ function restoreConfigToCanvas(config: TopoConfig) {
     dev.position = devCfg.position;
     dev.scaleX = devCfg.scaleX ?? 1;
     dev.scaleY = devCfg.scaleY ?? 1;
+    dev.rotate = devCfg.rotate ?? 0;
     dev.parentCabinetId = devCfg.parentCabinetId ?? null;
     return dev;
   });
@@ -337,6 +341,7 @@ function addDevice() {
     newDev.scaleX = 1;
     newDev.scaleY = 1;
   }
+  newDev.rotate = 0;
   newDev.parentCabinetId = null;
   devicesOnCanvas.value.push(newDev);
 }
@@ -528,10 +533,19 @@ function getEdgePositions(edge: any) {
     if (!port) return null;
     const sx = (dev as RuntimeDevice).scaleX ?? 1;
     const sy = (dev as RuntimeDevice).scaleY ?? 1;
-    return {
-      x: dev.position.x + port.config.x * sx + (port.config.width * sx) / 2,
-      y: dev.position.y + port.config.y * sy + (port.config.height * sy) / 2,
-    };
+    let x = dev.position.x + port.config.x * sx + (port.config.width * sx) / 2;
+    let y = dev.position.y + port.config.y * sy + (port.config.height * sy) / 2;
+    const angle = dev.rotate || 0;
+    if (angle) {
+      const rad = (angle * Math.PI) / 180;
+      const ox = dev.position.x;
+      const oy = dev.position.y;
+      const dx = x - ox;
+      const dy = y - oy;
+      x = ox + dx * Math.cos(rad) - dy * Math.sin(rad);
+      y = oy + dx * Math.sin(rad) + dy * Math.cos(rad);
+    }
+    return { x, y };
   };
 
   let source = null;
@@ -580,10 +594,18 @@ function onPortClick(devUUid: string, portId: string) {
     if (!dev) return;
     const port = (dev.layers || []).find((l: any) => l.id === portId);
     if (!port) return;
-    const pos = {
-      x: dev.position.x + port.config.x + port.config.width / 2,
-      y: dev.position.y + port.config.y + port.config.height / 2,
-    };
+    let posX = dev.position.x + port.config.x + port.config.width / 2;
+    let posY = dev.position.y + port.config.y + port.config.height / 2;
+    if (dev.rotate) {
+      const rad = (dev.rotate * Math.PI) / 180;
+      const ox = dev.position.x;
+      const oy = dev.position.y;
+      const dx = posX - ox;
+      const dy = posY - oy;
+      posX = ox + dx * Math.cos(rad) - dy * Math.sin(rad);
+      posY = oy + dx * Math.sin(rad) + dy * Math.cos(rad);
+    }
+    const pos = { x: posX, y: posY };
     if (drawingLine.value) {
       if (
         drawingLine.value.devUUid !== devUUid ||
@@ -609,10 +631,18 @@ function onPortClick(devUUid: string, portId: string) {
     if (!dev) return;
     const port = (dev.layers || []).find((l: any) => l.id === portId);
     if (!port) return;
-    const pos = {
-      x: dev.position.x + port.config.x + port.config.width / 2,
-      y: dev.position.y + port.config.y + port.config.height / 2,
-    };
+    let posX = dev.position.x + port.config.x + port.config.width / 2;
+    let posY = dev.position.y + port.config.y + port.config.height / 2;
+    if (dev.rotate) {
+      const rad = (dev.rotate * Math.PI) / 180;
+      const ox = dev.position.x;
+      const oy = dev.position.y;
+      const dx = posX - ox;
+      const dy = posY - oy;
+      posX = ox + dx * Math.cos(rad) - dy * Math.sin(rad);
+      posY = oy + dx * Math.sin(rad) + dy * Math.cos(rad);
+    }
+    const pos = { x: posX, y: posY };
     drawingLine.value = { devUUid, portId, from: pos };
     selectedPort.value = { devUUid, portId };
   }
@@ -691,7 +721,7 @@ function onKeyDown(e: KeyboardEvent) {
             position: 'absolute',
             left: `${dev.position.x}px`,
             top: `${dev.position.y}px`,
-            transform: `scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`,
+            transform: `rotate(${dev.rotate || 0}deg) scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`,
             transformOrigin: 'top left',
             zIndex:
               dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
