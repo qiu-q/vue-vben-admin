@@ -206,6 +206,7 @@ function onDrop(e: DragEvent) {
         y: y - 20,
         width: 160,
         height: 120,
+        rotate: 0,
         data: DEFAULT_TABLE_DATA,
         apiId: '',
         dataKey: '',
@@ -223,6 +224,7 @@ function onDrop(e: DragEvent) {
         y: y - 20,
         width: 160,
         height: 60,
+        rotate: 0,
         text: '文本',
         fontSize: 14,
         color: '#ffffff',
@@ -239,13 +241,14 @@ function onDrop(e: DragEvent) {
         type: 'port',
         zIndex: layers.value.length + 1,
         name: `端口-${Date.now().toString().slice(-4)}`,
-        config: {
-          x: x - 20,
-          y: y - 20,
-          width: 32,
-          height: 32,
-          src: url,
+      config: {
+        x: x - 20,
+        y: y - 20,
+        width: 32,
+        height: 32,
+        src: url,
           // 下面可扩展端口相关配置
+          rotate: 0,
           dynamic: false, // 默认不开启动态端口
           dataSource: null,
           statusMap: {},
@@ -259,15 +262,16 @@ function onDrop(e: DragEvent) {
         id: `img-${Date.now()}`,
         type: 'image',
         zIndex: layers.value.length + 1,
-        config: {
-          x: x - 40,
-          y: y - 40,
-          width: 120,
-          height: 80,
-          src: url,
-          apiId: '',
-          dataKey: '',
-        },
+      config: {
+        x: x - 40,
+        y: y - 40,
+        width: 120,
+        height: 80,
+        src: url,
+        rotate: 0,
+        apiId: '',
+        dataKey: '',
+      },
       };
     }
   }
@@ -509,6 +513,8 @@ watch(
             width: `${layer.config.width}px`,
             height: `${layer.config.height}px`,
             zIndex: layer.zIndex,
+            transform: `rotate(${layer.config.rotate || 0}deg)`,
+            transformOrigin: 'center center',
             outline: selectedId === layer.id ? '2px solid #1976d2' : '',
             boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
           }"
@@ -528,6 +534,8 @@ watch(
             height: `${layer.config.height}px`,
             zIndex: layer.zIndex,
             fontSize: layer.config.fontSize || '11px',
+            transform: `rotate(${layer.config.rotate || 0}deg)`,
+            transformOrigin: 'center center',
             outline: selectedId === layer.id ? '2px solid #1976d2' : '',
             boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
             overflowX: 'auto',
@@ -579,6 +587,8 @@ watch(
             background: layer.config.background,
             color: layer.config.color,
             fontSize: layer.config.fontSize + 'px',
+            transform: `rotate(${layer.config.rotate || 0}deg)`,
+            transformOrigin: 'center center',
             outline: selectedId === layer.id ? '2px solid #1976d2' : '',
             boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
           }"

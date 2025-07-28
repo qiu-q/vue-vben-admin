@@ -349,6 +349,8 @@ watch(
           width: `${layer.config.width}px`,
           height: `${layer.config.height}px`,
           zIndex: layer.zIndex,
+          transform: `rotate(${layer.config.rotate || 0}deg)`,
+          transformOrigin: 'center center',
         }"
         draggable="false"
       />
@@ -368,6 +370,8 @@ watch(
             width: `${layer.config.width}px`,
             height: `${layer.config.height}px`,
             zIndex: layer.zIndex,
+            transform: `rotate(${layer.config.rotate || 0}deg)`,
+            transformOrigin: 'center center',
             border: layer.config.dynamic ? '2px solid #0ff8' : 'none',
             borderRadius: layer.config.dynamic ? '7px' : '0',
           cursor: layer.config.dynamic ? 'pointer' : 'default'
@@ -392,6 +396,8 @@ watch(
           background: '#2d323c',
           color: '#fff',
           fontSize: layer.config.fontSize || '11px',
+          transform: `rotate(${layer.config.rotate || 0}deg)`,
+          transformOrigin: 'center center',
           overflowX: 'auto',
           overflowY: layer.config.scrollY ? 'auto' : 'hidden',
         }"
@@ -438,6 +444,8 @@ watch(
           background: layer.config.background,
           color: layer.config.color,
           fontSize: layer.config.fontSize + 'px',
+          transform: `rotate(${layer.config.rotate || 0}deg)`,
+          transformOrigin: 'center center',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',

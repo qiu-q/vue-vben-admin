@@ -618,6 +618,15 @@ watch(
             style="width:90px"
             placeholder="高度px"
           />
+          <label class="ml-4">旋转：</label>
+          <input
+            type="number"
+            :value="selectedLayer.config.rotate || 0"
+            @input="updateField('rotate', ($event.target as HTMLInputElement).valueAsNumber)"
+            class="w-20 border p-1"
+            style="width:90px"
+            placeholder="角度"
+          />
         </div>
         <div class="mb-2">
           <label>Z-Index：</label>
