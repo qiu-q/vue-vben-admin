@@ -352,10 +352,23 @@ useKeyStroke(window, (e) => {
   const layer = config.value.layers.find((l: any) => l.id === selectedLayerId.value);
   if (!layer) return;
   const step = e.shiftKey ? 10 : 1;
-  if (e.key === '2') { layer.config.y += step; pushHistory(); e.preventDefault(); }
-  else if (e.key === '8') { layer.config.y -= step; pushHistory(); e.preventDefault(); }
-  else if (e.key === '4') { layer.config.x -= step; pushHistory(); e.preventDefault(); }
-  else if (e.key === '6') { layer.config.x += step; pushHistory(); e.preventDefault(); }
+  if (e.key === 'ArrowDown') {
+    layer.config.y += step;
+    pushHistory();
+    e.preventDefault();
+  } else if (e.key === 'ArrowUp') {
+    layer.config.y -= step;
+    pushHistory();
+    e.preventDefault();
+  } else if (e.key === 'ArrowLeft') {
+    layer.config.x -= step;
+    pushHistory();
+    e.preventDefault();
+  } else if (e.key === 'ArrowRight') {
+    layer.config.x += step;
+    pushHistory();
+    e.preventDefault();
+  }
 });
 
 /* -------------------------------------------------------------------------- */
