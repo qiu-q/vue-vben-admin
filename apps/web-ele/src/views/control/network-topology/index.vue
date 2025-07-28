@@ -767,6 +767,8 @@ function onKeyDown(e: KeyboardEvent) {
                 width: `${layer.config.width}px`,
                 height: `${layer.config.height}px`,
                 pointerEvents: 'none',
+                transform: `rotate(${layer.config.rotate || 0}deg)`,
+                transformOrigin: 'center center',
               }"
               draggable="false"
             />
@@ -792,6 +794,8 @@ function onKeyDown(e: KeyboardEvent) {
                 width: `${port.config.width}px`,
                 height: `${port.config.height}px`,
                 cursor: 'pointer',
+                transform: `rotate(${port.config.rotate || 0}deg)`,
+                transformOrigin: 'center center',
               }"
               @click.stop="onPortClick(dev._uuid, port.id)"
             >
