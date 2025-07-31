@@ -500,7 +500,7 @@ watch(
         class="bg-grid absolute left-0 top-0"
         :width="config.width"
         :height="config.height"
-        style="width: 100%; height: 100%; z-index: 0; pointer-events: none"
+        style=" z-index: 0;width: 100%; height: 100%; pointer-events: none"
       ></canvas>
       <template v-for="layer in layers" :key="layer.id">
         <img
@@ -646,46 +646,51 @@ watch(
 
 <style scoped>
 .canvas-editor-wrap {
-  user-select: none;
   position: relative;
   overflow: visible;
+  user-select: none;
 }
+
 .canvas-ruler-x {
   position: absolute;
-  left: 32px;
   top: 0;
   right: 0;
-  height: 32px;
+  left: 32px;
   z-index: 10;
+  height: 32px;
   background: #23242a;
   border-radius: 8px 8px 0 0;
 }
+
 .canvas-ruler-y {
   position: absolute;
-  left: 0;
   top: 32px;
-  width: 32px;
   bottom: 0;
+  left: 0;
   z-index: 10;
+  width: 32px;
   background: #23242a;
   border-radius: 0 0 0 8px;
 }
+
 .canvas-content {
   background: transparent;
-  border-radius: 0 0 8px 0;
+  border-radius: 0 0 8px;
 }
+
 .bg-grid {
   pointer-events: none;
 }
+
 .resize-handle {
   position: absolute;
+  z-index: 100;
   width: 18px;
   height: 18px;
+  cursor: se-resize;
   background: #fff;
   border: 2px solid #1976d2;
   border-radius: 2px;
-  cursor: se-resize;
-  z-index: 100;
   box-shadow: 0 0 2px #1976d299;
 }
 </style>

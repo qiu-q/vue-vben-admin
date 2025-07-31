@@ -870,81 +870,95 @@ function onKeyDown(e: KeyboardEvent) {
 </template>
 
 <style scoped>
-.canvas-bg {
-  position: relative;
-}
-.canvas-bg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('../../../assets/network-topology/bg.png');
-  background-size: cover;
-  opacity: 0.3;
-}
-.device-wrap {
-  user-select: none;
-}
-.active-device {
-  outline: 2px dashed #f44;
-}
-.port-spot {
-  box-sizing: border-box;
-  transition: border 0.18s;
-}
-.selected-port {
-  border: 2px solid #01e6ff !important;
-}
-.can-connect-highlight {
-  border: 2px solid #ff2d51 !important;
-  box-shadow: 0 0 12px 3px #ff2d51;
-  animation: port-glow 0.7s linear infinite alternate;
-}
+
 @keyframes port-glow {
   0% {
     border-color: #ff2d51;
     box-shadow: 0 0 7px 2px #ff2d51;
   }
+
   100% {
     border-color: #fff;
     box-shadow: 0 0 24px 8px #ff2d51;
   }
 }
+
+.canvas-bg {
+  position: relative;
+}
+
+.canvas-bg::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  content: '';
+  background-image: url('../../../assets/network-topology/bg.png');
+  background-size: cover;
+  opacity: 0.3;
+}
+
+.device-wrap {
+  user-select: none;
+}
+
+.active-device {
+  outline: 2px dashed #f44;
+}
+
+.port-spot {
+  box-sizing: border-box;
+  transition: border 0.18s;
+}
+
+.selected-port {
+  border: 2px solid #01e6ff !important;
+}
+
+.can-connect-highlight {
+  border: 2px solid #ff2d51 !important;
+  box-shadow: 0 0 12px 3px #ff2d51;
+  animation: port-glow 0.7s linear infinite alternate;
+}
+
 /* ===== Cabinet View Styles ===== */
 .cabinet-container {
   width: 480px;
-  margin: 0 auto;
-  background-color: #333;
   padding: 10px;
-  border-radius: 8px;
+  margin: 0 auto;
   overflow-y: auto;
+  background-color: #333;
   border: 2px solid #444;
+  border-radius: 8px;
 }
+
 .cabinet-slot {
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #555;
     height: 50px;
-  background-color: #2d2d2d;
   padding: 0 5px;
   font-size: 12px;
   color: #fff;
+  background-color: #2d2d2d;
+  border-bottom: 1px solid #555;
 }
+
 .u-label {
   width: 40px;
-  text-align: right;
   margin-right: 10px;
-  color: #ccc;
   font-family: monospace;
+  color: #ccc;
+  text-align: right;
 }
+
 .slot-content {
-  flex: 1;
   display: flex;
+  flex: 1;
   align-items: center;
   height: 100%;
 }
+
 .cabinet-hover-target {
   border-color: #ff2d51 !important;
   box-shadow: 0 0 14px 4px #ff2d51;
@@ -954,15 +968,16 @@ function onKeyDown(e: KeyboardEvent) {
   border: 1px solid #01aaff !important;
   box-shadow: inset 0 0 8px 2px #01aaff;
 }
+
 .power-cabinet {
-  width: 480px;
-  height: 700px;
-  background: #2d2d2d;
-  border: 2px solid #888;
-  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 480px;
+  height: 700px;
   color: #fff;
+  background: #2d2d2d;
+  border: 2px solid #888;
+  border-radius: 8px;
 }
 </style>
