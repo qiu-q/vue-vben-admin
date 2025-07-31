@@ -151,7 +151,10 @@ async function loadDeviceInfo() {
 
 onMounted(loadConfig);
 onMounted(loadDeviceInfo);
-watch(config, updateScale);
+watch(
+  () => [config.value?.width, config.value?.height],
+  updateScale,
+);
 onMounted(updateScale);
 </script>
 
