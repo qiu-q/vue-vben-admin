@@ -112,8 +112,9 @@ function setupAccessGuard(router: Router) {
         ? userInfo.homePath || preferences.app.defaultHomePath
         : to.fullPath)) as string;
 
+    // 动态路由生成后重新解析并跳转，确保路由表已更新
     return {
-      ...router.resolve(decodeURIComponent(redirectPath)),
+      path: decodeURIComponent(redirectPath),
       replace: true,
     };
   });
