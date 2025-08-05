@@ -423,7 +423,7 @@ async function refreshPortMap(forceFetch = true) {
       } catch {
         api.lastSample = { error: '请求失败' };
       }
-      syncApiList();
+      // 请求仅用于预览端口映射，避免同步到全局配置导致界面重置
     }
     testResult.value = api.lastSample;
     portMap.value = extractPortMap(api.lastSample, portDataKey.value);
