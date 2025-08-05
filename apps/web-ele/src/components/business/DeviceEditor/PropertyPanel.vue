@@ -16,7 +16,6 @@ const props = defineProps<{
   config: any;
   materialsList?: MaterialItem[];
   selectedLayerId?: null | string;
-  allApiList?: any[];
 }>();
 const emit = defineEmits(['update']);
 
@@ -28,12 +27,7 @@ const selectedLayer = computed(() => {
   return props.config.layers.find((l: any) => l.id === props.selectedLayerId);
 });
 
-const availableApis = computed(() => {
-  const map = new Map<string, any>();
-  (props.allApiList || []).forEach((api) => map.set(api.id, api));
-  apiList.value.forEach((api) => map.set(api.id, api));
-  return Array.from(map.values());
-});
+const availableApis = computed(() => apiList.value);
 
 function getKeyOptions(apiId: string): string[] {
   const api = availableApis.value.find((a) => a.id === apiId);
@@ -413,9 +407,24 @@ watch(tableApiId, () => {
   if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
 });
 
-function refreshPortMap() {
+async function refreshPortMap(forceFetch = true) {
   const api = availableApis.value.find((a) => a.id === selectedApiId.value);
-  if (api && api.lastSample) {
+  if (api) {
+    if (forceFetch || !api.lastSample) {
+      try {
+        const resp = await (api.method === 'POST'
+          ? fetch(api.url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: api.params || '{}',
+            })
+          : fetch(api.url));
+        api.lastSample = await resp.json();
+      } catch {
+        api.lastSample = { error: '请求失败' };
+      }
+      syncApiList();
+    }
     testResult.value = api.lastSample;
     portMap.value = extractPortMap(api.lastSample, portDataKey.value);
     const keys = Object.keys(portMap.value);
@@ -429,8 +438,11 @@ function refreshPortMap() {
   }
 }
 
-watch(selectedApiId, () => {
-  refreshPortMap();
+watch(selectedApiId, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    if (oldVal) portDataKey.value = '';
+    refreshPortMap(true);
+  }
 });
 
 watch(portDataKey, () => {
@@ -438,7 +450,7 @@ watch(portDataKey, () => {
     selectedLayer.value.config.dataKey = portDataKey.value;
     emit('update', props.config);
   }
-  refreshPortMap();
+  refreshPortMap(false);
 });
 
 watch(dynamicPort, () => {
