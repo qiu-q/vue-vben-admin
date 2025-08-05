@@ -30,6 +30,13 @@ const defaultFolderTree = [
         isBuiltIn: true,
       },
       {
+        id: 'simple-port-default',
+        url: PORT_ICON_URL,
+        name: '新端口',
+        type: 'simple-port',
+        isBuiltIn: true,
+      },
+      {
         id: 'table-default',
         url: TABLE_ICON_URL,
         name: '表格',

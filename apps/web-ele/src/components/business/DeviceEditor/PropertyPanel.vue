@@ -296,18 +296,31 @@ async function handleUploadIcon(e: Event, idx: number) {
 // =============================================
 function handleSave() {
   if (!selectedLayer.value) return;
+  if (selectedLayer.value.type === 'simple-port') {
+    selectedLayer.value.config.apiId = selectedApiId.value;
+    selectedLayer.value.config.portKey = portKey.value;
+    selectedLayer.value.config.dataKey = portDataKey.value;
+    const mapping: Record<string, any> = {};
+    for (const row of statusList.value) {
+      mapping[String(row.value)] = { iconUrl: row.iconUrl, label: row.label };
+    }
+    selectedLayer.value.config.statusMapping = mapping;
+    syncApiList();
+    emit('update', props.config);
+    alert('属性已保存！');
+    return;
+  }
   selectedLayer.value.type = dynamicPort.value ? 'port' : 'image';
   selectedLayer.value.config.dynamic = dynamicPort.value;
   selectedLayer.value.config.apiId = selectedApiId.value;
   selectedLayer.value.config.portKey = portKey.value;
   selectedLayer.value.config.dataKey = portDataKey.value;
-  // 状态映射
   const mapping: Record<string, any> = {};
   for (const row of statusList.value) {
     mapping[String(row.value)] = { iconUrl: row.iconUrl, label: row.label };
   }
   selectedLayer.value.config.statusMapping = mapping;
-  syncApiList(); // 记得同步回 props.config.apiList
+  syncApiList();
 
   emit('update', props.config);
   alert('属性已保存！');
@@ -455,6 +468,7 @@ watch(portDataKey, () => {
 
 watch(dynamicPort, () => {
   if (!selectedLayer.value) return;
+  if (selectedLayer.value.type === 'simple-port') return;
   selectedLayer.value.config.dynamic = dynamicPort.value;
   if (dynamicPort.value) selectedLayer.value.type = 'port';
   else if (selectedLayer.value.type === 'port')
@@ -565,7 +579,7 @@ watch(
   () => selectedLayer.value,
   (layer) => {
     if (!layer) return;
-    dynamicPort.value = !!layer.config.dynamic;
+    dynamicPort.value = layer.type === 'simple-port' ? true : !!layer.config.dynamic;
     selectedApiId.value = layer.config.apiId || '';
     portKey.value = layer.config.portKey || '';
     portDataKey.value = layer.config.dataKey || '';
@@ -731,14 +745,16 @@ watch(
 
         <!-- ================== 动态端口设置 ================== -->
         <div
-          v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image'"
+          v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image' || selectedLayer.type === 'simple-port'"
           class="mt-4 border-t pt-3"
         >
-          <label>
-            <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
-          </label>
+          <template v-if="selectedLayer.type !== 'simple-port'">
+            <label>
+              <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
+            </label>
+          </template>
 
-          <div v-if="dynamicPort" class="mt-2">
+          <div v-if="dynamicPort || selectedLayer.type === 'simple-port'" class="mt-2">
             <div class="mb-2">
               <label>绑定接口：</label>
               <select v-model="selectedApiId" class="w-44 border p-1">

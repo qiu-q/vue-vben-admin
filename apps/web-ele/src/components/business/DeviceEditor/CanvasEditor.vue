@@ -241,12 +241,12 @@ function onDrop(e: DragEvent) {
         type: 'port',
         zIndex: layers.value.length + 1,
         name: `端口-${Date.now().toString().slice(-4)}`,
-      config: {
-        x: x - 20,
-        y: y - 20,
-        width: 32,
-        height: 32,
-        src: url,
+        config: {
+          x: x - 20,
+          y: y - 20,
+          width: 32,
+          height: 32,
+          src: url,
           // 下面可扩展端口相关配置
           rotate: 0,
           dynamic: false, // 默认不开启动态端口
@@ -254,6 +254,25 @@ function onDrop(e: DragEvent) {
           statusMap: {},
           apiId: '',
           dataKey: '',
+        },
+      };
+    } else if (matType === 'simple-port') {
+      layer = {
+        id: `simple-port-${Date.now()}`,
+        type: 'simple-port',
+        zIndex: layers.value.length + 1,
+        name: `新端口-${Date.now().toString().slice(-4)}`,
+        config: {
+          x: x - 20,
+          y: y - 20,
+          width: 32,
+          height: 32,
+          src: url,
+          rotate: 0,
+          apiId: '',
+          dataKey: '',
+          portKey: '',
+          statusMapping: {},
         },
       };
     } else {
@@ -504,7 +523,7 @@ watch(
       ></canvas>
       <template v-for="layer in layers" :key="layer.id">
         <img
-          v-if="layer.type === 'image' || layer.type === 'port'"
+          v-if="layer.type === 'image' || layer.type === 'port' || layer.type === 'simple-port'"
           :src="layer.config.src"
           class="absolute transition-all duration-75"
           :style="{
@@ -603,7 +622,7 @@ watch(
         <div
           v-if="
             selectedId === layer.id &&
-            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table' || layer.type === 'card')
+            (layer.type === 'image' || layer.type === 'port' || layer.type === 'simple-port' || layer.type === 'table' || layer.type === 'card')
           "
           class="resize-handle"
           :style="{

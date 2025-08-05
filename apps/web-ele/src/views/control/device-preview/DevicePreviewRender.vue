@@ -151,7 +151,7 @@ function extractPortIpMap(sample: any): Record<string, string> {
 
 // ========== 状态映射 ==========
 function getPortStatus(layer: any) {
-  if (!layer.config.dynamic) return null;
+  if (layer.type === 'port' && !layer.config.dynamic) return null;
   const { apiId, portKey, statusMapping = {}, dataKey } = layer.config;
   const apiResp = apiDataMap.value[apiId];
   if (!apiResp || apiResp.error) return null;
@@ -401,6 +401,22 @@ watch(
           @mouseleave="handlePortMouseLeave"
         />
       </template>
+      <img
+        v-else-if="layer.type === 'simple-port'"
+        :src="getPortStatus(layer)?.iconUrl || layer.config.src"
+        :title="getPortStatus(layer)?.label || ''"
+        :style="{
+          position: 'absolute',
+          left: `${layer.config.x}px`,
+          top: `${layer.config.y}px`,
+          width: `${layer.config.width}px`,
+          height: `${layer.config.height}px`,
+          zIndex: layer.zIndex,
+          transform: `rotate(${layer.config.rotate || 0}deg)`,
+          transformOrigin: 'center center',
+        }"
+        draggable="false"
+      />
       <!-- 表格 -->
       <div
         v-else-if="layer.type === 'table'"

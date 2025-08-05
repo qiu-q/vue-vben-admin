@@ -154,6 +154,7 @@ const materialsList = computed<MaterialItem[]>(() => {
       id: 'root',
       materials: [
         { id: 'port-default', name: '端口', url: PORT_ICON_URL },
+        { id: 'simple-port-default', name: '新端口', url: PORT_ICON_URL },
         { id: 'table-default', name: '表格', url: TABLE_ICON_URL },
         { id: 'card-default', name: '卡片', url: CARD_ICON_URL },
       ],
