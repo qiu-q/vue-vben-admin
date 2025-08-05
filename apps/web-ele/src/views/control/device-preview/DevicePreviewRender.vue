@@ -47,7 +47,11 @@ async function fetchApi(api: any) {
     if (api.method === 'POST') {
       let params: any = {};
       if (api.params) {
-        try { params = JSON.parse(api.params); } catch { params = {}; }
+        try {
+          params = JSON.parse(api.params);
+        } catch {
+          params = {};
+        }
       }
       if (props.withRedisState && api.usePush) params.redisState = '1';
       const resp = await fetch(api.url, {
@@ -94,19 +98,24 @@ function cleanupPush() {
 }
 function startPush() {
   cleanupPush();
-  const pushApis = (props.config.apiList || []).filter(api => api.usePush && api.pushUrl);
+  const pushApis = (props.config.apiList || []).filter(
+    (api) => api.usePush && api.pushUrl,
+  );
   if (pushApis.length === 0) return;
-  const pushKeys = [...new Set(pushApis.map(api => api.pushUrl))];
+  const pushKeys = [...new Set(pushApis.map((api) => api.pushUrl))];
   pushKeys.forEach((key) => {
     wsUnsubs.value[key] = useWs(key, (payload) => {
       // 设备ID判定
-      const deviceId = typeof payload === 'object'
-        ? String(payload.deviceId)
-        : String(payload);
+      const deviceId =
+        typeof payload === 'object'
+          ? String(payload.deviceId)
+          : String(payload);
       if (!deviceId) return;
       pushApis
-        .filter(api => api.pushUrl === key && String(api.deviceId) === deviceId)
-        .forEach(api => {
+        .filter(
+          (api) => api.pushUrl === key && String(api.deviceId) === deviceId,
+        )
+        .forEach((api) => {
           fetchApi(api);
         });
     });
@@ -114,7 +123,11 @@ function startPush() {
 }
 
 // ========== 端口状态提取 ==========
-function extractPortMap(sample: any): Record<string, any> {
+function extractPortMap(sample: any, key?: string): Record<string, any> {
+  if (key) {
+    const obj = getByKey(sample, key);
+    if (obj && typeof obj === 'object') return obj;
+  }
   if (sample?.portstatuslist && typeof sample.portstatuslist === 'object') {
     return sample.portstatuslist;
   }
@@ -139,11 +152,11 @@ function extractPortIpMap(sample: any): Record<string, string> {
 // ========== 状态映射 ==========
 function getPortStatus(layer: any) {
   if (!layer.config.dynamic) return null;
-  const { apiId, portKey, statusMapping = {} } = layer.config;
+  const { apiId, portKey, statusMapping = {}, dataKey } = layer.config;
   const apiResp = apiDataMap.value[apiId];
   if (!apiResp || apiResp.error) return null;
-  const portMap = extractPortMap(apiResp);
-  const val = portMap[portKey];
+  const portMap = extractPortMap(apiResp, dataKey);
+  const val = String(portMap[portKey]);
   return statusMapping[val] || null;
 }
 function bindDeviceIdToApis() {
@@ -159,7 +172,9 @@ function getTableData(layer: any) {
   if (layer.config.apiId) {
     const apiResp = apiDataMap.value[layer.config.apiId];
     if (!apiResp || apiResp.error) return [];
-    data = layer.config.dataKey ? getByKey(apiResp, layer.config.dataKey) : apiResp;
+    data = layer.config.dataKey
+      ? getByKey(apiResp, layer.config.dataKey)
+      : apiResp;
   } else {
     data = layer.config.data;
   }
@@ -282,10 +297,10 @@ async function handlePortClick(layer: any) {
 
 async function handlePortDblClick(layer: any) {
   if (!layer.config.dynamic) return;
-  const { apiId, portKey } = layer.config;
+  const { apiId, portKey, dataKey } = layer.config;
   const apiResp = apiDataMap.value[apiId];
   if (!apiResp || apiResp.error) return;
-  const portMap = extractPortMap(apiResp);
+  const portMap = extractPortMap(apiResp, dataKey);
   const raw = portMap[portKey];
   if (String(raw) !== '3') return;
   if (!window.confirm('端口状态异常，确认已恢复正常？')) return;
@@ -293,7 +308,10 @@ async function handlePortDblClick(layer: any) {
     await fetch('/api/jx-device/Port/deviceIdAndPortNameUpdate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ deviceId: props.config.deviceId, portName: portKey }),
+      body: JSON.stringify({
+        deviceId: props.config.deviceId,
+        portName: portKey,
+      }),
     });
   } catch (err) {
     console.error(err);
@@ -374,7 +392,7 @@ watch(
             transformOrigin: 'center center',
             border: layer.config.dynamic ? '2px solid #0ff8' : 'none',
             borderRadius: layer.config.dynamic ? '7px' : '0',
-          cursor: layer.config.dynamic ? 'pointer' : 'default'
+            cursor: layer.config.dynamic ? 'pointer' : 'default',
           }"
           draggable="false"
           @click="handlePortClick(layer)"
@@ -404,31 +422,31 @@ watch(
         class="text-xs"
       >
         <table class="w-full border-collapse">
-        <thead
-          v-if="getTableColumns(layer).length"
-          :style="{ lineHeight: layer.config.headerSize || undefined }"
-        >
-          <tr>
-            <th
-              v-for="col in getTableColumns(layer)"
-              :key="col.field"
-              class="border px-1 py-0.5"
-            >
-              {{ col.title || col.field }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
-            <td
-              v-for="col in getTableColumns(layer)"
-              :key="col.field"
-              class="border px-1 py-0.5"
-            >
-              {{ row[col.field] }}
-            </td>
-          </tr>
-        </tbody>
+          <thead
+            v-if="getTableColumns(layer).length"
+            :style="{ lineHeight: layer.config.headerSize || undefined }"
+          >
+            <tr>
+              <th
+                v-for="col in getTableColumns(layer)"
+                :key="col.field"
+                class="border px-1 py-0.5"
+              >
+                {{ col.title || col.field }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(row, rIdx) in getTableData(layer)" :key="rIdx">
+              <td
+                v-for="col in getTableColumns(layer)"
+                :key="col.field"
+                class="border px-1 py-0.5"
+              >
+                {{ row[col.field] }}
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
       <!-- 卡片 -->
@@ -460,7 +478,7 @@ watch(
       :style="{
         position: 'absolute',
         left: hoveredPortInfo.x + 'px',
-        top: (hoveredPortInfo.y - 28) + 'px',
+        top: hoveredPortInfo.y - 28 + 'px',
         background: '#232f3b',
         color: '#0ff',
         padding: '4px 16px',
@@ -471,7 +489,7 @@ watch(
         zIndex: 99,
         minWidth: '80px',
         textAlign: 'center',
-        whiteSpace: 'pre-wrap'
+        whiteSpace: 'pre-wrap',
       }"
     >
       <div>{{ hoveredPortInfo.port }}</div>
@@ -479,8 +497,12 @@ watch(
         <span
           v-for="ip in hoveredPortInfo.ips"
           :key="ip"
-          :style="{ color: hoveredPortInfo.found.has(ip) ? 'red' : '#0ff', marginRight: '4px' }"
-        >{{ ip }}</span>
+          :style="{
+            color: hoveredPortInfo.found.has(ip) ? 'red' : '#0ff',
+            marginRight: '4px',
+          }"
+          >{{ ip }}</span
+        >
       </div>
     </div>
   </div>

@@ -106,24 +106,6 @@ const config = computed<Config>({
   },
 });
 
-const allApis = ref<any[]>([]);
-function rebuildAllApis() {
-  const map = new Map<string, any>();
-  for (const row of deviceRows.value) {
-    for (const field of ['deviceJson', 'deviceBack', 'deviceDetails']) {
-      if (row[field]) {
-        try {
-          const parsed = JSON.parse(row[field]);
-          if (Array.isArray(parsed.apiList)) {
-            parsed.apiList.forEach((api: any) => map.set(api.id, api));
-          }
-        } catch {}
-      }
-    }
-  }
-  config.value.apiList?.forEach((api) => map.set(api.id, api));
-  allApis.value = Array.from(map.values());
-}
 
 const deviceInfo = ref<DeviceInfo>({
   cabinetId: 0,
@@ -204,7 +186,6 @@ async function fetchDeviceList() {
       if (!selectedDeviceId.value && deviceOptions.value.length > 0) {
         selectedDeviceId.value = deviceOptions.value[0].value;
       }
-      rebuildAllApis();
     }
   } catch (err) {
     console.error('fetchDeviceList error', err);
@@ -228,7 +209,6 @@ function startNewDevice() {
   };
   viewType.value = 'front';
   showDeviceInfoModal.value = true;
-  rebuildAllApis();
 }
 
 async function loadConfig(id: string) {
@@ -267,7 +247,6 @@ async function loadConfig(id: string) {
         deviceCommunity: json.data.deviceCommunity ?? '',
       };
       creatingNew.value = false;
-      rebuildAllApis();
     }
   } catch (err) {
     console.error('loadConfig error', err);
@@ -290,7 +269,6 @@ watch(selectedDeviceId, (id, prev) => {
 });
 watch(viewType, () => {
   selectedLayerId.value = null;
-  rebuildAllApis();
   updateEditorScale();
 });
 watch(() => [config.value.width, config.value.height], updateEditorScale);
@@ -306,7 +284,6 @@ function handleMaterialsTreeUpdate(newTree: any[]) {
 function handleConfigUpdate(updated: Config) {
   config.value = deepClone(updated);
   pushHistory();
-  rebuildAllApis();
 }
 function handleSelectLayer(layerId: string) {
   selectedLayerId.value = layerId;
@@ -433,7 +410,6 @@ function copyView(from: ViewType, to: ViewType) {
   else if (to === 'back') backConfig.value = cfg;
   else detailConfig.value = cfg;
   pushHistory();
-  rebuildAllApis();
 }
 function moveView(from: ViewType, to: ViewType) {
   copyView(from, to);
@@ -442,7 +418,6 @@ function moveView(from: ViewType, to: ViewType) {
   else if (from === 'back') backConfig.value = empty;
   else detailConfig.value = empty;
   pushHistory();
-  rebuildAllApis();
 }
 function handleCopyView() {
   const target = prompt('复制到 (front/back/detail)：', viewType.value === 'front' ? 'back' : 'front');
@@ -493,7 +468,6 @@ async function handleReuseDevice() {
       backConfig.value = { ...createDefaultConfig(), ...back, deviceId: selectedDeviceId.value };
       detailConfig.value = { ...createDefaultConfig(), ...detail, deviceId: selectedDeviceId.value };
       pushHistory();
-      rebuildAllApis();
       alert('复用成功！');
     } else {
       alert(`复用失败：${json.msg ?? '未知错误'}`);
@@ -541,7 +515,6 @@ async function handleImportJson(e: Event) {
     if (obj.detail)
       detailConfig.value = { ...createDefaultConfig(), ...obj.detail };
     pushHistory();
-    rebuildAllApis();
     alert('导入成功！');
   } catch (err) {
     console.error('import json error', err);
@@ -643,7 +616,6 @@ async function handleImportJson(e: Event) {
           :config="config"
           :selected-layer-id="selectedLayerId"
           :materials-list="materialsList"
-          :all-api-list="allApis"
           @update="handleConfigUpdate"
         />
       </template>
