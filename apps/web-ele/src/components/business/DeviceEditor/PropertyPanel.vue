@@ -8,7 +8,6 @@ const pushServices = Object.keys(WS_URLS) as Array<keyof typeof WS_URLS>;
 
 // 允许直接设置像素高度，不再限制 U 数
 
-
 // =============================================
 // props & emits
 // =============================================
@@ -74,8 +73,8 @@ function addApi() {
     interval: 3000,
     params: '',
     lastSample: null,
-    usePush: false,               // ✅ 新增
-    pushUrl: '',                  // ✅ 新增，默认未选择
+    usePush: false, // ✅ 新增
+    pushUrl: '', // ✅ 新增，默认未选择
   });
   syncApiList();
 }
@@ -88,10 +87,10 @@ async function testApi(idx: number) {
   try {
     const resp = await (api.method === 'POST'
       ? fetch(api.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: api.params || '{}',
-      })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: api.params || '{}',
+        })
       : fetch(api.url));
     api.lastSample = await resp.json();
   } catch {
@@ -130,7 +129,35 @@ watch(
 // =============================================
 // ⚡ 新增：解析接口返回中的 “端口 → 状态” 字典
 // =============================================
-function extractPortMap(sample: any): Record<string, any> {
+function getByKey(obj: any, path: string): any {
+  if (!obj || !path) return undefined;
+  if (path.includes('.')) {
+    const [head, ...rest] = path.split('.');
+    const next = getByKey(obj, head);
+    return rest.length ? getByKey(next, rest.join('.')) : next;
+  }
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const val = getByKey(item, path);
+      if (val !== undefined) return val;
+    }
+    return undefined;
+  }
+  if (obj && typeof obj === 'object') {
+    if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path];
+    for (const key of Object.keys(obj)) {
+      const val = getByKey(obj[key], path);
+      if (val !== undefined) return val;
+    }
+  }
+  return undefined;
+}
+
+function extractPortMap(sample: any, key?: string): Record<string, any> {
+  if (key) {
+    const obj = getByKey(sample, key);
+    if (obj && typeof obj === 'object') return obj;
+  }
   if (sample?.portstatuslist && typeof sample.portstatuslist === 'object') {
     // 兼容旧格式
     return sample.portstatuslist;
@@ -168,13 +195,16 @@ function collectKeys(obj: any, prefix = ''): string[] {
 const dynamicPort = ref(false);
 const selectedApiId = ref('');
 const portKey = ref('');
+// ⚡ 新增：自定义端口映射取值 Key
+const portDataKey = ref('');
+const portDataKeyOptions = computed(() => getKeyOptions(selectedApiId.value));
 const testResult = ref<any>(null);
 
 // ⚡ 新增：保存解析后的端口字典
 const portMap = ref<Record<string, any>>({});
 
 const statusList = ref<
-  Array<{ iconUrl: string; label: string; value: number | string }>
+  Array<{ iconUrl: string; label: string; value: string }>
 >([]);
 
 // ----- 表格配置 -----
@@ -194,7 +224,6 @@ const cardBackground = ref('#2d323c');
 const cardApiId = ref('');
 const cardDataKey = ref('');
 
-
 // =============================================
 // 端口状态测试 & 映射
 // =============================================
@@ -205,7 +234,7 @@ function handleApiTestUse(idx: number) {
   testResult.value = apiList.value[idx].lastSample;
 
   // 抽取 “端口 → 状态” 映射
-  portMap.value = extractPortMap(testResult.value);
+  portMap.value = extractPortMap(testResult.value, portDataKey.value);
 
   // 预选第一个端口
   const keys = Object.keys(portMap.value);
@@ -218,18 +247,25 @@ function updateStatusList() {
   if (!portMap.value || !Object.keys(portMap.value).length) return;
 
   // 去重得到所有状态值，如 "1"、"2"
-  const uniq = Array.from(new Set(Object.values(portMap.value)));
+  const uniq = Array.from(
+    new Set(Object.values(portMap.value).map((v) => String(v))),
+  );
 
   const prevRows = new Map(
-    statusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+    statusList.value.map((row) => [
+      row.value,
+      { label: row.label, iconUrl: row.iconUrl },
+    ]),
   );
   const cfgMap =
-    (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
+    (selectedLayer.value && selectedLayer.value.config.statusMapping) ||
+    ({} as Record<string, any>);
 
   statusList.value = uniq.map((v) => ({
-    value: v,
-    label: prevRows.get(v)?.label || cfgMap[v]?.label || '',
-    iconUrl: prevRows.get(v)?.iconUrl || cfgMap[v]?.iconUrl || '',
+    value: String(v),
+    label: prevRows.get(String(v))?.label || cfgMap[String(v)]?.label || '',
+    iconUrl:
+      prevRows.get(String(v))?.iconUrl || cfgMap[String(v)]?.iconUrl || '',
   }));
 }
 function addStatus() {
@@ -270,17 +306,17 @@ function handleSave() {
   selectedLayer.value.config.dynamic = dynamicPort.value;
   selectedLayer.value.config.apiId = selectedApiId.value;
   selectedLayer.value.config.portKey = portKey.value;
+  selectedLayer.value.config.dataKey = portDataKey.value;
   // 状态映射
-  const mapping: Record<number | string, any> = {};
+  const mapping: Record<string, any> = {};
   for (const row of statusList.value) {
-    mapping[row.value] = { iconUrl: row.iconUrl, label: row.label };
+    mapping[String(row.value)] = { iconUrl: row.iconUrl, label: row.label };
   }
   selectedLayer.value.config.statusMapping = mapping;
   syncApiList(); // 记得同步回 props.config.apiList
 
   emit('update', props.config);
   alert('属性已保存！');
-
 }
 
 function handleSaveTable() {
@@ -327,16 +363,11 @@ function handleSaveCard() {
   alert('属性已保存！');
 }
 
-
-
-
-
 function updateField(field: string, value: any) {
   if (!selectedLayer.value) return;
   selectedLayer.value.config[field] = value;
   emit('update', props.config);
 }
-
 
 watch(tableApiId, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
@@ -382,11 +413,11 @@ watch(tableApiId, () => {
   if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
 });
 
-watch(selectedApiId, () => {
+function refreshPortMap() {
   const api = availableApis.value.find((a) => a.id === selectedApiId.value);
   if (api && api.lastSample) {
     testResult.value = api.lastSample;
-    portMap.value = extractPortMap(api.lastSample);
+    portMap.value = extractPortMap(api.lastSample, portDataKey.value);
     const keys = Object.keys(portMap.value);
     portKey.value = keys[0] || '';
     updateStatusList();
@@ -396,36 +427,52 @@ watch(selectedApiId, () => {
     portKey.value = '';
     statusList.value = [];
   }
+}
+
+watch(selectedApiId, () => {
+  refreshPortMap();
+});
+
+watch(portDataKey, () => {
+  if (selectedLayer.value) {
+    selectedLayer.value.config.dataKey = portDataKey.value;
+    emit('update', props.config);
+  }
+  refreshPortMap();
 });
 
 watch(dynamicPort, () => {
   if (!selectedLayer.value) return;
   selectedLayer.value.config.dynamic = dynamicPort.value;
   if (dynamicPort.value) selectedLayer.value.type = 'port';
-  else if (selectedLayer.value.type === 'port') selectedLayer.value.type = 'image';
+  else if (selectedLayer.value.type === 'port')
+    selectedLayer.value.type = 'image';
   emit('update', props.config);
 });
 
-watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
-  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
-  const cfg = selectedLayer.value.config;
-  if (
-    cfg.text !== cardText.value ||
-    cfg.fontSize !== cardFontSize.value ||
-    cfg.color !== cardColor.value ||
-    cfg.background !== cardBackground.value ||
-    cfg.apiId !== cardApiId.value ||
-    cfg.dataKey !== cardDataKey.value
-  ) {
-    cfg.text = cardText.value;
-    cfg.fontSize = cardFontSize.value;
-    cfg.color = cardColor.value;
-    cfg.background = cardBackground.value;
-    cfg.apiId = cardApiId.value;
-    cfg.dataKey = cardDataKey.value;
-    emit('update', props.config);
-  }
-});
+watch(
+  [cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey],
+  () => {
+    if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+    const cfg = selectedLayer.value.config;
+    if (
+      cfg.text !== cardText.value ||
+      cfg.fontSize !== cardFontSize.value ||
+      cfg.color !== cardColor.value ||
+      cfg.background !== cardBackground.value ||
+      cfg.apiId !== cardApiId.value ||
+      cfg.dataKey !== cardDataKey.value
+    ) {
+      cfg.text = cardText.value;
+      cfg.fontSize = cardFontSize.value;
+      cfg.color = cardColor.value;
+      cfg.background = cardBackground.value;
+      cfg.apiId = cardApiId.value;
+      cfg.dataKey = cardDataKey.value;
+      emit('update', props.config);
+    }
+  },
+);
 
 watch(tableApiId, () => {
   if (!selectedLayer.value || selectedLayer.value.type !== 'table') return;
@@ -487,30 +534,19 @@ watch(tableApiId, () => {
   if (!tableDataKey.value && opts.length) tableDataKey.value = opts[0];
 });
 
-watch(selectedApiId, () => {
-  const api = availableApis.value.find((a) => a.id === selectedApiId.value);
-  if (api && api.lastSample) {
-    portMap.value = extractPortMap(api.lastSample);
-    const keys = Object.keys(portMap.value);
-    portKey.value = keys[0] || '';
-    updateStatusList();
-  } else {
-    portMap.value = {};
-    portKey.value = '';
-    statusList.value = [];
-  }
-});
-
-watch([cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey], () => {
-  if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
-  selectedLayer.value.config.text = cardText.value;
-  selectedLayer.value.config.fontSize = cardFontSize.value;
-  selectedLayer.value.config.color = cardColor.value;
-  selectedLayer.value.config.background = cardBackground.value;
-  selectedLayer.value.config.apiId = cardApiId.value;
-  selectedLayer.value.config.dataKey = cardDataKey.value;
-  emit('update', props.config);
-});
+watch(
+  [cardText, cardFontSize, cardColor, cardBackground, cardApiId, cardDataKey],
+  () => {
+    if (!selectedLayer.value || selectedLayer.value.type !== 'card') return;
+    selectedLayer.value.config.text = cardText.value;
+    selectedLayer.value.config.fontSize = cardFontSize.value;
+    selectedLayer.value.config.color = cardColor.value;
+    selectedLayer.value.config.background = cardBackground.value;
+    selectedLayer.value.config.apiId = cardApiId.value;
+    selectedLayer.value.config.dataKey = cardDataKey.value;
+    emit('update', props.config);
+  },
+);
 
 // 初始化时恢复
 watch(
@@ -520,22 +556,33 @@ watch(
     dynamicPort.value = !!layer.config.dynamic;
     selectedApiId.value = layer.config.apiId || '';
     portKey.value = layer.config.portKey || '';
+    portDataKey.value = layer.config.dataKey || '';
     tableApiId.value = layer.type === 'table' ? layer.config.apiId || '' : '';
-    tableDataStr.value = layer.type === 'table'
-      ? JSON.stringify(layer.config.data || [], null, 2)
-      : '';
-    tableDataKey.value = layer.type === 'table' ? layer.config.dataKey || '' : '';
-    tableScrollY.value = layer.type === 'table' ? !!layer.config.scrollY : false;
-    tableHeaderSize.value = layer.type === 'table' ? layer.config.headerSize || '' : '';
-    tableFontSize.value = layer.type === 'table' ? layer.config.fontSize || '' : '';
-    tableColumnsStr.value = layer.type === 'table'
-      ? JSON.stringify(layer.config.columns || [], null, 2)
-      : '';
+    tableDataStr.value =
+      layer.type === 'table'
+        ? JSON.stringify(layer.config.data || [], null, 2)
+        : '';
+    tableDataKey.value =
+      layer.type === 'table' ? layer.config.dataKey || '' : '';
+    tableScrollY.value =
+      layer.type === 'table' ? !!layer.config.scrollY : false;
+    tableHeaderSize.value =
+      layer.type === 'table' ? layer.config.headerSize || '' : '';
+    tableFontSize.value =
+      layer.type === 'table' ? layer.config.fontSize || '' : '';
+    tableColumnsStr.value =
+      layer.type === 'table'
+        ? JSON.stringify(layer.config.columns || [], null, 2)
+        : '';
 
-    cardText.value = layer.type === 'card' ? layer.config.text || '文本' : '文本';
-    cardFontSize.value = layer.type === 'card' ? layer.config.fontSize || 14 : 14;
-    cardColor.value = layer.type === 'card' ? layer.config.color || '#ffffff' : '#ffffff';
-    cardBackground.value = layer.type === 'card' ? layer.config.background || '#2d323c' : '#2d323c';
+    cardText.value =
+      layer.type === 'card' ? layer.config.text || '文本' : '文本';
+    cardFontSize.value =
+      layer.type === 'card' ? layer.config.fontSize || 14 : 14;
+    cardColor.value =
+      layer.type === 'card' ? layer.config.color || '#ffffff' : '#ffffff';
+    cardBackground.value =
+      layer.type === 'card' ? layer.config.background || '#2d323c' : '#2d323c';
     cardApiId.value = layer.type === 'card' ? layer.config.apiId || '' : '';
     cardDataKey.value = layer.type === 'card' ? layer.config.dataKey || '' : '';
 
@@ -547,10 +594,10 @@ watch(
       iconUrl: mapping[k].iconUrl || '',
     }));
 
-    const api = availableApis.value.find(a => a.id === selectedApiId.value);
+    const api = availableApis.value.find((a) => a.id === selectedApiId.value);
     if (api && api.lastSample) {
       testResult.value = api.lastSample;
-      portMap.value = extractPortMap(api.lastSample);
+      portMap.value = extractPortMap(api.lastSample, portDataKey.value);
     } else {
       testResult.value = null;
       portMap.value = {};
@@ -579,14 +626,24 @@ watch(
           <input
             type="number"
             :value="selectedLayer.config.x"
-            @input="updateField('x', ($event.target as HTMLInputElement).valueAsNumber)"
+            @input="
+              updateField(
+                'x',
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
             class="w-16 border p-1"
           />
           <label class="ml-2">Y：</label>
           <input
             type="number"
             :value="selectedLayer.config.y"
-            @input="updateField('y', ($event.target as HTMLInputElement).valueAsNumber)"
+            @input="
+              updateField(
+                'y',
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
             class="w-16 border p-1"
           />
         </div>
@@ -596,9 +653,14 @@ watch(
             type="number"
             min="1"
             :value="selectedLayer.config.width"
-            @input="updateField('width', ($event.target as HTMLInputElement).valueAsNumber)"
+            @input="
+              updateField(
+                'width',
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
             class="w-20 border p-1"
-            style="width:90px"
+            style="width: 90px"
             placeholder="宽度px"
           />
           <button
@@ -606,25 +668,37 @@ watch(
             class="ml-1 border px-2 py-1 text-xs"
             @click="updateField('width', 600)"
             v-if="selectedLayer.config.width !== 600"
-          >600标准</button>
+          >
+            600标准
+          </button>
 
           <label class="ml-4">高：</label>
           <input
             type="number"
             min="1"
             :value="selectedLayer.config.height"
-            @input="updateField('height', ($event.target as HTMLInputElement).valueAsNumber)"
+            @input="
+              updateField(
+                'height',
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
             class="w-20 border p-1"
-            style="width:90px"
+            style="width: 90px"
             placeholder="高度px"
           />
           <label class="ml-4">旋转：</label>
           <input
             type="number"
             :value="selectedLayer.config.rotate || 0"
-            @input="updateField('rotate', ($event.target as HTMLInputElement).valueAsNumber)"
+            @input="
+              updateField(
+                'rotate',
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
             class="w-20 border p-1"
-            style="width:90px"
+            style="width: 90px"
             placeholder="角度"
           />
         </div>
@@ -634,7 +708,9 @@ watch(
             type="number"
             :value="selectedLayer.zIndex"
             @input="
-              selectedLayer.zIndex = ($event.target as HTMLInputElement).valueAsNumber;
+              selectedLayer.zIndex = (
+                $event.target as HTMLInputElement
+              ).valueAsNumber;
               emit('update', props.config);
             "
             class="w-16 border p-1"
@@ -642,23 +718,42 @@ watch(
         </div>
 
         <!-- ================== 动态端口设置 ================== -->
-        <div v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image'" class="mt-4 border-t pt-3">
+        <div
+          v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image'"
+          class="mt-4 border-t pt-3"
+        >
           <label>
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>
 
-        <div v-if="dynamicPort" class="mt-2">
-          <div class="mb-2">
-            <label>绑定接口：</label>
-            <select v-model="selectedApiId" class="border p-1 w-44">
-              <option value="">(无)</option>
-              <option v-for="api in availableApis" :key="api.id" :value="api.id">
-                {{ api.url || api.name }}
-              </option>
-            </select>
-          </div>
+          <div v-if="dynamicPort" class="mt-2">
+            <div class="mb-2">
+              <label>绑定接口：</label>
+              <select v-model="selectedApiId" class="w-44 border p-1">
+                <option value="">(无)</option>
+                <option
+                  v-for="api in availableApis"
+                  :key="api.id"
+                  :value="api.id"
+                >
+                  {{ api.url || api.name }}
+                </option>
+              </select>
+            </div>
+            <div class="mb-2" v-if="selectedApiId">
+              <label>取值 Key：</label>
+              <select v-model="portDataKey" class="w-44 border p-1">
+                <option value="">(自动)</option>
+                <option v-for="k in portDataKeyOptions" :key="k" :value="k">
+                  {{ k }}
+                </option>
+              </select>
+            </div>
             <!-- 端口 key & 状态映射 -->
-            <div v-if="selectedApiId && Object.keys(portMap).length" class="mt-2">
+            <div
+              v-if="selectedApiId && Object.keys(portMap).length"
+              class="mt-2"
+            >
               <label>选择端口 key：</label>
               <select
                 v-model="portKey"
@@ -697,7 +792,11 @@ watch(
                   placeholder="标签"
                   class="mr-2 w-20 border p-1"
                 />
-                <img v-if="row.iconUrl" :src="row.iconUrl" class="mr-2 h-7 w-7" />
+                <img
+                  v-if="row.iconUrl"
+                  :src="row.iconUrl"
+                  class="mr-2 h-7 w-7"
+                />
                 <button
                   class="mr-1 rounded border px-2 py-1 text-xs"
                   @click="selectIcon(idx)"
@@ -724,12 +823,19 @@ watch(
         </div>
 
         <!-- ================== 表格数据设置 ================== -->
-        <div v-else-if="selectedLayer.type === 'table'" class="mt-4 border-t pt-3">
+        <div
+          v-else-if="selectedLayer.type === 'table'"
+          class="mt-4 border-t pt-3"
+        >
           <div class="mb-2">
             <label>绑定接口：</label>
             <select v-model="tableApiId" class="border p-1">
               <option value="">(无)</option>
-              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+              <option
+                v-for="api in availableApis"
+                :key="api.id"
+                :value="api.id"
+              >
                 {{ api.url || api.name }}
               </option>
             </select>
@@ -738,16 +844,26 @@ watch(
             <label>取值 Key：</label>
             <select v-model="tableDataKey" class="border p-1">
               <option value="">(根)</option>
-              <option v-for="k in tableKeyOptions" :key="k" :value="k">{{ k }}</option>
+              <option v-for="k in tableKeyOptions" :key="k" :value="k">
+                {{ k }}
+              </option>
             </select>
           </div>
           <div class="mb-2">
             <label>表头高度：</label>
-            <input v-model="tableHeaderSize" class="w-24 border p-1" placeholder="如 2.4em" />
+            <input
+              v-model="tableHeaderSize"
+              class="w-24 border p-1"
+              placeholder="如 2.4em"
+            />
           </div>
           <div class="mb-2">
             <label>字体大小：</label>
-            <input v-model="tableFontSize" class="w-24 border p-1" placeholder="如 14px" />
+            <input
+              v-model="tableFontSize"
+              class="w-24 border p-1"
+              placeholder="如 14px"
+            />
           </div>
           <div class="mb-2">
             <label>
@@ -756,43 +872,76 @@ watch(
           </div>
           <div class="mb-2">
             <label class="mb-1 block">列配置(JSON)：</label>
-            <textarea v-model="tableColumnsStr" rows="2" class="w-full border p-1 text-xs"></textarea>
+            <textarea
+              v-model="tableColumnsStr"
+              rows="2"
+              class="w-full border p-1 text-xs"
+            ></textarea>
           </div>
           <div class="mb-2">
             <label class="mb-1 block">静态 JSON 数据：</label>
-            <textarea v-model="tableDataStr" rows="4" class="w-full border p-1 text-xs"></textarea>
+            <textarea
+              v-model="tableDataStr"
+              rows="4"
+              class="w-full border p-1 text-xs"
+            ></textarea>
           </div>
           <div v-if="testResult" class="mb-2">
             <label class="mb-1 block">接口返回：</label>
-            <pre class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white">{{ JSON.stringify(testResult, null, 2) }}</pre>
+            <pre
+              class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white"
+              >{{ JSON.stringify(testResult, null, 2) }}</pre
+            >
           </div>
-          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveTable">保存配置</button>
+          <button
+            class="mt-2 rounded border px-3 py-1"
+            @click="handleSaveTable"
+          >
+            保存配置
+          </button>
         </div>
         <!-- ================== 卡片设置 ================== -->
-        <div v-else-if="selectedLayer.type === 'card'" class="mt-4 border-t pt-3">
+        <div
+          v-else-if="selectedLayer.type === 'card'"
+          class="mt-4 border-t pt-3"
+        >
           <div class="mb-2">
             <label>文本：</label>
-            <input v-model="cardText" class="border p-1 w-full" />
+            <input v-model="cardText" class="w-full border p-1" />
           </div>
           <div class="mb-2">
             <label>绑定接口：</label>
             <select v-model="cardApiId" class="border p-1">
               <option value="">(无)</option>
-              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+              <option
+                v-for="api in availableApis"
+                :key="api.id"
+                :value="api.id"
+              >
                 {{ api.url || api.name }}
               </option>
             </select>
           </div>
           <div class="mb-2">
             <label>取值 Key：</label>
-            <select v-model="cardDataKey" class="border p-1" :disabled="!cardApiId">
+            <select
+              v-model="cardDataKey"
+              class="border p-1"
+              :disabled="!cardApiId"
+            >
               <option value="">(无)</option>
-              <option v-for="k in cardKeyOptions" :key="k" :value="k">{{ k }}</option>
+              <option v-for="k in cardKeyOptions" :key="k" :value="k">
+                {{ k }}
+              </option>
             </select>
           </div>
           <div class="mb-2">
             <label>字体大小：</label>
-            <input type="number" v-model.number="cardFontSize" class="w-20 border p-1" />
+            <input
+              type="number"
+              v-model.number="cardFontSize"
+              class="w-20 border p-1"
+            />
           </div>
           <div class="mb-2">
             <label>文字颜色：</label>
@@ -802,7 +951,9 @@ watch(
             <label>背景颜色：</label>
             <input type="color" v-model="cardBackground" />
           </div>
-          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveCard">保存配置</button>
+          <button class="mt-2 rounded border px-3 py-1" @click="handleSaveCard">
+            保存配置
+          </button>
         </div>
       </div>
 
@@ -812,107 +963,148 @@ watch(
     <!-- ================== 未选择图层 ================== -->
     <div v-else class="text-gray-400">请先点击选择一个图层</div>
 
-<div class="mt-4 border-t pt-3">
-  <div>
-    <b>页面数据源接口列表：</b>
-    <button @click="addApi" class="ml-2 rounded border px-2 py-1 text-xs">+新增接口</button>
-  </div>
-  <div v-for="(api, idx) in apiList" :key="api.id" class="mb-1 rounded border p-2">
-    <div class="mt-1">
-      <label>
-        <input
-          type="checkbox"
-          :checked="api.usePush"
-          @change="
-            updateApiField(
-              idx,
-              'usePush',
-              ($event.target as HTMLInputElement).checked,
-            )
-          "
-        />
-        启用 WebSocket 推送
-      </label>
-      <select
-        v-if="api.usePush"
-        :value="api.pushUrl"
-        @change="
-          updateApiField(
-            idx,
-            'pushUrl',
-            ($event.target as HTMLSelectElement).value,
-          )
-        "
-        class="ml-2 w-44 border p-1"
+    <div class="mt-4 border-t pt-3">
+      <div>
+        <b>页面数据源接口列表：</b>
+        <button @click="addApi" class="ml-2 rounded border px-2 py-1 text-xs">
+          +新增接口
+        </button>
+      </div>
+      <div
+        v-for="(api, idx) in apiList"
+        :key="api.id"
+        class="mb-1 rounded border p-2"
       >
-        <option value="">选择推送通道</option>
-        <option v-for="s in pushServices" :key="s" :value="s">{{ s }}</option>
-      </select>
+        <div class="mt-1">
+          <label>
+            <input
+              type="checkbox"
+              :checked="api.usePush"
+              @change="
+                updateApiField(
+                  idx,
+                  'usePush',
+                  ($event.target as HTMLInputElement).checked,
+                )
+              "
+            />
+            启用 WebSocket 推送
+          </label>
+          <select
+            v-if="api.usePush"
+            :value="api.pushUrl"
+            @change="
+              updateApiField(
+                idx,
+                'pushUrl',
+                ($event.target as HTMLSelectElement).value,
+              )
+            "
+            class="ml-2 w-44 border p-1"
+          >
+            <option value="">选择推送通道</option>
+            <option v-for="s in pushServices" :key="s" :value="s">
+              {{ s }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <input
+            :value="api.name"
+            @input="
+              updateApiField(
+                idx,
+                'name',
+                ($event.target as HTMLInputElement).value,
+              )
+            "
+            placeholder="接口名"
+            class="mr-2 w-28 border px-2 py-1"
+          />
+          <select
+            :value="api.method"
+            @change="
+              updateApiField(
+                idx,
+                'method',
+                ($event.target as HTMLSelectElement).value,
+              )
+            "
+            class="mr-2 w-16 border px-2 py-1"
+          >
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+          </select>
+          <input
+            :value="api.url"
+            @input="
+              updateApiField(
+                idx,
+                'url',
+                ($event.target as HTMLInputElement).value,
+              )
+            "
+            placeholder="URL"
+            class="mr-2 w-60 border px-2 py-1"
+          />
+          <input
+            type="number"
+            :value="api.interval"
+            :disabled="api.usePush"
+            min="100"
+            step="100"
+            class="mr-2 w-20 border px-2 py-1"
+            placeholder="轮询ms"
+            @input="
+              updateApiField(
+                idx,
+                'interval',
+                ($event.target as HTMLInputElement).valueAsNumber,
+              )
+            "
+          />
+          <button
+            @click="testApi(idx)"
+            class="rounded border px-2 py-1 text-xs"
+          >
+            测试
+          </button>
+          <button
+            @click="removeApi(idx)"
+            class="ml-1 rounded border px-2 py-1 text-xs text-red-600"
+          >
+            删除
+          </button>
+        </div>
+        <div v-if="api.method === 'POST'" class="mt-1">
+          <textarea
+            :value="api.params"
+            class="w-full border p-1 text-xs"
+            rows="2"
+            placeholder="POST body JSON"
+            @input="
+              updateApiField(
+                idx,
+                'params',
+                ($event.target as HTMLTextAreaElement).value,
+              )
+            "
+          ></textarea>
+        </div>
+        <div v-if="api.lastSample" class="mt-1 break-all text-xs text-gray-400">
+          <span v-if="api.lastSample.error" style="color: #e55757">{{
+            api.lastSample.error
+          }}</span>
+          <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
+          <button
+            @click="handleApiTestUse(idx)"
+            class="ml-2 text-xs text-blue-500"
+          >
+            选择本接口进行映射
+          </button>
+        </div>
+      </div>
     </div>
-    <div>
-      <input
-        :value="api.name"
-        @input="
-          updateApiField(idx, 'name', ($event.target as HTMLInputElement).value)
-        "
-        placeholder="接口名"
-        class="mr-2 w-28 border px-2 py-1"
-      />
-      <select
-        :value="api.method"
-        @change="
-          updateApiField(idx, 'method', ($event.target as HTMLSelectElement).value)
-        "
-        class="mr-2 w-16 border px-2 py-1"
-      >
-        <option value="GET">GET</option>
-        <option value="POST">POST</option>
-      </select>
-      <input
-        :value="api.url"
-        @input="
-          updateApiField(idx, 'url', ($event.target as HTMLInputElement).value)
-        "
-        placeholder="URL"
-        class="mr-2 w-60 border px-2 py-1"
-      />
-      <input
-        type="number"
-        :value="api.interval"
-        :disabled="api.usePush"
-        min="100"
-        step="100"
-        class="mr-2 w-20 border px-2 py-1"
-        placeholder="轮询ms"
-        @input="
-          updateApiField(
-            idx,
-            'interval',
-            ($event.target as HTMLInputElement).valueAsNumber,
-          )
-        "
-      />
-      <button @click="testApi(idx)" class="rounded border px-2 py-1 text-xs">测试</button>
-      <button @click="removeApi(idx)" class="ml-1 rounded border px-2 py-1 text-xs text-red-600">删除</button>
-    </div>
-    <div v-if="api.method === 'POST'" class="mt-1">
-      <textarea
-        :value="api.params"
-        class="w-full border p-1 text-xs"
-        rows="2"
-        placeholder="POST body JSON"
-        @input="
-          updateApiField(idx, 'params', ($event.target as HTMLTextAreaElement).value)
-        "
-      ></textarea>
-    </div>
-    <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
-      <span v-if="api.lastSample.error" style="color: #e55757">{{ api.lastSample.error }}</span>
-      <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
-      <button @click="handleApiTestUse(idx)" class="ml-2 text-xs text-blue-500">选择本接口进行映射</button>
-    </div>
-  </div>
-</div>
     <!-- ================== 图标选择弹窗 ================== -->
     <div
       v-if="iconSelectVisible"
