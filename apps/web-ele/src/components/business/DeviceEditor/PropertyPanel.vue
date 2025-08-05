@@ -151,6 +151,7 @@ function extractPortMap(sample: any, key?: string): Record<string, any> {
   if (key) {
     const obj = getByKey(sample, key);
     if (obj && typeof obj === 'object') return obj;
+    if (obj !== undefined) return { [key.split('.').pop()!]: obj };
   }
   if (sample?.portstatuslist && typeof sample.portstatuslist === 'object') {
     // 兼容旧格式
