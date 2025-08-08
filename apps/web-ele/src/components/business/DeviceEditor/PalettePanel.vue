@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/* eslint-disable no-alert */
 import { onMounted, reactive, ref, watch } from 'vue';
 
 import { uploadFile } from '#/api/device';
@@ -10,6 +11,7 @@ const props = defineProps<{
 }>();
 
 const PORT_ICON_URL = `${import.meta.env.VITE_PORT_ICON_BASE}/qiuqiu/green.gif`;
+const PORT_ADV_ICON_URL = PORT_ICON_URL;
 const TABLE_ICON_URL =
   'data:image/svg+xml,%3Csvg xmlns%3D"http://www.w3.org/2000/svg" width%3D"56" height%3D"56"%3E%3Crect x%3D"1" y%3D"1" width%3D"54" height%3D"54" fill%3D"%23fff" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"19" x2%3D"55" y2%3D"19" stroke%3D"%23ccc"/%3E%3Cline x1%3D"1" y1%3D"37" x2%3D"55" y2%3D"37" stroke%3D"%23ccc"/%3E%3Cline x1%3D"19" y1%3D"1" x2%3D"19" y2%3D"55" stroke%3D"%23ccc"/%3E%3Cline x1%3D"37" y1%3D"1" x2%3D"37" y2%3D"55" stroke%3D"%23ccc"/%3E%3C/svg%3E';
 const CARD_ICON_URL =
@@ -27,6 +29,13 @@ const defaultFolderTree = [
         url: PORT_ICON_URL,
         name: '端口',
         type: 'port',
+        isBuiltIn: true,
+      },
+      {
+        id: 'port-adv-default',
+        url: PORT_ADV_ICON_URL,
+        name: '高级端口',
+        type: 'port-adv',
         isBuiltIn: true,
       },
       {
@@ -53,15 +62,13 @@ function initFolderTree() {
   folderTree.value =
     Array.isArray(props.config?.materialsTree) &&
     props.config.materialsTree.length > 0
-      ? JSON.parse(JSON.stringify(props.config.materialsTree))
-      : JSON.parse(JSON.stringify(defaultFolderTree));
+      ? structuredClone(props.config.materialsTree)
+      : structuredClone(defaultFolderTree);
 }
 onMounted(initFolderTree);
-watch(
-  () => JSON.stringify(props.config?.materialsTree || []),
-  initFolderTree,
-  { immediate: true },
-);
+watch(() => JSON.stringify(props.config?.materialsTree || []), initFolderTree, {
+  immediate: true,
+});
 
 // ========== 业务逻辑不变 ==========
 const selectedFolderId = ref('root');
@@ -108,7 +115,7 @@ async function onUpload(e: Event) {
 
   try {
     const res = await uploadFile(formData);
-    console.log('res', res);
+    console.warn('res', res);
 
     if (res?.code !== 200) {
       alert(`上传失败：${res?.msg || '未知错误'}`);
@@ -202,7 +209,7 @@ function onMaterialDrop(folder, e) {
   let fromFolder = null;
   function searchFolder(list) {
     for (const f of list) {
-      if (f.materials.find((m) => m.id === matId)) {
+      if (f.materials.some((m) => m.id === matId)) {
         fromFolder = f;
         return;
       }
@@ -222,7 +229,7 @@ function toggleFolder(folder) {
 
 // ========== 提供暴露一个方法给父组件保存 ==========
 defineExpose({
-  getMaterialsTree: () => JSON.parse(JSON.stringify(folderTree.value)),
+  getMaterialsTree: () => structuredClone(folderTree.value),
 });
 </script>
 
@@ -287,10 +294,10 @@ defineExpose({
               {{ mat.name }}
             </div>
             <div
-              v-if="mat.type === 'port'"
+              v-if="mat.type === 'port' || mat.type === 'port-adv'"
               style="font-size: 10px; color: #39e1e7"
             >
-              端口
+              {{ mat.type === 'port' ? '端口' : '高级端口' }}
             </div>
           </div>
         </div>
