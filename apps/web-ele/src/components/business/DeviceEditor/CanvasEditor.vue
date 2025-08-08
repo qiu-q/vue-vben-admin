@@ -241,12 +241,12 @@ function onDrop(e: DragEvent) {
         type: 'port',
         zIndex: layers.value.length + 1,
         name: `端口-${Date.now().toString().slice(-4)}`,
-      config: {
-        x: x - 20,
-        y: y - 20,
-        width: 32,
-        height: 32,
-        src: url,
+        config: {
+          x: x - 20,
+          y: y - 20,
+          width: 32,
+          height: 32,
+          src: url,
           // 下面可扩展端口相关配置
           rotate: 0,
           dynamic: false, // 默认不开启动态端口
@@ -256,22 +256,44 @@ function onDrop(e: DragEvent) {
           dataKey: '',
         },
       };
+    } else if (matType === 'port-adv') {
+      // 拖入高级端口组件
+      layer = {
+        id: `port-adv-${Date.now()}`,
+        type: 'port-adv',
+        zIndex: layers.value.length + 1,
+        name: `高级端口-${Date.now().toString().slice(-4)}`,
+        config: {
+          x: x - 20,
+          y: y - 20,
+          width: 32,
+          height: 32,
+          src: url,
+          rotate: 0,
+          apiId: '',
+          portDataKey: '',
+          portKey: '',
+          statusMapping: {},
+          usePush: false,
+          pushService: '',
+        },
+      };
     } else {
       // 普通图片
       layer = {
         id: `img-${Date.now()}`,
         type: 'image',
         zIndex: layers.value.length + 1,
-      config: {
-        x: x - 40,
-        y: y - 40,
-        width: 120,
-        height: 80,
-        src: url,
-        rotate: 0,
-        apiId: '',
-        dataKey: '',
-      },
+        config: {
+          x: x - 40,
+          y: y - 40,
+          width: 120,
+          height: 80,
+          src: url,
+          rotate: 0,
+          apiId: '',
+          dataKey: '',
+        },
       };
     }
   }

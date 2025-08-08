@@ -30,6 +30,13 @@ const defaultFolderTree = [
         isBuiltIn: true,
       },
       {
+        id: 'port-adv-default',
+        url: PORT_ICON_URL,
+        name: '高级端口',
+        type: 'port-adv',
+        isBuiltIn: true,
+      },
+      {
         id: 'table-default',
         url: TABLE_ICON_URL,
         name: '表格',
@@ -287,7 +294,7 @@ defineExpose({
               {{ mat.name }}
             </div>
             <div
-              v-if="mat.type === 'port'"
+              v-if="mat.type === 'port' || mat.type === 'port-adv'"
               style="font-size: 10px; color: #39e1e7"
             >
               端口
