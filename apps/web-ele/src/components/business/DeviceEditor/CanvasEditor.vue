@@ -234,19 +234,21 @@ function onDrop(e: DragEvent) {
       },
     };
   } else if (url) {
-    if (matType === 'port') {
+    if (matType === 'port' || matType === 'port-adv') {
       // 拖入端口组件
       layer = {
-        id: `port-${Date.now()}`,
-        type: 'port',
+        id: `${matType}-${Date.now()}`,
+        type: matType,
         zIndex: layers.value.length + 1,
-        name: `端口-${Date.now().toString().slice(-4)}`,
-      config: {
-        x: x - 20,
-        y: y - 20,
-        width: 32,
-        height: 32,
-        src: url,
+        name: `${matType === 'port-adv' ? '高级端口' : '端口'}-${Date.now()
+          .toString()
+          .slice(-4)}`,
+        config: {
+          x: x - 20,
+          y: y - 20,
+          width: 32,
+          height: 32,
+          src: url,
           // 下面可扩展端口相关配置
           rotate: 0,
           dynamic: false, // 默认不开启动态端口
@@ -262,16 +264,16 @@ function onDrop(e: DragEvent) {
         id: `img-${Date.now()}`,
         type: 'image',
         zIndex: layers.value.length + 1,
-      config: {
-        x: x - 40,
-        y: y - 40,
-        width: 120,
-        height: 80,
-        src: url,
-        rotate: 0,
-        apiId: '',
-        dataKey: '',
-      },
+        config: {
+          x: x - 40,
+          y: y - 40,
+          width: 120,
+          height: 80,
+          src: url,
+          rotate: 0,
+          apiId: '',
+          dataKey: '',
+        },
       };
     }
   }
@@ -504,7 +506,7 @@ watch(
       ></canvas>
       <template v-for="layer in layers" :key="layer.id">
         <img
-          v-if="layer.type === 'image' || layer.type === 'port'"
+          v-if="layer.type === 'image' || layer.type === 'port' || layer.type === 'port-adv'"
           :src="layer.config.src"
           class="absolute transition-all duration-75"
           :style="{
@@ -603,7 +605,7 @@ watch(
         <div
           v-if="
             selectedId === layer.id &&
-            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table' || layer.type === 'card')
+            (layer.type === 'image' || layer.type === 'port' || layer.type === 'port-adv' || layer.type === 'table' || layer.type === 'card')
           "
           class="resize-handle"
           :style="{

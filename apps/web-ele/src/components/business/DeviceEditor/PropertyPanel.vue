@@ -266,7 +266,11 @@ async function handleUploadIcon(e: Event, idx: number) {
 // =============================================
 function handleSave() {
   if (!selectedLayer.value) return;
-  selectedLayer.value.type = dynamicPort.value ? 'port' : 'image';
+  selectedLayer.value.type = dynamicPort.value
+    ? selectedLayer.value.type === 'port-adv'
+      ? 'port-adv'
+      : 'port'
+    : 'image';
   selectedLayer.value.config.dynamic = dynamicPort.value;
   selectedLayer.value.config.apiId = selectedApiId.value;
   selectedLayer.value.config.portKey = portKey.value;
@@ -401,8 +405,15 @@ watch(selectedApiId, () => {
 watch(dynamicPort, () => {
   if (!selectedLayer.value) return;
   selectedLayer.value.config.dynamic = dynamicPort.value;
-  if (dynamicPort.value) selectedLayer.value.type = 'port';
-  else if (selectedLayer.value.type === 'port') selectedLayer.value.type = 'image';
+  if (dynamicPort.value) {
+    selectedLayer.value.type =
+      selectedLayer.value.type === 'port-adv' ? 'port-adv' : 'port';
+  } else if (
+    selectedLayer.value.type === 'port' ||
+    selectedLayer.value.type === 'port-adv'
+  ) {
+    selectedLayer.value.type = 'image';
+  }
   emit('update', props.config);
 });
 
@@ -642,7 +653,14 @@ watch(
         </div>
 
         <!-- ================== 动态端口设置 ================== -->
-        <div v-if="selectedLayer.type === 'port' || selectedLayer.type === 'image'" class="mt-4 border-t pt-3">
+        <div
+          v-if="
+            selectedLayer.type === 'port' ||
+            selectedLayer.type === 'image' ||
+            selectedLayer.type === 'port-adv'
+          "
+          class="mt-4 border-t pt-3"
+        >
           <label>
             <input type="checkbox" v-model="dynamicPort" /> 启用动态端口
           </label>

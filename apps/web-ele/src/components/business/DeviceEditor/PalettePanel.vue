@@ -254,6 +254,7 @@ defineExpose({
         </button>
       </div>
       <FolderTreeNode
+        v-if="folderTree.length"
         :folder="folderTree[0]"
         :selected-folder-id="selectedFolderId"
         @select="selectedFolderId = $event"
@@ -266,7 +267,6 @@ defineExpose({
     <!-- 右侧：当前文件夹的素材网格 -->
     <div class="flex-1 p-3" style="overflow-y: auto">
       <div style="margin-bottom: 10px">
-        111
         <!--        上传文件-->
         <input type="file" accept="image/*" @change="onUpload" />
       </div>
