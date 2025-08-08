@@ -4,7 +4,7 @@
 export interface LayerBase {
   id: string;
   name: string;
-  type: 'custom' | 'icons' | 'image' | 'ports';
+  type: 'custom' | 'icons' | 'image' | 'ports' | 'port' | 'port-adv';
   visible: boolean;
   zIndex: number;
   config: any;

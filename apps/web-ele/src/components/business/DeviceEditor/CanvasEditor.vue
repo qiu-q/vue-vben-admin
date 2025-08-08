@@ -504,7 +504,7 @@ watch(
       ></canvas>
       <template v-for="layer in layers" :key="layer.id">
         <img
-          v-if="layer.type === 'image' || layer.type === 'port'"
+          v-if="layer.type === 'image' || layer.type === 'port' || layer.type === 'port-adv'"
           :src="layer.config.src"
           class="absolute transition-all duration-75"
           :style="{
@@ -603,7 +603,7 @@ watch(
         <div
           v-if="
             selectedId === layer.id &&
-            (layer.type === 'image' || layer.type === 'port' || layer.type === 'table' || layer.type === 'card')
+            (layer.type === 'image' || layer.type === 'port' || layer.type === 'port-adv' || layer.type === 'table' || layer.type === 'card')
           "
           class="resize-handle"
           :style="{

@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import IconsLayer from '../layers/IconsLayer.vue';
 import ImageLayer from '../layers/ImageLayer.vue';
 import PortsLayer from '../layers/PortsLayer.vue';
+import PortAdvRenderer from '../ports/PortAdvRenderer.vue';
 
 defineProps<{
   config: DeviceConfig;
@@ -16,6 +17,7 @@ const layerComponentMap = {
   image: ImageLayer,
   ports: PortsLayer,
   icons: IconsLayer,
+  'port-adv': PortAdvRenderer,
 } as const;
 
 const orderedLayers = computed(() =>

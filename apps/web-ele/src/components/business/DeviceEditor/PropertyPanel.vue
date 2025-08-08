@@ -162,6 +162,40 @@ function collectKeys(obj: any, prefix = ''): string[] {
   return Array.from(new Set(results));
 }
 
+function getValueByPath(obj: any, path: string): any {
+  if (!path) return obj;
+  return path.split('.').reduce((o, k) => (o ? (o as any)[k] : undefined), obj);
+}
+
+function parseAdvPort(sample: any): Record<string, any> {
+  if (advPortDataKey.value) {
+    const val = getValueByPath(sample, advPortDataKey.value);
+    return val && typeof val === 'object' ? val : {};
+  }
+  return extractPortMap(sample);
+}
+
+function updateAdvStatusList() {
+  if (!advPortMap.value || !Object.keys(advPortMap.value).length) return;
+  const uniq = Array.from(new Set(Object.values(advPortMap.value)));
+  const prevRows = new Map(
+    advStatusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+  );
+  const cfgMap =
+    (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
+  advStatusList.value = uniq.map((v) => ({
+    value: v,
+    label: prevRows.get(v)?.label || cfgMap[v]?.label || '',
+    iconUrl: prevRows.get(v)?.iconUrl || cfgMap[v]?.iconUrl || '',
+  }));
+}
+function addAdvStatus() {
+  advStatusList.value.push({ value: '', label: '', iconUrl: '' });
+}
+function removeAdvStatus(idx: number) {
+  advStatusList.value.splice(idx, 1);
+}
+
 // =============================================
 // 动态端口 & 推送设置
 // =============================================
@@ -174,6 +208,16 @@ const testResult = ref<any>(null);
 const portMap = ref<Record<string, any>>({});
 
 const statusList = ref<
+  Array<{ iconUrl: string; label: string; value: number | string }>
+>([]);
+
+// ---- 高级端口映射配置 ----
+const advApiId = ref('');
+const advPortDataKey = ref('');
+const advPortKey = ref('');
+const advTestResult = ref<any>(null);
+const advPortMap = ref<Record<string, any>>({});
+const advStatusList = ref<
   Array<{ iconUrl: string; label: string; value: number | string }>
 >([]);
 
@@ -242,23 +286,34 @@ function removeStatus(idx: number) {
 // 选择 & 上传图标
 const iconSelectVisible = ref(false);
 const iconSelectIdx = ref(-1);
-function selectIcon(idx: number) {
+const iconSelectTarget = ref<'normal' | 'adv'>('normal');
+function selectIcon(idx: number, target: 'normal' | 'adv' = 'normal') {
   iconSelectIdx.value = idx;
+  iconSelectTarget.value = target;
   iconSelectVisible.value = true;
 }
 function handlePickIcon(url: string) {
-  if (iconSelectIdx.value >= 0)
-    statusList.value[iconSelectIdx.value].iconUrl = url;
+  if (iconSelectIdx.value >= 0) {
+    const list = iconSelectTarget.value === 'adv' ? advStatusList : statusList;
+    list.value[iconSelectIdx.value].iconUrl = url;
+  }
   iconSelectVisible.value = false;
 }
-async function handleUploadIcon(e: Event, idx: number) {
+async function handleUploadIcon(
+  e: Event,
+  idx: number,
+  target: 'normal' | 'adv' = 'normal',
+) {
   const files = (e.target as HTMLInputElement).files;
   if (!files?.length) return;
   const formData = new FormData();
   formData.append('file', files[0]);
   const res = await uploadFile(formData);
   const url = res?.data;
-  if (url) statusList.value[idx].iconUrl = url;
+  if (url) {
+    const list = target === 'adv' ? advStatusList : statusList;
+    list.value[idx].iconUrl = url;
+  }
 }
 
 // =============================================
@@ -281,6 +336,23 @@ function handleSave() {
   emit('update', props.config);
   alert('属性已保存！');
 
+}
+
+function handleSaveAdv() {
+  if (!selectedLayer.value) return;
+  selectedLayer.value.type = 'port-adv';
+  selectedLayer.value.config.dynamic = true;
+  selectedLayer.value.config.apiId = advApiId.value;
+  selectedLayer.value.config.portDataKey = advPortDataKey.value;
+  selectedLayer.value.config.portKey = advPortKey.value;
+  const mapping: Record<number | string, any> = {};
+  for (const row of advStatusList.value) {
+    mapping[row.value] = { iconUrl: row.iconUrl, label: row.label };
+  }
+  selectedLayer.value.config.statusMapping = mapping;
+  syncApiList();
+  emit('update', props.config);
+  alert('属性已保存！');
 }
 
 function handleSaveTable() {
@@ -395,6 +467,36 @@ watch(selectedApiId, () => {
     portMap.value = {};
     portKey.value = '';
     statusList.value = [];
+  }
+});
+
+watch(advApiId, () => {
+  const api = availableApis.value.find((a) => a.id === advApiId.value);
+  if (api && api.lastSample) {
+    advTestResult.value = api.lastSample;
+    advPortMap.value = parseAdvPort(api.lastSample);
+    const keys = Object.keys(advPortMap.value);
+    advPortKey.value = keys[0] || '';
+    updateAdvStatusList();
+  } else {
+    advTestResult.value = null;
+    advPortMap.value = {};
+    advPortKey.value = '';
+    advStatusList.value = [];
+  }
+});
+
+watch(advPortDataKey, () => {
+  const api = availableApis.value.find((a) => a.id === advApiId.value);
+  if (api && api.lastSample) {
+    advPortMap.value = parseAdvPort(api.lastSample);
+    const keys = Object.keys(advPortMap.value);
+    if (keys.length && !keys.includes(advPortKey.value)) advPortKey.value = keys[0];
+    updateAdvStatusList();
+  } else {
+    advPortMap.value = {};
+    advStatusList.value = [];
+    advPortKey.value = '';
   }
 });
 
@@ -520,6 +622,9 @@ watch(
     dynamicPort.value = !!layer.config.dynamic;
     selectedApiId.value = layer.config.apiId || '';
     portKey.value = layer.config.portKey || '';
+    advApiId.value = layer.type === 'port-adv' ? layer.config.apiId || '' : '';
+    advPortDataKey.value = layer.type === 'port-adv' ? layer.config.portDataKey || '' : '';
+    advPortKey.value = layer.type === 'port-adv' ? layer.config.portKey || '' : '';
     tableApiId.value = layer.type === 'table' ? layer.config.apiId || '' : '';
     tableDataStr.value = layer.type === 'table'
       ? JSON.stringify(layer.config.data || [], null, 2)
@@ -541,19 +646,40 @@ watch(
 
     // 恢复映射
     const mapping = layer.config.statusMapping || {};
-    statusList.value = Object.keys(mapping).map((k) => ({
-      value: k,
-      label: mapping[k].label || '',
-      iconUrl: mapping[k].iconUrl || '',
-    }));
-
-    const api = availableApis.value.find(a => a.id === selectedApiId.value);
-    if (api && api.lastSample) {
-      testResult.value = api.lastSample;
-      portMap.value = extractPortMap(api.lastSample);
+    if (layer.type === 'port-adv') {
+      advStatusList.value = Object.keys(mapping).map((k) => ({
+        value: k,
+        label: mapping[k].label || '',
+        iconUrl: mapping[k].iconUrl || '',
+      }));
+      statusList.value = [];
     } else {
-      testResult.value = null;
-      portMap.value = {};
+      statusList.value = Object.keys(mapping).map((k) => ({
+        value: k,
+        label: mapping[k].label || '',
+        iconUrl: mapping[k].iconUrl || '',
+      }));
+      advStatusList.value = [];
+    }
+
+    if (layer.type === 'port-adv') {
+      const api = availableApis.value.find(a => a.id === advApiId.value);
+      if (api && api.lastSample) {
+        advTestResult.value = api.lastSample;
+        advPortMap.value = parseAdvPort(api.lastSample);
+      } else {
+        advTestResult.value = null;
+        advPortMap.value = {};
+      }
+    } else {
+      const api = availableApis.value.find(a => a.id === selectedApiId.value);
+      if (api && api.lastSample) {
+        testResult.value = api.lastSample;
+        portMap.value = extractPortMap(api.lastSample);
+      } else {
+        testResult.value = null;
+        portMap.value = {};
+      }
     }
   },
   { immediate: true },
@@ -721,6 +847,65 @@ watch(
               保存配置
             </button>
           </div>
+        </div>
+
+        <!-- ================== 高级端口映射 ================== -->
+        <div v-else-if="selectedLayer.type === 'port-adv'" class="mt-4 border-t pt-3">
+          <div class="mb-2">
+            <label>绑定接口：</label>
+            <select v-model="advApiId" class="border p-1 w-44">
+              <option value="">(无)</option>
+              <option v-for="api in availableApis" :key="api.id" :value="api.id">
+                {{ api.url || api.name }}
+              </option>
+            </select>
+          </div>
+          <div class="mb-2" v-if="advApiId">
+            <label>取值 Key：</label>
+            <select v-model="advPortDataKey" class="border p-1 w-44">
+              <option value="">(根)</option>
+              <option v-for="k in getKeyOptions(advApiId)" :key="k" :value="k">{{ k }}</option>
+            </select>
+          </div>
+          <div class="mb-2" v-if="advApiId && Object.keys(advPortMap).length">
+            <label>端口选择：</label>
+            <select v-model="advPortKey" class="border p-1 w-44">
+              <option v-for="k in Object.keys(advPortMap)" :key="k" :value="k">{{ k }}</option>
+            </select>
+          </div>
+          <div v-if="advPortKey" class="mt-3">
+            <div class="mb-1 flex items-center font-bold">
+              状态映射
+              <button class="ml-2 rounded border px-2 py-1 text-xs" @click="addAdvStatus">
+                +新增状态
+              </button>
+            </div>
+            <div v-for="(row, idx) in advStatusList" :key="idx" class="mb-1 flex items-center">
+              <input v-model="row.value" placeholder="值" class="mr-2 w-12 border p-1" />
+              <input v-model="row.label" placeholder="标签" class="mr-2 w-20 border p-1" />
+              <img v-if="row.iconUrl" :src="row.iconUrl" class="mr-2 h-7 w-7" />
+              <button class="mr-1 rounded border px-2 py-1 text-xs" @click="selectIcon(idx, 'adv')">
+                选择图标
+              </button>
+              <input
+                type="file"
+                accept="image/*"
+                style="width: 60px"
+                class="mr-2"
+                @change="(e) => handleUploadIcon(e, idx, 'adv')"
+              />
+              <button @click="removeAdvStatus(idx)" class="text-xs text-red-600">删除</button>
+            </div>
+          </div>
+          <div v-if="advTestResult" class="mb-2">
+            <label class="mb-1 block">接口返回：</label>
+            <pre class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white">{{ JSON.stringify(advTestResult, null, 2) }}</pre>
+          </div>
+          <div v-if="Object.keys(advPortMap).length" class="mb-2">
+            <label class="mb-1 block">解析结果：</label>
+            <pre class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white">{{ JSON.stringify(advPortMap, null, 2) }}</pre>
+          </div>
+          <button class="mt-4 rounded border px-3 py-1" @click="handleSaveAdv">保存配置</button>
         </div>
 
         <!-- ================== 表格数据设置 ================== -->
