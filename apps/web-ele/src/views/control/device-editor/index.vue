@@ -25,16 +25,6 @@ function useKeyStroke(target: HTMLElement | Window, keymap: (e: KeyboardEvent) =
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                    */
 /* -------------------------------------------------------------------------- */
-interface DeviceInfo {
-  cabinetId: number;
-  deviceName: string;
-  deviceIpAddress: string;
-  deviceSerialNumber: string;
-  deviceGateway: string;
-  deviceMacAddress: string;
-  deviceCommunity: string;
-  deviceType: number;
-}
 interface Config {
   deviceId: string;
   width: number;
@@ -126,7 +116,8 @@ function rebuildAllApis() {
   allApis.value = Array.from(map.values());
 }
 
-const deviceInfo = ref<DeviceInfo>({
+const deviceCategory = ref<'network' | 'industrial'>('network');
+const deviceInfo = ref({
   cabinetId: 0,
   deviceName: '',
   deviceIpAddress: '',
@@ -135,8 +126,32 @@ const deviceInfo = ref<DeviceInfo>({
   deviceMacAddress: '',
   deviceCommunity: '',
   deviceType: 1,
+  deviceMasterStation: 0,
+  deviceSlaveStation: 0,
+  devicePort: 502,
 });
+const networkFieldMap: Record<string, string> = {
+  cabinetId: '机柜ID',
+  deviceName: '设备名称',
+  deviceIpAddress: 'IP地址',
+  deviceSerialNumber: '序列号',
+  deviceGateway: '网关',
+  deviceMacAddress: 'MAC地址',
+  deviceCommunity: '设备SNMP',
+};
+const industrialFieldMap: Record<string, string> = {
+  cabinetId: '机柜ID',
+  deviceName: '设备名称',
+  deviceIpAddress: 'IP地址',
+  deviceType: '设备类型',
+  deviceMasterStation: '主站',
+  deviceSlaveStation: '从站',
+  devicePort: '端口',
+};
 const showDeviceInfoModal = ref(false);
+watch(deviceCategory, (cat) => {
+  if (cat === 'network') deviceInfo.value.deviceType = 1;
+});
 
 /* -------------------------------------------------------------------------- */
 /* 缩放适配                                                                    */
@@ -224,11 +239,15 @@ function startNewDevice() {
     deviceName: '',
     deviceIpAddress: '',
     deviceSerialNumber: '',
-  deviceGateway: '',
-  deviceMacAddress: '',
-  deviceCommunity: '',
-  deviceType: 1,
+    deviceGateway: '',
+    deviceMacAddress: '',
+    deviceCommunity: '',
+    deviceType: 1,
+    deviceMasterStation: 0,
+    deviceSlaveStation: 0,
+    devicePort: 502,
   };
+  deviceCategory.value = 'network';
   viewType.value = 'front';
   showDeviceInfoModal.value = true;
   rebuildAllApis();
@@ -266,10 +285,14 @@ async function loadConfig(id: string) {
         deviceIpAddress: json.data.deviceIpAddress ?? '',
         deviceSerialNumber: json.data.deviceSerialNumber ?? '',
         deviceGateway: json.data.deviceGateway ?? '',
-      deviceMacAddress: json.data.deviceMacAddress ?? '',
-      deviceCommunity: json.data.deviceCommunity ?? '',
-      deviceType: json.data.deviceType ?? 1,
-    };
+        deviceMacAddress: json.data.deviceMacAddress ?? '',
+        deviceCommunity: json.data.deviceCommunity ?? '',
+        deviceType: json.data.deviceType ?? 1,
+        deviceMasterStation: json.data.deviceMasterStation ?? 0,
+        deviceSlaveStation: json.data.deviceSlaveStation ?? 0,
+        devicePort: json.data.devicePort ?? 0,
+      };
+      deviceCategory.value = deviceInfo.value.deviceType === 1 ? 'network' : 'industrial';
       creatingNew.value = false;
       rebuildAllApis();
     }
@@ -395,14 +418,30 @@ async function handleSave() {
   [frontConfig.value, backConfig.value, detailConfig.value].forEach(syncApiPush);
   const payload = {
     deviceId: selectedDeviceId.value,
-    ...deviceInfo.value,
+    cabinetId: deviceInfo.value.cabinetId,
+    deviceName: deviceInfo.value.deviceName,
+    deviceIpAddress: deviceInfo.value.deviceIpAddress,
+    ...(deviceCategory.value === 'network'
+      ? {
+          deviceSerialNumber: deviceInfo.value.deviceSerialNumber,
+          deviceGateway: deviceInfo.value.deviceGateway,
+          deviceMacAddress: deviceInfo.value.deviceMacAddress,
+          deviceCommunity: deviceInfo.value.deviceCommunity,
+          deviceType: 1,
+        }
+      : {
+          deviceType: deviceInfo.value.deviceType,
+          deviceMasterStation: deviceInfo.value.deviceMasterStation,
+          deviceSlaveStation: deviceInfo.value.deviceSlaveStation,
+          devicePort: deviceInfo.value.devicePort,
+        }),
     deviceJson: JSON.stringify(frontConfig.value),
     deviceBack: JSON.stringify(backConfig.value),
     deviceDetails: JSON.stringify(detailConfig.value),
   };
   try {
     const url = creatingNew.value
-      ? deviceInfo.value.deviceType === 1
+      ? deviceCategory.value === 'network'
         ? NETWORK_URL
         : INDUSTRIAL_URL
       : BASE_URL;
@@ -596,24 +635,25 @@ async function handleImportJson(e: Event) {
       <div class="w-[600px] rounded-lg bg-[#20222a] p-6">
         <h3 class="mb-4 text-lg font-bold text-white">设备信息</h3>
         <form @submit.prevent="showDeviceInfoModal = false">
+          <div class="mb-3">
+            <label class="block text-sm text-gray-400">设备类别</label>
+            <select
+              v-model="deviceCategory"
+              class="w-full rounded border border-[#444] bg-[#1d1e24] p-2 text-white"
+            >
+              <option value="network">网络设备</option>
+              <option value="industrial">工控设备</option>
+            </select>
+          </div>
           <div
             class="mb-3"
-            v-for="(label, key) in {
-              cabinetId: '机柜ID',
-              deviceName: '设备名称',
-              deviceIpAddress: 'IP地址',
-              deviceSerialNumber: '序列号',
-              deviceGateway: '网关',
-              deviceMacAddress: 'MAC地址',
-              deviceCommunity: '设备SNMP',
-              deviceType: '设备类型',
-            }"
+            v-for="(label, key) in (deviceCategory === 'network' ? networkFieldMap : industrialFieldMap)"
             :key="key"
           >
             <label class="block text-sm text-gray-400">{{ label }}</label>
             <input
               v-model="(deviceInfo as any)[key]"
-              :type="key === 'cabinetId' || key === 'deviceType' ? 'number' : 'text'"
+              :type="['cabinetId', 'deviceType', 'deviceMasterStation', 'deviceSlaveStation', 'devicePort'].includes(key as string) ? 'number' : 'text'"
               class="w-full rounded border border-[#444] bg-[#1d1e24] p-2 text-white"
             />
           </div>
