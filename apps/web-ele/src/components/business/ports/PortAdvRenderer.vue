@@ -29,9 +29,10 @@ const stateValue = computed(() => {
   const data = (store.status as any) || {};
   const apiData = props.config.portDataKey ? getByPath(data, props.config.portDataKey) : data;
   if (apiData && typeof apiData === 'object') {
-    return apiData[props.config.portKey || ''];
+    if (props.config.portKey) return apiData[props.config.portKey];
+    return undefined;
   }
-  return undefined;
+  return apiData;
 });
 
 const iconUrl = computed(() => {

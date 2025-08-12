@@ -171,10 +171,10 @@ function getAdvPortStatus(layer: any) {
   if (!apiResp || apiResp.error) return null;
   const data = portDataKey ? getValueByPath(apiResp, portDataKey) : apiResp;
   if (data && typeof data === 'object') {
-    const val = (data as any)[portKey];
+    const val = portKey ? (data as any)[portKey] : undefined;
     return statusMapping[val] || null;
   }
-  return null;
+  return statusMapping[data] || null;
 }
 function bindDeviceIdToApis() {
   const deviceId = props.config?.deviceId;

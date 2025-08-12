@@ -494,21 +494,28 @@ function updateAdvPortMap() {
     if (data && typeof data === 'object') {
       advPortMap.value = data;
       const keys = Object.keys(data);
-      advPortKey.value = keys[0] || '';
-      updateAdvStatusList();
+      advPortKey.value = advPortKey.value && keys.includes(advPortKey.value)
+        ? advPortKey.value
+        : keys[0] || '';
+    } else if (data !== undefined) {
+      advPortMap.value = { value: data } as Record<string, any>;
+      advPortKey.value = 'value';
     } else {
       advPortMap.value = {};
-      advStatusList.value = [];
+      advPortKey.value = '';
     }
+    updateAdvStatusList();
   } else {
     advTestResult.value = null;
     advPortMap.value = {};
+    advPortKey.value = '';
     advStatusList.value = [];
   }
 }
 
 watch(advApiId, updateAdvPortMap);
 watch(advPortDataKey, updateAdvPortMap);
+watch(advPortKey, updateAdvStatusList);
 
 watch(dynamicPort, () => {
   if (!selectedLayer.value) return;
@@ -686,10 +693,25 @@ watch(
         const data = advPortDataKey.value
           ? getValueByPath(apiAdv.lastSample, advPortDataKey.value)
           : extractPortMap(apiAdv.lastSample);
-        advPortMap.value = data && typeof data === 'object' ? data : {};
+        if (data && typeof data === 'object') {
+          advPortMap.value = data;
+          const keys = Object.keys(data);
+          advPortKey.value = advPortKey.value && keys.includes(advPortKey.value)
+            ? advPortKey.value
+            : keys[0] || '';
+        } else if (data !== undefined) {
+          advPortMap.value = { value: data } as Record<string, any>;
+          advPortKey.value = 'value';
+        } else {
+          advPortMap.value = {};
+          advPortKey.value = '';
+        }
+        updateAdvStatusList();
       } else {
         advTestResult.value = null;
         advPortMap.value = {};
+        advPortKey.value = '';
+        advStatusList.value = [];
       }
     }
   },
