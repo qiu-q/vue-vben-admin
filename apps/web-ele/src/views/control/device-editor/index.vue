@@ -33,6 +33,7 @@ interface DeviceInfo {
   deviceGateway: string;
   deviceMacAddress: string;
   deviceCommunity: string;
+  deviceType: number;
 }
 interface Config {
   deviceId: string;
@@ -133,6 +134,7 @@ const deviceInfo = ref<DeviceInfo>({
   deviceGateway: '',
   deviceMacAddress: '',
   deviceCommunity: '',
+  deviceType: 1,
 });
 const showDeviceInfoModal = ref(false);
 
@@ -222,9 +224,10 @@ function startNewDevice() {
     deviceName: '',
     deviceIpAddress: '',
     deviceSerialNumber: '',
-    deviceGateway: '',
-    deviceMacAddress: '',
-    deviceCommunity: '',
+  deviceGateway: '',
+  deviceMacAddress: '',
+  deviceCommunity: '',
+  deviceType: 1,
   };
   viewType.value = 'front';
   showDeviceInfoModal.value = true;
@@ -263,9 +266,10 @@ async function loadConfig(id: string) {
         deviceIpAddress: json.data.deviceIpAddress ?? '',
         deviceSerialNumber: json.data.deviceSerialNumber ?? '',
         deviceGateway: json.data.deviceGateway ?? '',
-        deviceMacAddress: json.data.deviceMacAddress ?? '',
-        deviceCommunity: json.data.deviceCommunity ?? '',
-      };
+      deviceMacAddress: json.data.deviceMacAddress ?? '',
+      deviceCommunity: json.data.deviceCommunity ?? '',
+      deviceType: json.data.deviceType ?? 1,
+    };
       creatingNew.value = false;
       rebuildAllApis();
     }
@@ -375,6 +379,8 @@ useKeyStroke(window, (e) => {
 /* 保存 & 预览                                                                 */
 /* -------------------------------------------------------------------------- */
 const BASE_URL = '/api/jx-device/Device';
+const NETWORK_URL = `${BASE_URL}/network`;
+const INDUSTRIAL_URL = `${BASE_URL}/industrial`;
 function syncMaterialsTree() {
   if (palettePanelRef.value?.getMaterialsTree) {
     config.value.materialsTree = palettePanelRef.value.getMaterialsTree();
@@ -395,7 +401,12 @@ async function handleSave() {
     deviceDetails: JSON.stringify(detailConfig.value),
   };
   try {
-    const resp = await fetch(BASE_URL, {
+    const url = creatingNew.value
+      ? deviceInfo.value.deviceType === 1
+        ? NETWORK_URL
+        : INDUSTRIAL_URL
+      : BASE_URL;
+    const resp = await fetch(url, {
       method: creatingNew.value ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -595,13 +606,14 @@ async function handleImportJson(e: Event) {
               deviceGateway: '网关',
               deviceMacAddress: 'MAC地址',
               deviceCommunity: '设备SNMP',
+              deviceType: '设备类型',
             }"
             :key="key"
           >
             <label class="block text-sm text-gray-400">{{ label }}</label>
             <input
               v-model="(deviceInfo as any)[key]"
-              :type="key === 'cabinetId' ? 'number' : 'text'"
+              :type="key === 'cabinetId' || key === 'deviceType' ? 'number' : 'text'"
               class="w-full rounded border border-[#444] bg-[#1d1e24] p-2 text-white"
             />
           </div>
