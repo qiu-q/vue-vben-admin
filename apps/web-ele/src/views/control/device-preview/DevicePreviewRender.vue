@@ -136,6 +136,24 @@ function extractPortIpMap(sample: any): Record<string, string> {
   return {};
 }
 
+function getValueByPath(obj: any, path: string) {
+  const keys = path
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean);
+  return keys.reduce((o: any, k: string) => {
+    if (o && typeof o === 'object') {
+      if (Array.isArray(o)) {
+        const idx = Number(k);
+        if (!Number.isNaN(idx)) return o[idx];
+        return o.length ? o[0][k] : undefined;
+      }
+      return o[k];
+    }
+    return undefined;
+  }, obj);
+}
+
 // ========== 状态映射 ==========
 function getPortStatus(layer: any) {
   if (!layer.config.dynamic) return null;
@@ -145,6 +163,18 @@ function getPortStatus(layer: any) {
   const portMap = extractPortMap(apiResp);
   const val = portMap[portKey];
   return statusMapping[val] || null;
+}
+
+function getAdvPortStatus(layer: any) {
+  const { apiId, portDataKey, portKey, statusMapping = {} } = layer.config;
+  const apiResp = apiDataMap.value[apiId];
+  if (!apiResp || apiResp.error) return null;
+  const data = portDataKey ? getValueByPath(apiResp, portDataKey) : apiResp;
+  if (data && typeof data === 'object') {
+    const val = (data as any)[portKey];
+    return statusMapping[val] || null;
+  }
+  return null;
 }
 function bindDeviceIdToApis() {
   const deviceId = props.config?.deviceId;
@@ -187,6 +217,7 @@ function getTableHeaders(layer: any) {
 
 function getByKey(obj: any, path: string): any {
   if (!obj) return undefined;
+  if (path.includes('[')) return getValueByPath(obj, path);
   if (path.includes('.')) {
     const [head, ...rest] = path.split('.');
     const next = getByKey(obj, head);
@@ -383,6 +414,24 @@ watch(
           @mouseleave="handlePortMouseLeave"
         />
       </template>
+      <!-- 高级端口 -->
+      <img
+        v-else-if="layer.type === 'port-adv'"
+        :src="getAdvPortStatus(layer)?.iconUrl || '/imgs/port-gray.png'"
+        :title="getAdvPortStatus(layer)?.label || ''"
+        :style="{
+          position: 'absolute',
+          left: `${layer.config.x}px`,
+          top: `${layer.config.y}px`,
+          width: `${layer.config.width}px`,
+          height: `${layer.config.height}px`,
+          zIndex: layer.zIndex,
+          transform: `rotate(${layer.config.rotate || 0}deg)`,
+          transformOrigin: 'center center',
+        }"
+        class="pointer-events-none select-none"
+        draggable="false"
+      />
       <!-- 表格 -->
       <div
         v-else-if="layer.type === 'table'"

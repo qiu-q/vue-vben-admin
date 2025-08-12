@@ -8,9 +8,21 @@ const props = defineProps<{ config: any }>();
 const store = useDeviceStore();
 
 function getByPath(obj: any, path: string) {
-  return path
+  const keys = path
+    .replace(/\[(\d+)\]/g, '.$1')
     .split('.')
-    .reduce((o: any, k: string) => (o && typeof o === 'object' ? o[k] : undefined), obj);
+    .filter(Boolean);
+  return keys.reduce((o: any, k: string) => {
+    if (o && typeof o === 'object') {
+      if (Array.isArray(o)) {
+        const idx = Number(k);
+        if (!Number.isNaN(idx)) return o[idx];
+        return o.length ? o[0][k] : undefined;
+      }
+      return o[k];
+    }
+    return undefined;
+  }, obj);
 }
 
 const stateValue = computed(() => {

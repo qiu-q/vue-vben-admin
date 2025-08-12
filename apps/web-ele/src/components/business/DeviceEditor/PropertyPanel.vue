@@ -149,9 +149,13 @@ function collectKeys(obj: any, prefix = ''): string[] {
   const results: string[] = [];
   if (prefix) results.push(prefix);
   if (Array.isArray(obj)) {
-    // 若数组元素为对象，递归其首个元素以暴露子路径
-    if (obj.length && typeof obj[0] === 'object') {
+    if (obj.length) {
+      // 兼容旧行为，保留不带索引的路径
       results.push(...collectKeys(obj[0], prefix));
+      obj.forEach((item, idx) => {
+        const p = prefix ? `${prefix}[${idx}]` : `[${idx}]`;
+        results.push(...collectKeys(item, p));
+      });
     }
   } else if (obj && typeof obj === 'object') {
     for (const [k, v] of Object.entries(obj)) {
@@ -163,9 +167,21 @@ function collectKeys(obj: any, prefix = ''): string[] {
 }
 
 function getValueByPath(obj: any, path: string) {
-  return path
+  const keys = path
+    .replace(/\[(\d+)\]/g, '.$1')
     .split('.')
-    .reduce((o: any, k: string) => (o && typeof o === 'object' ? o[k] : undefined), obj);
+    .filter(Boolean);
+  return keys.reduce((o: any, k: string) => {
+    if (o && typeof o === 'object') {
+      if (Array.isArray(o)) {
+        const idx = Number(k);
+        if (!Number.isNaN(idx)) return o[idx];
+        return o.length ? o[0][k] : undefined;
+      }
+      return o[k];
+    }
+    return undefined;
+  }, obj);
 }
 
 // =============================================
