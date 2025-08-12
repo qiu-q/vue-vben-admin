@@ -2,7 +2,13 @@ import type { AxiosInstance, AxiosResponse } from 'axios';
 
 import type { RequestClientConfig, RequestClientOptions } from './types';
 
-import { bindMethods, isString, merge } from '@vben/utils';
+import {
+  bindMethods,
+  isString,
+  merge,
+  startProgress,
+  stopProgress,
+} from '@vben/utils';
 
 import axios from 'axios';
 import qs from 'qs';
@@ -33,6 +39,23 @@ function getParamsSerializer(
     }
   }
   return paramsSerializer;
+}
+
+let activeRequestCount = 0;
+
+function startLoading() {
+  if (activeRequestCount === 0) {
+    void startProgress();
+  }
+  activeRequestCount++;
+}
+
+function stopLoading() {
+  activeRequestCount--;
+  if (activeRequestCount <= 0) {
+    activeRequestCount = 0;
+    void stopProgress();
+  }
 }
 
 class RequestClient {
@@ -77,6 +100,28 @@ class RequestClient {
       interceptorManager.addRequestInterceptor.bind(interceptorManager);
     this.addResponseInterceptor =
       interceptorManager.addResponseInterceptor.bind(interceptorManager);
+
+    this.addRequestInterceptor({
+      fulfilled: (config) => {
+        startLoading();
+        return config;
+      },
+      rejected: (error) => {
+        stopLoading();
+        return Promise.reject(error);
+      },
+    });
+
+    this.addResponseInterceptor({
+      fulfilled: (response) => {
+        stopLoading();
+        return response;
+      },
+      rejected: (error) => {
+        stopLoading();
+        return Promise.reject(error);
+      },
+    });
 
     // 实例化文件上传器
     const fileUploader = new FileUploader(this);
