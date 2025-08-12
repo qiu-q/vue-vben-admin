@@ -149,10 +149,11 @@ function collectKeys(obj: any, prefix = ''): string[] {
   const results: string[] = [];
   if (prefix) results.push(prefix);
   if (Array.isArray(obj)) {
-    // 若数组元素为对象，递归其首个元素以暴露子路径
-    if (obj.length && typeof obj[0] === 'object') {
-      results.push(...collectKeys(obj[0], prefix));
-    }
+    // 遍历数组每一项，携带索引递归收集路径
+    obj.forEach((item, idx) => {
+      const p = prefix ? `${prefix}[${idx}]` : `[${idx}]`;
+      results.push(...collectKeys(item, p));
+    });
   } else if (obj && typeof obj === 'object') {
     for (const [k, v] of Object.entries(obj)) {
       const p = prefix ? `${prefix}.${k}` : k;
@@ -164,7 +165,9 @@ function collectKeys(obj: any, prefix = ''): string[] {
 
 function getValueByPath(obj: any, path: string) {
   return path
+    .replace(/\[(\w+)\]/g, '.$1')
     .split('.')
+    .filter(Boolean)
     .reduce((o: any, k: string) => (o && typeof o === 'object' ? o[k] : undefined), obj);
 }
 

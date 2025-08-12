@@ -9,7 +9,9 @@ const store = useDeviceStore();
 
 function getByPath(obj: any, path: string) {
   return path
+    .replace(/\[(\w+)\]/g, '.$1')
     .split('.')
+    .filter(Boolean)
     .reduce((o: any, k: string) => (o && typeof o === 'object' ? o[k] : undefined), obj);
 }
 
