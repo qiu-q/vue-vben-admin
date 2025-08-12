@@ -416,8 +416,7 @@ async function handleSave() {
   }
   syncMaterialsTree();
   [frontConfig.value, backConfig.value, detailConfig.value].forEach(syncApiPush);
-  const payload = {
-    deviceId: selectedDeviceId.value,
+  const payload: any = {
     cabinetId: deviceInfo.value.cabinetId,
     deviceName: deviceInfo.value.deviceName,
     deviceIpAddress: deviceInfo.value.deviceIpAddress,
@@ -439,12 +438,9 @@ async function handleSave() {
     deviceBack: JSON.stringify(backConfig.value),
     deviceDetails: JSON.stringify(detailConfig.value),
   };
+  if (!creatingNew.value) payload.deviceId = selectedDeviceId.value;
   try {
-    const url = creatingNew.value
-      ? deviceCategory.value === 'network'
-        ? NETWORK_URL
-        : INDUSTRIAL_URL
-      : BASE_URL;
+    const url = deviceCategory.value === 'network' ? NETWORK_URL : INDUSTRIAL_URL;
     const resp = await fetch(url, {
       method: creatingNew.value ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
