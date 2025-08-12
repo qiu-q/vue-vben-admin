@@ -7,7 +7,7 @@
         :key="dev.deviceId"
         :value="dev.deviceId"
       >
-        {{ dev.deviceId }}
+        {{ dev.deviceName || dev.deviceId }}
       </option>
     </select>
 

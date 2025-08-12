@@ -38,6 +38,8 @@ interface ImageLayer {
 }
 interface DeviceTemplate {
   deviceId: string;
+  /** 设备名称 */
+  deviceName: string;
   width: number;
   height: number;
   layers: (ImageLayer | PortLayer)[];
@@ -62,6 +64,7 @@ interface RuntimeDevice extends DeviceTemplate {
 function createCabinetTemplate(): DeviceTemplate {
   return {
     deviceId: 'CABINET-42U',
+    deviceName: '42U机柜',
     width: 480,
     height: 42 * U_HEIGHT,
     layers: [],              // 纯结构化渲染，无背景图层
@@ -72,6 +75,7 @@ function createCabinetTemplate(): DeviceTemplate {
 function createPowerCabinetTemplate(): DeviceTemplate {
   return {
     deviceId: 'POWER-CABINET',
+    deviceName: '配电柜',
     width: 480,
     height: 700,
     layers: [],
@@ -282,22 +286,23 @@ async function fetchDevices() {
       console.error('获取设备列表失败', json.msg);
       return;
     }
-    const rows = Array.isArray(json.rows) ? json.rows : [];
-    allDeviceOptions.value = rows.map((row: any) => {
-      let cfg: any = {};
-      try {
-        cfg = JSON.parse(row.deviceJson ?? '{}');
-      } catch {}
-      return {
-        deviceId: String(row.deviceId),
-        width: cfg.width ?? 1920,
-        height: cfg.height ?? 1080,
-        layers: Array.isArray(cfg.layers) ? cfg.layers : [],
-        materialsTree: Array.isArray(cfg.materialsTree)
-          ? cfg.materialsTree
-          : [],
-      } as DeviceTemplate;
-    });
+  const rows = Array.isArray(json.rows) ? json.rows : [];
+  allDeviceOptions.value = rows.map((row: any) => {
+    let cfg: any = {};
+    try {
+      cfg = JSON.parse(row.deviceJson ?? '{}');
+    } catch {}
+    return {
+      deviceId: String(row.deviceId),
+      deviceName: row.deviceName ?? String(row.deviceId),
+      width: cfg.width ?? 1920,
+      height: cfg.height ?? 1080,
+      layers: Array.isArray(cfg.layers) ? cfg.layers : [],
+      materialsTree: Array.isArray(cfg.materialsTree)
+        ? cfg.materialsTree
+        : [],
+    } as DeviceTemplate;
+  });
 
     // 确保机柜模板存在
     if (!allDeviceOptions.value.find((d) => d.deviceId === 'CABINET-42U')) {
