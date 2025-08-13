@@ -701,6 +701,9 @@ importers:
       ant-design-vue:
         specifier: 'catalog:'
         version: 4.2.6(vue@3.5.13(typescript@5.8.3))
+      crypto-js:
+        specifier: ^4.2.0
+        version: 4.2.0
       dayjs:
         specifier: 'catalog:'
         version: 1.11.13
@@ -713,6 +716,10 @@ importers:
       vue-router:
         specifier: 'catalog:'
         version: 4.5.1(vue@3.5.13(typescript@5.8.3))
+    devDependencies:
+      '@types/crypto-js':
+        specifier: ^4.2.2
+        version: 4.2.2
 
   apps/web-ele:
     dependencies:
@@ -4374,6 +4381,9 @@ packages:
 
   '@types/conventional-commits-parser@5.0.1':
     resolution: {integrity: sha512-7uz5EHdzz2TqoMfV7ee61Egf5y6NkcO4FB/1iCCQnbeiI1F3xzv3vK5dBCXUCLQgGYS+mUeigK1iKQzvED+QnQ==}
+
+  '@types/crypto-js@4.2.2':
+    resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
 
   '@types/eslint@9.6.1':
     resolution: {integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==}
@@ -14193,6 +14203,8 @@ snapshots:
   '@types/conventional-commits-parser@5.0.1':
     dependencies:
       '@types/node': 22.15.3
+
+  '@types/crypto-js@4.2.2': {}
 
   '@types/eslint@9.6.1':
     dependencies:
