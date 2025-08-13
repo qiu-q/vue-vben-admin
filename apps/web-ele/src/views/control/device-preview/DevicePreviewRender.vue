@@ -21,6 +21,10 @@ const hoveredPortInfo = ref<null | {
   ips: string[];
   found: Set<string>;
 }>(null);
+const eventPopup = ref<null | { x: number; y: number; text: string }>(null);
+let advClickCount = 0;
+let advClickTimer: number | null = null;
+let eventPopupTimer: number | null = null;
 
 async function queryExistingIps(ips: string[]): Promise<Set<string>> {
   const exists = new Set<string>();
@@ -332,6 +336,47 @@ async function handlePortDblClick(layer: any) {
   startPollingApis();
 }
 
+function showAdvEventValue(
+  layer: any,
+  type: 'hover' | 'click' | 'dblclick' | 'triple',
+) {
+  const cfg = layer.config.events?.[type];
+  if (!cfg || !cfg.apiId) return;
+  const apiResp = apiDataMap.value[cfg.apiId];
+  if (!apiResp || apiResp.error) return;
+  const value = cfg.dataKey ? getValueByPath(apiResp, cfg.dataKey) : apiResp;
+  const x = layer.config.x + (layer.config.width || 0) / 2;
+  const y = layer.config.y;
+  eventPopup.value = { x, y, text: String(value ?? '') };
+  if (type !== 'hover') {
+    if (eventPopupTimer) clearTimeout(eventPopupTimer);
+    eventPopupTimer = window.setTimeout(() => {
+      eventPopup.value = null;
+    }, 2000);
+  }
+}
+function handleAdvPortMouseEnter(layer: any) {
+  showAdvEventValue(layer, 'hover');
+}
+function handleAdvPortMouseLeave() {
+  if (eventPopupTimer) {
+    clearTimeout(eventPopupTimer);
+    eventPopupTimer = null;
+  }
+  eventPopup.value = null;
+}
+function handleAdvPortClick(layer: any) {
+  advClickCount++;
+  if (advClickTimer) clearTimeout(advClickTimer);
+  advClickTimer = window.setTimeout(() => {
+    if (advClickCount === 1) showAdvEventValue(layer, 'click');
+    else if (advClickCount === 2) showAdvEventValue(layer, 'dblclick');
+    else if (advClickCount >= 3) showAdvEventValue(layer, 'triple');
+    advClickCount = 0;
+    advClickTimer = null;
+  }, 250);
+}
+
 // ========== 生命周期 ==========
 onMounted(() => {
   bindDeviceIdToApis();
@@ -429,8 +474,11 @@ watch(
           transform: `rotate(${layer.config.rotate || 0}deg)`,
           transformOrigin: 'center center',
         }"
-        class="pointer-events-none select-none"
+        class="select-none"
         draggable="false"
+        @mouseenter="handleAdvPortMouseEnter(layer)"
+        @mouseleave="handleAdvPortMouseLeave"
+        @click="handleAdvPortClick(layer)"
       />
       <!-- 表格 -->
       <div
@@ -531,6 +579,27 @@ watch(
           :style="{ color: hoveredPortInfo.found.has(ip) ? 'red' : '#0ff', marginRight: '4px' }"
         >{{ ip }}</span>
       </div>
+    </div>
+    <div
+      v-if="eventPopup"
+      :style="{
+        position: 'absolute',
+        left: eventPopup.x + 'px',
+        top: (eventPopup.y - 28) + 'px',
+        background: '#232f3b',
+        color: '#0ff',
+        padding: '4px 16px',
+        borderRadius: '7px',
+        border: '1px solid #1ad0ff',
+        fontSize: '13px',
+        pointerEvents: 'none',
+        zIndex: 99,
+        minWidth: '80px',
+        textAlign: 'center',
+        whiteSpace: 'pre-wrap'
+      }"
+    >
+      {{ eventPopup.text }}
     </div>
   </div>
   <div v-else class="p-8 text-center text-gray-500">

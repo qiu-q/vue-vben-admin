@@ -209,6 +209,20 @@ const advStatusList = ref<
 >([]);
 const advTestResult = ref<any>(null);
 
+// ======== 高级端口事件配置 ========
+const advHoverApiId = ref('');
+const advHoverDataKey = ref('');
+const advClickApiId = ref('');
+const advClickDataKey = ref('');
+const advDblApiId = ref('');
+const advDblDataKey = ref('');
+const advTripleApiId = ref('');
+const advTripleDataKey = ref('');
+const advHoverKeyOptions = computed(() => getKeyOptions(advHoverApiId.value));
+const advClickKeyOptions = computed(() => getKeyOptions(advClickApiId.value));
+const advDblKeyOptions = computed(() => getKeyOptions(advDblApiId.value));
+const advTripleKeyOptions = computed(() => getKeyOptions(advTripleApiId.value));
+
 // ----- 表格配置 -----
 const tableDataStr = ref('');
 const tableApiId = ref('');
@@ -384,6 +398,16 @@ function handleSaveAdv() {
     mapping[row.value] = { iconUrl: row.iconUrl, label: row.label };
   }
   selectedLayer.value.config.statusMapping = mapping;
+  const events: Record<string, any> = {};
+  if (advHoverApiId.value)
+    events.hover = { apiId: advHoverApiId.value, dataKey: advHoverDataKey.value };
+  if (advClickApiId.value)
+    events.click = { apiId: advClickApiId.value, dataKey: advClickDataKey.value };
+  if (advDblApiId.value)
+    events.dblclick = { apiId: advDblApiId.value, dataKey: advDblDataKey.value };
+  if (advTripleApiId.value)
+    events.triple = { apiId: advTripleApiId.value, dataKey: advTripleDataKey.value };
+  selectedLayer.value.config.events = events;
   syncApiList();
   emit('update', props.config);
   alert('属性已保存！');
@@ -734,6 +758,16 @@ watch(
         advStatusList.value = [];
       }
     }
+
+    const events = layer.type === 'port-adv' ? layer.config.events || {} : {};
+    advHoverApiId.value = events.hover?.apiId || '';
+    advHoverDataKey.value = events.hover?.dataKey || '';
+    advClickApiId.value = events.click?.apiId || '';
+    advClickDataKey.value = events.click?.dataKey || '';
+    advDblApiId.value = events.dblclick?.apiId || '';
+    advDblDataKey.value = events.dblclick?.dataKey || '';
+    advTripleApiId.value = events.triple?.apiId || '';
+    advTripleDataKey.value = events.triple?.dataKey || '';
   },
   { immediate: true },
 );
@@ -937,6 +971,65 @@ watch(
               <button class="mr-1 rounded border px-2 py-1 text-xs" @click="selectAdvIcon(idx)">选择图标</button>
               <input type="file" accept="image/*" style="width: 60px" class="mr-2" @change="(e) => handleUploadAdvIcon(e, idx)" />
               <button @click="removeAdvStatus(idx)" class="text-xs text-red-600">删除</button>
+            </div>
+          </div>
+          <div class="mt-3">
+            <div class="mb-1 font-bold">事件弹窗</div>
+            <div class="mb-2">
+              <label>鼠标移入接口：</label>
+              <select v-model="advHoverApiId" class="border p-1 w-44">
+                <option value="">(无)</option>
+                <option v-for="api in availableApis" :key="api.id" :value="api.id">{{ api.url || api.name }}</option>
+              </select>
+              <div v-if="advHoverApiId" class="mt-1">
+                <label>取值 Key：</label>
+                <select v-model="advHoverDataKey" class="border p-1 w-44">
+                  <option value="">(根)</option>
+                  <option v-for="k in advHoverKeyOptions" :key="k" :value="k">{{ k }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label>单击接口：</label>
+              <select v-model="advClickApiId" class="border p-1 w-44">
+                <option value="">(无)</option>
+                <option v-for="api in availableApis" :key="api.id" :value="api.id">{{ api.url || api.name }}</option>
+              </select>
+              <div v-if="advClickApiId" class="mt-1">
+                <label>取值 Key：</label>
+                <select v-model="advClickDataKey" class="border p-1 w-44">
+                  <option value="">(根)</option>
+                  <option v-for="k in advClickKeyOptions" :key="k" :value="k">{{ k }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label>双击接口：</label>
+              <select v-model="advDblApiId" class="border p-1 w-44">
+                <option value="">(无)</option>
+                <option v-for="api in availableApis" :key="api.id" :value="api.id">{{ api.url || api.name }}</option>
+              </select>
+              <div v-if="advDblApiId" class="mt-1">
+                <label>取值 Key：</label>
+                <select v-model="advDblDataKey" class="border p-1 w-44">
+                  <option value="">(根)</option>
+                  <option v-for="k in advDblKeyOptions" :key="k" :value="k">{{ k }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-2">
+              <label>三击接口：</label>
+              <select v-model="advTripleApiId" class="border p-1 w-44">
+                <option value="">(无)</option>
+                <option v-for="api in availableApis" :key="api.id" :value="api.id">{{ api.url || api.name }}</option>
+              </select>
+              <div v-if="advTripleApiId" class="mt-1">
+                <label>取值 Key：</label>
+                <select v-model="advTripleDataKey" class="border p-1 w-44">
+                  <option value="">(根)</option>
+                  <option v-for="k in advTripleKeyOptions" :key="k" :value="k">{{ k }}</option>
+                </select>
+              </div>
             </div>
           </div>
           <button class="mt-4 rounded border px-3 py-1" @click="handleSaveAdv">保存配置</button>
