@@ -3,6 +3,7 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import html2canvas from 'html2canvas';
+import DevicePreviewRender from '#/views/control/device-preview/DevicePreviewRender.vue';
 
 // === Cabinet constants ===
 const U_HEIGHT = 50; // px per U  (adjust slot height for clearer visibility)
@@ -45,6 +46,7 @@ interface DeviceTemplate {
   height: number;
   layers: (ImageLayer | PortLayer)[];
   materialsTree: any[];
+  apiList: any[];
 }
 
 // ========= Runtime Device =========
@@ -70,6 +72,7 @@ function createCabinetTemplate(): DeviceTemplate {
     height: 42 * U_HEIGHT,
     layers: [],              // 纯结构化渲染，无背景图层
     materialsTree: [],
+    apiList: [],
   };
 }
 
@@ -81,6 +84,7 @@ function createPowerCabinetTemplate(): DeviceTemplate {
     height: 700,
     layers: [],
     materialsTree: [],
+    apiList: [],
   };
 }
 
@@ -310,6 +314,24 @@ function importConfigs(data: any) {
   saveConfigsToStorage();
 }
 
+function syncApiPush(cfg: any) {
+  const map = new Map<string, any>();
+  (cfg.apiList || []).forEach((api: any) => map.set(api.id, api));
+  (cfg.layers || []).forEach((layer: any) => {
+    const id = layer.config?.apiId;
+    if (!id) return;
+    const api = map.get(id);
+    if (!api) return;
+    if (typeof api.usePush === 'boolean') {
+      layer.config.usePush = api.usePush;
+      layer.config.pushService = api.usePush ? api.pushUrl || '' : '';
+    } else if (typeof layer.config.usePush === 'boolean') {
+      api.usePush = layer.config.usePush;
+      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
+    }
+  });
+}
+
 // API: 获取全部设备模板
 async function fetchDevices() {
   const API = '/api/jx-device/Device/list?pageSize=0';
@@ -326,6 +348,7 @@ async function fetchDevices() {
     try {
       cfg = JSON.parse(row.deviceJson ?? '{}');
     } catch {}
+    syncApiPush(cfg);
     return {
       deviceId: String(row.deviceId),
       deviceName: row.deviceName ?? String(row.deviceId),
@@ -335,6 +358,7 @@ async function fetchDevices() {
       materialsTree: Array.isArray(cfg.materialsTree)
         ? cfg.materialsTree
         : [],
+      apiList: Array.isArray(cfg.apiList) ? cfg.apiList : [],
     } as DeviceTemplate;
   });
 
@@ -865,25 +889,15 @@ function onKeyDown(e: KeyboardEvent) {
             <div class="power-cabinet">配电柜</div>
           </template>
           <template v-else>
-            <!-- 底图层 -->
-            <img
-              v-for="layer in (dev.layers || []).filter(
-                (l) => l.type === 'image',
-              )"
-              :key="layer.id"
-              :src="layer.config.src"
-              :style="{
-                width: `${layer.config.width}px`,
-                height: `${layer.config.height}px`,
-                pointerEvents: 'none',
-                transform: `rotate(${layer.config.rotate || 0}deg)`,
-                transformOrigin: 'center center',
-              }"
-              draggable="false"
+            <DevicePreviewRender
+              :config="dev"
+              with-redis-state
+              style="pointer-events: none"
             />
-            <!-- 端口层 -->
             <div
-              v-for="port in (dev.layers || []).filter((l) => l.type === 'port' || l.type === 'port-adv')"
+              v-for="port in (dev.layers || []).filter(
+                (l) => l.type === 'port' || l.type === 'port-adv',
+              )"
               :key="port.id"
               class="port-spot"
               :class="[
@@ -903,17 +917,12 @@ function onKeyDown(e: KeyboardEvent) {
                 width: `${port.config.width}px`,
                 height: `${port.config.height}px`,
                 cursor: 'pointer',
+                background: 'transparent',
                 transform: `rotate(${port.config.rotate || 0}deg)`,
                 transformOrigin: 'center center',
               }"
               @click.stop="onPortClick(dev._uuid, port.id)"
-            >
-              <img
-                :src="port.config.src || '/imgs/port-gray.png'"
-                style="width: 100%; height: 100%"
-                draggable="false"
-              />
-            </div>
+            ></div>
           </template>
           <template v-if="activeDeviceId === dev._uuid">
             <div
