@@ -16,13 +16,14 @@ const router = useRouter();
 
 interface PortLayer {
   id: string;
-  type: 'port';
+  type: 'port' | 'port-adv';
   config: {
     height: number;
-    src: string;
     width: number;
     x: number;
     y: number;
+    src?: string;
+    [key: string]: any;
   };
 }
 interface ImageLayer {
@@ -779,7 +780,7 @@ function onKeyDown(e: KeyboardEvent) {
             />
             <!-- 端口层 -->
             <div
-              v-for="port in (dev.layers || []).filter((l) => l.type === 'port')"
+              v-for="port in (dev.layers || []).filter((l) => l.type === 'port' || l.type === 'port-adv')"
               :key="port.id"
               class="port-spot"
               :class="[
@@ -805,7 +806,7 @@ function onKeyDown(e: KeyboardEvent) {
               @click.stop="onPortClick(dev._uuid, port.id)"
             >
               <img
-                :src="port.config.src"
+                :src="port.config.src || '/imgs/port-gray.png'"
                 style="width: 100%; height: 100%"
                 draggable="false"
               />
