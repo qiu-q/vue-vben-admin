@@ -137,8 +137,14 @@ function deviceTransform(dev: RuntimeDevice) {
 function handleStyle(dev: RuntimeDevice, dir: 'tl' | 'tr' | 'bl' | 'br') {
   const size = 8;
   const half = size / 2;
-  const left = dir.includes('r') ? dev.width - half : -half;
-  const top = dir.includes('b') ? dev.height - half : -half;
+  const scaleX = dev.scaleX ?? 1;
+  const scaleY = dev.scaleY ?? 1;
+  const left = dir.includes('r')
+    ? dev.width - half / scaleX
+    : -half / scaleX;
+  const top = dir.includes('b')
+    ? dev.height - half / scaleY
+    : -half / scaleY;
   const cursorMap: Record<'tl' | 'tr' | 'bl' | 'br', string> = {
     tl: 'nwse-resize',
     tr: 'nesw-resize',
@@ -148,7 +154,7 @@ function handleStyle(dev: RuntimeDevice, dir: 'tl' | 'tr' | 'bl' | 'br') {
   return {
     left: `${left}px`,
     top: `${top}px`,
-    transform: `scale(${1 / (dev.scaleX ?? 1)}, ${1 / (dev.scaleY ?? 1)})`,
+    transform: `scale(${1 / scaleX}, ${1 / scaleY})`,
     transformOrigin: 'top left',
     cursor: cursorMap[dir],
   };
@@ -390,6 +396,7 @@ function openDeviceView(dev: RuntimeDevice) {
 
 // 设备拖拽
 function startDragDevice(dev: any, evt: MouseEvent) {
+  if ((evt.target as HTMLElement).closest('.resize-handle')) return;
   activeDeviceId.value = dev._uuid;
   dragging.value = true;
   dragDevice.value = dev;
@@ -401,7 +408,7 @@ function startDragDevice(dev: any, evt: MouseEvent) {
   window.addEventListener('mouseup', stopDragDevice);
 }
 function onDragMove(e: MouseEvent) {
-  if (!dragging.value || !dragDevice.value) return;
+  if (!dragging.value || !dragDevice.value || resizing.value) return;
   let nx = e.clientX - dragStart.value.x;
   let ny = e.clientY - dragStart.value.y;
   nx = Math.max(0, Math.min(nx, canvasWidth.value - 100));
