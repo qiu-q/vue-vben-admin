@@ -121,16 +121,37 @@ const selectedPort = ref<null | { devUUid: string; portId: string }>(null);
 const dragging = ref(false);
 const dragStart = ref({ x: 0, y: 0 });
 const dragDevice = ref<any>(null);
+const resizing = ref(false);
+const resizeHandle = ref<'tl' | 'tr' | 'bl' | 'br' | null>(null);
+const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0, left: 0, top: 0 });
+const resizeDevice = ref<RuntimeDevice | null>(null);
 const canvasRef = ref<HTMLElement | null>(null);
 const canvasDomRef = ref<HTMLElement | null>(null);
 const canvasWidth = ref(1920);
 const canvasHeight = ref(1080);
 const activeDeviceId = ref<string | null>(null);
-const ACTIVE_SCALE = 1.2;
-
 function deviceTransform(dev: RuntimeDevice) {
-  const zoom = activeDeviceId.value === dev._uuid ? ACTIVE_SCALE : 1;
-  return `rotate(${dev.rotate || 0}deg) scale(${(dev.scaleX ?? 1) * zoom}, ${(dev.scaleY ?? 1) * zoom})`;
+  return `rotate(${dev.rotate || 0}deg) scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`;
+}
+
+function handleStyle(dev: RuntimeDevice, dir: 'tl' | 'tr' | 'bl' | 'br') {
+  const size = 8;
+  const half = size / 2;
+  const left = dir.includes('r') ? dev.width - half : -half;
+  const top = dir.includes('b') ? dev.height - half : -half;
+  const cursorMap: Record<'tl' | 'tr' | 'bl' | 'br', string> = {
+    tl: 'nwse-resize',
+    tr: 'nesw-resize',
+    bl: 'nesw-resize',
+    br: 'nwse-resize',
+  };
+  return {
+    left: `${left}px`,
+    top: `${top}px`,
+    transform: `scale(${1 / (dev.scaleX ?? 1)}, ${1 / (dev.scaleY ?? 1)})`,
+    transformOrigin: 'top left',
+    cursor: cursorMap[dir],
+  };
 }
 
 // 画布保存
@@ -502,6 +523,72 @@ function stopDragDevice() {
   window.removeEventListener('mouseup', stopDragDevice);
 }
 
+function startResize(dev: RuntimeDevice, handle: 'tl' | 'tr' | 'bl' | 'br', evt: MouseEvent) {
+  activeDeviceId.value = dev._uuid;
+  resizing.value = true;
+  resizeHandle.value = handle;
+  resizeDevice.value = dev;
+  const actualWidth = dev.width * (dev.scaleX ?? 1);
+  const actualHeight = dev.height * (dev.scaleY ?? 1);
+  resizeStart.value = {
+    x: evt.clientX,
+    y: evt.clientY,
+    width: actualWidth,
+    height: actualHeight,
+    left: dev.position.x,
+    top: dev.position.y,
+  };
+  window.addEventListener('mousemove', onResizeMove);
+  window.addEventListener('mouseup', stopResize);
+}
+
+function onResizeMove(e: MouseEvent) {
+  if (!resizing.value || !resizeDevice.value || !resizeHandle.value) return;
+  const dx = e.clientX - resizeStart.value.x;
+  const dy = e.clientY - resizeStart.value.y;
+  let newWidth = resizeStart.value.width;
+  let newHeight = resizeStart.value.height;
+  let newLeft = resizeStart.value.left;
+  let newTop = resizeStart.value.top;
+  switch (resizeHandle.value) {
+    case 'br':
+      newWidth += dx;
+      newHeight += dy;
+      break;
+    case 'tr':
+      newWidth += dx;
+      newHeight -= dy;
+      newTop += dy;
+      break;
+    case 'tl':
+      newWidth -= dx;
+      newHeight -= dy;
+      newLeft += dx;
+      newTop += dy;
+      break;
+    case 'bl':
+      newWidth -= dx;
+      newHeight += dy;
+      newLeft += dx;
+      break;
+  }
+  const minSize = 20;
+  newWidth = Math.max(minSize, newWidth);
+  newHeight = Math.max(minSize, newHeight);
+  resizeDevice.value.scaleX = newWidth / resizeDevice.value.width;
+  resizeDevice.value.scaleY = newHeight / resizeDevice.value.height;
+  resizeDevice.value.position.x = newLeft;
+  resizeDevice.value.position.y = newTop;
+}
+
+function stopResize() {
+  resizing.value = false;
+  resizeDevice.value = null;
+  resizeHandle.value = null;
+  window.removeEventListener('mousemove', onResizeMove);
+  window.removeEventListener('mouseup', stopResize);
+}
+
 function removeSelectedDevice() {
   if (!activeDeviceId.value) return;
   const id = activeDeviceId.value;
@@ -543,9 +630,8 @@ function getEdgePositions(edge: any) {
     if (!dev) return null;
     const port = (dev.layers || []).find((l) => l.id === portId);
     if (!port) return null;
-    const zoom = activeDeviceId.value === dev._uuid ? ACTIVE_SCALE : 1;
-    const sx = ((dev as RuntimeDevice).scaleX ?? 1) * zoom;
-    const sy = ((dev as RuntimeDevice).scaleY ?? 1) * zoom;
+    const sx = (dev as RuntimeDevice).scaleX ?? 1;
+    const sy = (dev as RuntimeDevice).scaleY ?? 1;
     let x = dev.position.x + port.config.x * sx + (port.config.width * sx) / 2;
     let y = dev.position.y + port.config.y * sy + (port.config.height * sy) / 2;
     const angle = dev.rotate || 0;
@@ -822,6 +908,28 @@ function onKeyDown(e: KeyboardEvent) {
               />
             </div>
           </template>
+          <template v-if="activeDeviceId === dev._uuid">
+            <div
+              class="resize-handle tl"
+              :style="handleStyle(dev, 'tl')"
+              @mousedown.stop.prevent="startResize(dev, 'tl', $event)"
+            />
+            <div
+              class="resize-handle tr"
+              :style="handleStyle(dev, 'tr')"
+              @mousedown.stop.prevent="startResize(dev, 'tr', $event)"
+            />
+            <div
+              class="resize-handle bl"
+              :style="handleStyle(dev, 'bl')"
+              @mousedown.stop.prevent="startResize(dev, 'bl', $event)"
+            />
+            <div
+              class="resize-handle br"
+              :style="handleStyle(dev, 'br')"
+              @mousedown.stop.prevent="startResize(dev, 'br', $event)"
+            />
+          </template>
         </div>
       </template>
       <!-- SVG连线层（内部线、外部线） -->
@@ -906,6 +1014,14 @@ function onKeyDown(e: KeyboardEvent) {
 }
 .active-device {
   outline: 2px dashed #f44;
+}
+.resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border: 1px solid #f44;
+  box-sizing: border-box;
 }
 .port-spot {
   box-sizing: border-box;
