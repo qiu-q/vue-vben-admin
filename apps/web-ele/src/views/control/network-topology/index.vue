@@ -16,13 +16,14 @@ const router = useRouter();
 
 interface PortLayer {
   id: string;
-  type: 'port';
+  type: 'port' | 'port-adv';
   config: {
     height: number;
-    src: string;
     width: number;
     x: number;
     y: number;
+    src?: string;
+    [key: string]: any;
   };
 }
 interface ImageLayer {
@@ -125,6 +126,12 @@ const canvasDomRef = ref<HTMLElement | null>(null);
 const canvasWidth = ref(1920);
 const canvasHeight = ref(1080);
 const activeDeviceId = ref<string | null>(null);
+const ACTIVE_SCALE = 1.2;
+
+function deviceTransform(dev: RuntimeDevice) {
+  const zoom = activeDeviceId.value === dev._uuid ? ACTIVE_SCALE : 1;
+  return `rotate(${dev.rotate || 0}deg) scale(${(dev.scaleX ?? 1) * zoom}, ${(dev.scaleY ?? 1) * zoom})`;
+}
 
 // 画布保存
 const topoConfigs = ref<Record<string, TopoConfig>>({});
@@ -536,8 +543,9 @@ function getEdgePositions(edge: any) {
     if (!dev) return null;
     const port = (dev.layers || []).find((l) => l.id === portId);
     if (!port) return null;
-    const sx = (dev as RuntimeDevice).scaleX ?? 1;
-    const sy = (dev as RuntimeDevice).scaleY ?? 1;
+    const zoom = activeDeviceId.value === dev._uuid ? ACTIVE_SCALE : 1;
+    const sx = ((dev as RuntimeDevice).scaleX ?? 1) * zoom;
+    const sy = ((dev as RuntimeDevice).scaleY ?? 1) * zoom;
     let x = dev.position.x + port.config.x * sx + (port.config.width * sx) / 2;
     let y = dev.position.y + port.config.y * sy + (port.config.height * sy) / 2;
     const angle = dev.rotate || 0;
@@ -696,6 +704,7 @@ function onKeyDown(e: KeyboardEvent) {
       :style="{ position: 'relative', width: canvasWidth + 'px', height: canvasHeight + 'px' }"
       @mousemove="onMouseMove"
       @mouseup="onCanvasMouseUp"
+      @click.self="activeDeviceId = null"
     >
       <!-- 控制栏 -->
       <TopoToolbar
@@ -726,12 +735,14 @@ function onKeyDown(e: KeyboardEvent) {
             position: 'absolute',
             left: `${dev.position.x}px`,
             top: `${dev.position.y}px`,
-            transform: `rotate(${dev.rotate || 0}deg) scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`,
+            transform: deviceTransform(dev),
             transformOrigin: 'top left',
             zIndex:
-              dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
-                ? 10
-                : 20,
+              activeDeviceId === dev._uuid
+                ? 100
+                : dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
+                  ? 10
+                  : 20,
           }"
           @mousedown="startDragDevice(dev, $event)"
         >
@@ -779,7 +790,7 @@ function onKeyDown(e: KeyboardEvent) {
             />
             <!-- 端口层 -->
             <div
-              v-for="port in (dev.layers || []).filter((l) => l.type === 'port')"
+              v-for="port in (dev.layers || []).filter((l) => l.type === 'port' || l.type === 'port-adv')"
               :key="port.id"
               class="port-spot"
               :class="[
@@ -805,7 +816,7 @@ function onKeyDown(e: KeyboardEvent) {
               @click.stop="onPortClick(dev._uuid, port.id)"
             >
               <img
-                :src="port.config.src"
+                :src="port.config.src || '/imgs/port-gray.png'"
                 style="width: 100%; height: 100%"
                 draggable="false"
               />
@@ -891,6 +902,7 @@ function onKeyDown(e: KeyboardEvent) {
 }
 .device-wrap {
   user-select: none;
+  transition: transform 0.2s;
 }
 .active-device {
   outline: 2px dashed #f44;

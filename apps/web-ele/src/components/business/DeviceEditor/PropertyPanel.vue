@@ -149,9 +149,13 @@ function collectKeys(obj: any, prefix = ''): string[] {
   const results: string[] = [];
   if (prefix) results.push(prefix);
   if (Array.isArray(obj)) {
-    // 若数组元素为对象，递归其首个元素以暴露子路径
-    if (obj.length && typeof obj[0] === 'object') {
+    if (obj.length) {
+      // 兼容旧行为，保留不带索引的路径
       results.push(...collectKeys(obj[0], prefix));
+      obj.forEach((item, idx) => {
+        const p = prefix ? `${prefix}[${idx}]` : `[${idx}]`;
+        results.push(...collectKeys(item, p));
+      });
     }
   } else if (obj && typeof obj === 'object') {
     for (const [k, v] of Object.entries(obj)) {
@@ -163,9 +167,21 @@ function collectKeys(obj: any, prefix = ''): string[] {
 }
 
 function getValueByPath(obj: any, path: string) {
-  return path
+  const keys = path
+    .replace(/\[(\d+)\]/g, '.$1')
     .split('.')
-    .reduce((o: any, k: string) => (o && typeof o === 'object' ? o[k] : undefined), obj);
+    .filter(Boolean);
+  return keys.reduce((o: any, k: string) => {
+    if (o && typeof o === 'object') {
+      if (Array.isArray(o)) {
+        const idx = Number(k);
+        if (!Number.isNaN(idx)) return o[idx];
+        return o.length ? o[0][k] : undefined;
+      }
+      return o[k];
+    }
+    return undefined;
+  }, obj);
 }
 
 // =============================================
@@ -233,14 +249,18 @@ function handleApiTestUse(idx: number) {
 function updateStatusList() {
   if (!portMap.value || !Object.keys(portMap.value).length) return;
 
-  // 去重得到所有状态值，如 "1"、"2"
-  const uniq = Array.from(new Set(Object.values(portMap.value)));
-
   const prevRows = new Map(
-    statusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+    statusList.value.map((row) => [String(row.value), { label: row.label, iconUrl: row.iconUrl }]),
   );
   const cfgMap =
     (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
+
+  // 合并当前端口状态和手动添加的状态，避免丢失用户配置
+  const values = [
+    ...Object.values(portMap.value),
+    ...statusList.value.map((r) => r.value),
+  ];
+  const uniq = Array.from(new Set(values.map((v) => String(v))));
 
   statusList.value = uniq.map((v) => ({
     value: v,
@@ -286,13 +306,29 @@ async function handleUploadIcon(e: Event, idx: number) {
 
 // ======== 高级端口：状态映射与图标 ========
 function updateAdvStatusList() {
-  if (!advPortMap.value || !Object.keys(advPortMap.value).length) return;
-  const uniq = Array.from(new Set(Object.values(advPortMap.value)));
   const prev = new Map(
-    advStatusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+    advStatusList.value.map((row) => [String(row.value), { label: row.label, iconUrl: row.iconUrl }]),
   );
   const cfgMap =
     (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
+
+  // 若选中端口的状态可解析，则仅使用该值；否则使用整个映射对象的值
+  const sample =
+    advPortKey.value && advPortMap.value[advPortKey.value] !== undefined
+      ? advPortMap.value[advPortKey.value]
+      : undefined;
+
+  const values = [] as any[];
+  if (sample !== undefined) {
+    Array.isArray(sample) ? values.push(...sample) : values.push(sample);
+  } else if (advPortMap.value && Object.keys(advPortMap.value).length) {
+    values.push(...Object.values(advPortMap.value));
+  }
+
+  // 合并手动添加的状态值，避免保存后丢失
+  values.push(...advStatusList.value.map((r) => r.value));
+  const uniq = Array.from(new Set(values.map((v) => String(v))));
+
   advStatusList.value = uniq.map((v) => ({
     value: v,
     label: prev.get(v)?.label || cfgMap[v]?.label || '',
@@ -478,21 +514,28 @@ function updateAdvPortMap() {
     if (data && typeof data === 'object') {
       advPortMap.value = data;
       const keys = Object.keys(data);
-      advPortKey.value = keys[0] || '';
-      updateAdvStatusList();
+      advPortKey.value = advPortKey.value && keys.includes(advPortKey.value)
+        ? advPortKey.value
+        : keys[0] || '';
+    } else if (data !== undefined) {
+      advPortMap.value = { value: data } as Record<string, any>;
+      advPortKey.value = 'value';
     } else {
       advPortMap.value = {};
-      advStatusList.value = [];
+      advPortKey.value = '';
     }
+    updateAdvStatusList();
   } else {
     advTestResult.value = null;
     advPortMap.value = {};
+    advPortKey.value = '';
     advStatusList.value = [];
   }
 }
 
 watch(advApiId, updateAdvPortMap);
 watch(advPortDataKey, updateAdvPortMap);
+watch(advPortKey, updateAdvStatusList);
 
 watch(dynamicPort, () => {
   if (!selectedLayer.value) return;
@@ -670,10 +713,25 @@ watch(
         const data = advPortDataKey.value
           ? getValueByPath(apiAdv.lastSample, advPortDataKey.value)
           : extractPortMap(apiAdv.lastSample);
-        advPortMap.value = data && typeof data === 'object' ? data : {};
+        if (data && typeof data === 'object') {
+          advPortMap.value = data;
+          const keys = Object.keys(data);
+          advPortKey.value = advPortKey.value && keys.includes(advPortKey.value)
+            ? advPortKey.value
+            : keys[0] || '';
+        } else if (data !== undefined) {
+          advPortMap.value = { value: data } as Record<string, any>;
+          advPortKey.value = 'value';
+        } else {
+          advPortMap.value = {};
+          advPortKey.value = '';
+        }
+        updateAdvStatusList();
       } else {
         advTestResult.value = null;
         advPortMap.value = {};
+        advPortKey.value = '';
+        advStatusList.value = [];
       }
     }
   },
