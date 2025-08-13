@@ -3,6 +3,7 @@ import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import html2canvas from 'html2canvas';
+import DevicePreviewRender from '#/views/control/device-preview/DevicePreviewRender.vue';
 
 // === Cabinet constants ===
 const U_HEIGHT = 50; // px per U  (adjust slot height for clearer visibility)
@@ -45,6 +46,7 @@ interface DeviceTemplate {
   height: number;
   layers: (ImageLayer | PortLayer)[];
   materialsTree: any[];
+  apiList: any[];
 }
 
 // ========= Runtime Device =========
@@ -70,6 +72,7 @@ function createCabinetTemplate(): DeviceTemplate {
     height: 42 * U_HEIGHT,
     layers: [],              // 纯结构化渲染，无背景图层
     materialsTree: [],
+    apiList: [],
   };
 }
 
@@ -81,6 +84,7 @@ function createPowerCabinetTemplate(): DeviceTemplate {
     height: 700,
     layers: [],
     materialsTree: [],
+    apiList: [],
   };
 }
 
@@ -121,11 +125,44 @@ const selectedPort = ref<null | { devUUid: string; portId: string }>(null);
 const dragging = ref(false);
 const dragStart = ref({ x: 0, y: 0 });
 const dragDevice = ref<any>(null);
+const resizing = ref(false);
+const resizeHandle = ref<'tl' | 'tr' | 'bl' | 'br' | null>(null);
+const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0, left: 0, top: 0 });
+const resizeDevice = ref<RuntimeDevice | null>(null);
 const canvasRef = ref<HTMLElement | null>(null);
 const canvasDomRef = ref<HTMLElement | null>(null);
 const canvasWidth = ref(1920);
 const canvasHeight = ref(1080);
 const activeDeviceId = ref<string | null>(null);
+function deviceTransform(dev: RuntimeDevice) {
+  return `rotate(${dev.rotate || 0}deg) scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`;
+}
+
+function handleStyle(dev: RuntimeDevice, dir: 'tl' | 'tr' | 'bl' | 'br') {
+  const size = 8;
+  const half = size / 2;
+  const scaleX = dev.scaleX ?? 1;
+  const scaleY = dev.scaleY ?? 1;
+  const left = dir.includes('r')
+    ? dev.width - half / scaleX
+    : -half / scaleX;
+  const top = dir.includes('b')
+    ? dev.height - half / scaleY
+    : -half / scaleY;
+  const cursorMap: Record<'tl' | 'tr' | 'bl' | 'br', string> = {
+    tl: 'nwse-resize',
+    tr: 'nesw-resize',
+    bl: 'nesw-resize',
+    br: 'nwse-resize',
+  };
+  return {
+    left: `${left}px`,
+    top: `${top}px`,
+    transform: `scale(${1 / scaleX}, ${1 / scaleY})`,
+    transformOrigin: 'top left',
+    cursor: cursorMap[dir],
+  };
+}
 
 // 画布保存
 const topoConfigs = ref<Record<string, TopoConfig>>({});
@@ -277,6 +314,24 @@ function importConfigs(data: any) {
   saveConfigsToStorage();
 }
 
+function syncApiPush(cfg: any) {
+  const map = new Map<string, any>();
+  (cfg.apiList || []).forEach((api: any) => map.set(api.id, api));
+  (cfg.layers || []).forEach((layer: any) => {
+    const id = layer.config?.apiId;
+    if (!id) return;
+    const api = map.get(id);
+    if (!api) return;
+    if (typeof api.usePush === 'boolean') {
+      layer.config.usePush = api.usePush;
+      layer.config.pushService = api.usePush ? api.pushUrl || '' : '';
+    } else if (typeof layer.config.usePush === 'boolean') {
+      api.usePush = layer.config.usePush;
+      api.pushUrl = layer.config.usePush ? layer.config.pushService || '' : '';
+    }
+  });
+}
+
 // API: 获取全部设备模板
 async function fetchDevices() {
   const API = '/api/jx-device/Device/list?pageSize=0';
@@ -293,6 +348,7 @@ async function fetchDevices() {
     try {
       cfg = JSON.parse(row.deviceJson ?? '{}');
     } catch {}
+    syncApiPush(cfg);
     return {
       deviceId: String(row.deviceId),
       deviceName: row.deviceName ?? String(row.deviceId),
@@ -302,6 +358,7 @@ async function fetchDevices() {
       materialsTree: Array.isArray(cfg.materialsTree)
         ? cfg.materialsTree
         : [],
+      apiList: Array.isArray(cfg.apiList) ? cfg.apiList : [],
     } as DeviceTemplate;
   });
 
@@ -363,6 +420,7 @@ function openDeviceView(dev: RuntimeDevice) {
 
 // 设备拖拽
 function startDragDevice(dev: any, evt: MouseEvent) {
+  if ((evt.target as HTMLElement).closest('.resize-handle')) return;
   activeDeviceId.value = dev._uuid;
   dragging.value = true;
   dragDevice.value = dev;
@@ -374,7 +432,7 @@ function startDragDevice(dev: any, evt: MouseEvent) {
   window.addEventListener('mouseup', stopDragDevice);
 }
 function onDragMove(e: MouseEvent) {
-  if (!dragging.value || !dragDevice.value) return;
+  if (!dragging.value || !dragDevice.value || resizing.value) return;
   let nx = e.clientX - dragStart.value.x;
   let ny = e.clientY - dragStart.value.y;
   nx = Math.max(0, Math.min(nx, canvasWidth.value - 100));
@@ -494,6 +552,72 @@ function stopDragDevice() {
   dragDevice.value = null;
   window.removeEventListener('mousemove', onDragMove);
   window.removeEventListener('mouseup', stopDragDevice);
+}
+
+function startResize(dev: RuntimeDevice, handle: 'tl' | 'tr' | 'bl' | 'br', evt: MouseEvent) {
+  activeDeviceId.value = dev._uuid;
+  resizing.value = true;
+  resizeHandle.value = handle;
+  resizeDevice.value = dev;
+  const actualWidth = dev.width * (dev.scaleX ?? 1);
+  const actualHeight = dev.height * (dev.scaleY ?? 1);
+  resizeStart.value = {
+    x: evt.clientX,
+    y: evt.clientY,
+    width: actualWidth,
+    height: actualHeight,
+    left: dev.position.x,
+    top: dev.position.y,
+  };
+  window.addEventListener('mousemove', onResizeMove);
+  window.addEventListener('mouseup', stopResize);
+}
+
+function onResizeMove(e: MouseEvent) {
+  if (!resizing.value || !resizeDevice.value || !resizeHandle.value) return;
+  const dx = e.clientX - resizeStart.value.x;
+  const dy = e.clientY - resizeStart.value.y;
+  let newWidth = resizeStart.value.width;
+  let newHeight = resizeStart.value.height;
+  let newLeft = resizeStart.value.left;
+  let newTop = resizeStart.value.top;
+  switch (resizeHandle.value) {
+    case 'br':
+      newWidth += dx;
+      newHeight += dy;
+      break;
+    case 'tr':
+      newWidth += dx;
+      newHeight -= dy;
+      newTop += dy;
+      break;
+    case 'tl':
+      newWidth -= dx;
+      newHeight -= dy;
+      newLeft += dx;
+      newTop += dy;
+      break;
+    case 'bl':
+      newWidth -= dx;
+      newHeight += dy;
+      newLeft += dx;
+      break;
+  }
+  const minSize = 20;
+  newWidth = Math.max(minSize, newWidth);
+  newHeight = Math.max(minSize, newHeight);
+  resizeDevice.value.scaleX = newWidth / resizeDevice.value.width;
+  resizeDevice.value.scaleY = newHeight / resizeDevice.value.height;
+  resizeDevice.value.position.x = newLeft;
+  resizeDevice.value.position.y = newTop;
+}
+
+function stopResize() {
+  resizing.value = false;
+  resizeDevice.value = null;
+  resizeHandle.value = null;
+  window.removeEventListener('mousemove', onResizeMove);
+  window.removeEventListener('mouseup', stopResize);
 }
 
 function removeSelectedDevice() {
@@ -697,6 +821,7 @@ function onKeyDown(e: KeyboardEvent) {
       :style="{ position: 'relative', width: canvasWidth + 'px', height: canvasHeight + 'px' }"
       @mousemove="onMouseMove"
       @mouseup="onCanvasMouseUp"
+      @click.self="activeDeviceId = null"
     >
       <!-- 控制栏 -->
       <TopoToolbar
@@ -727,12 +852,14 @@ function onKeyDown(e: KeyboardEvent) {
             position: 'absolute',
             left: `${dev.position.x}px`,
             top: `${dev.position.y}px`,
-            transform: `rotate(${dev.rotate || 0}deg) scale(${dev.scaleX ?? 1}, ${dev.scaleY ?? 1})`,
+            transform: deviceTransform(dev),
             transformOrigin: 'top left',
             zIndex:
-              dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
-                ? 10
-                : 20,
+              activeDeviceId === dev._uuid
+                ? 100
+                : dev.deviceId === 'CABINET-42U' || dev.deviceId === 'POWER-CABINET'
+                  ? 10
+                  : 20,
           }"
           @mousedown="startDragDevice(dev, $event)"
         >
@@ -762,25 +889,15 @@ function onKeyDown(e: KeyboardEvent) {
             <div class="power-cabinet">配电柜</div>
           </template>
           <template v-else>
-            <!-- 底图层 -->
-            <img
-              v-for="layer in (dev.layers || []).filter(
-                (l) => l.type === 'image',
-              )"
-              :key="layer.id"
-              :src="layer.config.src"
-              :style="{
-                width: `${layer.config.width}px`,
-                height: `${layer.config.height}px`,
-                pointerEvents: 'none',
-                transform: `rotate(${layer.config.rotate || 0}deg)`,
-                transformOrigin: 'center center',
-              }"
-              draggable="false"
+            <DevicePreviewRender
+              :config="dev"
+              with-redis-state
+              style="pointer-events: none"
             />
-            <!-- 端口层 -->
             <div
-              v-for="port in (dev.layers || []).filter((l) => l.type === 'port' || l.type === 'port-adv')"
+              v-for="port in (dev.layers || []).filter(
+                (l) => l.type === 'port' || l.type === 'port-adv',
+              )"
               :key="port.id"
               class="port-spot"
               :class="[
@@ -800,17 +917,34 @@ function onKeyDown(e: KeyboardEvent) {
                 width: `${port.config.width}px`,
                 height: `${port.config.height}px`,
                 cursor: 'pointer',
+                background: 'transparent',
                 transform: `rotate(${port.config.rotate || 0}deg)`,
                 transformOrigin: 'center center',
               }"
               @click.stop="onPortClick(dev._uuid, port.id)"
-            >
-              <img
-                :src="port.config.src || '/imgs/port-gray.png'"
-                style="width: 100%; height: 100%"
-                draggable="false"
-              />
-            </div>
+            ></div>
+          </template>
+          <template v-if="activeDeviceId === dev._uuid">
+            <div
+              class="resize-handle tl"
+              :style="handleStyle(dev, 'tl')"
+              @mousedown.stop.prevent="startResize(dev, 'tl', $event)"
+            />
+            <div
+              class="resize-handle tr"
+              :style="handleStyle(dev, 'tr')"
+              @mousedown.stop.prevent="startResize(dev, 'tr', $event)"
+            />
+            <div
+              class="resize-handle bl"
+              :style="handleStyle(dev, 'bl')"
+              @mousedown.stop.prevent="startResize(dev, 'bl', $event)"
+            />
+            <div
+              class="resize-handle br"
+              :style="handleStyle(dev, 'br')"
+              @mousedown.stop.prevent="startResize(dev, 'br', $event)"
+            />
           </template>
         </div>
       </template>
@@ -892,9 +1026,18 @@ function onKeyDown(e: KeyboardEvent) {
 }
 .device-wrap {
   user-select: none;
+  transition: transform 0.2s;
 }
 .active-device {
   outline: 2px dashed #f44;
+}
+.resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border: 1px solid #f44;
+  box-sizing: border-box;
 }
 .port-spot {
   box-sizing: border-box;
