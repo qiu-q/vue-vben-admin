@@ -250,7 +250,7 @@ function updateStatusList() {
   if (!portMap.value || !Object.keys(portMap.value).length) return;
 
   const prevRows = new Map(
-    statusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+    statusList.value.map((row) => [String(row.value), { label: row.label, iconUrl: row.iconUrl }]),
   );
   const cfgMap =
     (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
@@ -260,7 +260,7 @@ function updateStatusList() {
     ...Object.values(portMap.value),
     ...statusList.value.map((r) => r.value),
   ];
-  const uniq = Array.from(new Set(values));
+  const uniq = Array.from(new Set(values.map((v) => String(v))));
 
   statusList.value = uniq.map((v) => ({
     value: v,
@@ -307,7 +307,7 @@ async function handleUploadIcon(e: Event, idx: number) {
 // ======== 高级端口：状态映射与图标 ========
 function updateAdvStatusList() {
   const prev = new Map(
-    advStatusList.value.map((row) => [row.value, { label: row.label, iconUrl: row.iconUrl }]),
+    advStatusList.value.map((row) => [String(row.value), { label: row.label, iconUrl: row.iconUrl }]),
   );
   const cfgMap =
     (selectedLayer.value && selectedLayer.value.config.statusMapping) || ({} as Record<string, any>);
@@ -327,7 +327,7 @@ function updateAdvStatusList() {
 
   // 合并手动添加的状态值，避免保存后丢失
   values.push(...advStatusList.value.map((r) => r.value));
-  const uniq = Array.from(new Set(values));
+  const uniq = Array.from(new Set(values.map((v) => String(v))));
 
   advStatusList.value = uniq.map((v) => ({
     value: v,
