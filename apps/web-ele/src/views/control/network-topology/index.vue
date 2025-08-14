@@ -111,8 +111,11 @@ const selectedDeviceId = ref<string>('');
 const edges = ref<
   {
     external?: boolean;
-    source: { devUUid: string; portId: string };
-    target: { devUUid: string; portId: string } | { externalRoom: string };
+    color?: string;
+    source: { devUUid: string; portId: string; canvas?: string };
+    target:
+      | { devUUid: string; portId: string; canvas?: string }
+      | { externalRoom: string };
   }[]
 >([]);
 const drawingLine = ref<null | {
@@ -169,9 +172,24 @@ const topoConfigs = ref<Record<string, TopoConfig>>({});
 const newConfigName = ref('');
 const TOPO_CONFIGS_KEY = 'topo_configs_store';
 
+// 当前打开的画布名称
+const currentCanvasName = ref<string | null>(null);
+// 外部连线时暂存的源画布信息
+const sourceCanvasBackup = ref<
+  | null
+  | {
+      name: string | null;
+      devices: RuntimeDevice[];
+      edges: any[];
+      sourcePort: { devUUid: string; portId: string };
+    }
+>(null);
+
 // 连线模式
 const connectMode = ref<'external' | 'internal'>('internal');
 const pendingExternalRoom = ref<null | string>(null);
+const linkEnabled = ref(true);
+const lineColor = ref('#01E6FF');
 // 当前拖拽指针悬停的机柜 _uuid
 const hoveredCabinetId = ref<string | null>(null);
 // 当前悬停机柜中的 U 索引(0 = 顶部 U42)
@@ -246,15 +264,18 @@ async function saveCurrentCanvasToConfigs() {
   };
   topoConfigs.value[name] = config;
   saveConfigsToStorage();
+  currentCanvasName.value = name;
   newConfigName.value = '';
   alert(`画布【${name}】已保存`);
 
   // 清空当前画布方便继续新建
   devicesOnCanvas.value = [];
   edges.value = [];
+  currentCanvasName.value = null;
 }
 
-function restoreConfigToCanvas(config: TopoConfig) {
+function restoreConfigToCanvas(name: string, config: TopoConfig) {
+  currentCanvasName.value = name;
   devicesOnCanvas.value = config.devices.map((devCfg: any) => {
     const tmpl = allDeviceOptions.value.find(
       (t) => t.deviceId === devCfg.deviceId,
@@ -678,33 +699,65 @@ function getEdgePositions(edge: any) {
     return { x, y };
   };
 
+  const current = currentCanvasName.value;
   let source = null;
   let target = null;
-  if (edge.source.devUUid && edge.source.portId) {
-    source = portPos(edge.source.devUUid, edge.source.portId);
+  if (
+    edge.source.canvas === undefined ||
+    edge.source.canvas === current
+  ) {
+    if (edge.source.devUUid && edge.source.portId) {
+      source = portPos(edge.source.devUUid, edge.source.portId);
+    }
   }
-  if ((edge.target as any).devUUid && (edge.target as any).portId) {
-    target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
-  } else if ((edge.target as any).externalRoom) {
-    // 动态根据 canvas 宽高，自动靠右、自动分布
-    const roomList = Object.keys(topoConfigs.value);
-    const idx = roomList.indexOf((edge.target as any).externalRoom);
-    const canvasRect = canvasDomRef.value?.getBoundingClientRect?.();
-    const canvasWidth = canvasRect?.width || 1920;
-    const canvasHeight = canvasRect?.height || 1080;
-    const roomCount = roomList.length;
-    const gapY = Math.max(60, (canvasHeight - 240) / Math.max(1, roomCount));
+  if (
+    (edge.target as any).canvas === undefined ||
+    (edge.target as any).canvas === current
+  ) {
+    if ((edge.target as any).devUUid && (edge.target as any).portId) {
+      target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
+    }
+  }
+
+  const roomList = Object.keys(topoConfigs.value);
+  const canvasRect = canvasDomRef.value?.getBoundingClientRect?.();
+  const canvasWidth = canvasRect?.width || 1920;
+  const canvasHeight = canvasRect?.height || 1080;
+  const gapY = Math.max(60, (canvasHeight - 240) / Math.max(1, roomList.length));
+
+  let externalName = '';
+  let externalPoint = null;
+  if (!source) {
+    const name = edge.source.canvas || edge.source.externalRoom || '';
+    const idx = roomList.indexOf(name);
+    source = {
+      x: canvasWidth - 30,
+      y: 120 + (idx >= 0 ? idx : roomList.length) * gapY,
+    };
+    externalName = name;
+    externalPoint = source;
+  }
+  if (!target) {
+    const name =
+      (edge.target as any).canvas ||
+      (edge.target as any).externalRoom ||
+      '';
+    const idx = roomList.indexOf(name);
     target = {
       x: canvasWidth - 30,
-      y: 120 + idx * gapY,
+      y: 120 + (idx >= 0 ? idx : roomList.length) * gapY,
     };
+    externalName = name;
+    externalPoint = target;
   }
+
   if (!source || !target) return null;
   return {
     source,
     target,
-    color: (edge.target as any).externalRoom ? '#FFA500' : '#01E6FF',
-    externalName: (edge.target as any).externalRoom ?? '',
+    color: edge.external ? '#FFA500' : '#01E6FF',
+    externalName,
+    externalPoint,
   };
 }
 
@@ -717,8 +770,19 @@ function setConnectMode(mode: 'external' | 'internal') {
   pendingExternalRoom.value = null;
 }
 
+function toggleLinkEnabled() {
+  linkEnabled.value = !linkEnabled.value;
+  if (!linkEnabled.value) {
+    drawingLine.value = null;
+    selectedPort.value = null;
+    mousePos.value = null;
+    pendingExternalRoom.value = null;
+  }
+}
+
 // 端口点击
 function onPortClick(devUUid: string, portId: string) {
+  if (!linkEnabled.value) return;
   if (connectMode.value === 'internal') {
     const dev = devicesOnCanvas.value.find((d) => d._uuid === devUUid);
     if (!dev) return;
@@ -742,6 +806,7 @@ function onPortClick(devUUid: string, portId: string) {
         drawingLine.value.portId !== portId
       ) {
         edges.value.push({
+          color: lineColor.value,
           source: {
             devUUid: drawingLine.value.devUUid,
             portId: drawingLine.value.portId,
@@ -773,31 +838,89 @@ function onPortClick(devUUid: string, portId: string) {
       posY = oy + dx * Math.sin(rad) + dy * Math.cos(rad);
     }
     const pos = { x: posX, y: posY };
-    drawingLine.value = { devUUid, portId, from: pos };
-    selectedPort.value = { devUUid, portId };
+    if (pendingExternalRoom.value && sourceCanvasBackup.value) {
+      // 在目标画布选择端口，完成外部连线
+      const source = sourceCanvasBackup.value;
+      const edge = {
+        external: true,
+        color: lineColor.value,
+        source: {
+          canvas: source.name || '',
+          devUUid: source.sourcePort.devUUid,
+          portId: source.sourcePort.portId,
+        },
+        target: {
+          canvas: currentCanvasName.value || '',
+          devUUid,
+          portId,
+        },
+      };
+      // 在源画布记录原向连线
+      source.edges.push(deepClone(edge));
+      // 在当前(目标)画布记录反向连线
+      edges.value.push({
+        external: true,
+        color: lineColor.value,
+        source: {
+          canvas: currentCanvasName.value || '',
+          devUUid,
+          portId,
+        },
+        target: {
+          canvas: source.name || '',
+          devUUid: source.sourcePort.devUUid,
+          portId: source.sourcePort.portId,
+        },
+      });
+      if (currentCanvasName.value && topoConfigs.value[currentCanvasName.value]) {
+        topoConfigs.value[currentCanvasName.value].edges = deepClone(edges.value);
+      }
+      // 还原源画布并保存
+      devicesOnCanvas.value = source.devices;
+      edges.value = source.edges;
+      if (source.name && topoConfigs.value[source.name]) {
+        topoConfigs.value[source.name].edges = deepClone(source.edges);
+      }
+      currentCanvasName.value = source.name;
+      pendingExternalRoom.value = null;
+      sourceCanvasBackup.value = null;
+      drawingLine.value = null;
+      selectedPort.value = null;
+      mousePos.value = null;
+    } else {
+      drawingLine.value = { devUUid, portId, from: pos };
+      selectedPort.value = { devUUid, portId };
+    }
   }
 }
 
-// 外部模式下，点击缩略图添加一条线
+// 外部模式下，点击缩略图进入指定画布选择端口
 function connectToExternalRoom(roomName: string) {
   if (
-    connectMode.value === 'external' &&
-    drawingLine.value &&
-    selectedPort.value
+    !linkEnabled.value ||
+    connectMode.value !== 'external' ||
+    !drawingLine.value ||
+    !selectedPort.value
   ) {
-    edges.value.push({
-      source: {
-        devUUid: drawingLine.value.devUUid,
-        portId: drawingLine.value.portId,
-      },
-      target: { externalRoom: roomName },
-      external: true,
-    });
-    drawingLine.value = null;
-    selectedPort.value = null;
-    mousePos.value = null;
-    pendingExternalRoom.value = null;
+    return;
   }
+  // 备份当前画布信息
+  sourceCanvasBackup.value = {
+    name: currentCanvasName.value,
+    devices: deepClone(devicesOnCanvas.value),
+    edges: deepClone(edges.value),
+    sourcePort: {
+      devUUid: drawingLine.value.devUUid,
+      portId: drawingLine.value.portId,
+    },
+  };
+  pendingExternalRoom.value = roomName;
+  // 切换到目标画布进行端口选择
+  const cfg = topoConfigs.value[roomName];
+  if (cfg) restoreConfigToCanvas(roomName, cfg);
+  drawingLine.value = null;
+  selectedPort.value = null;
+  mousePos.value = null;
 }
 
 onMounted(() => {
@@ -832,6 +955,8 @@ function onKeyDown(e: KeyboardEvent) {
         :connect-mode="connectMode"
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
+        :line-color="lineColor"
+        :link-enabled="linkEnabled"
         @update:selected-device-id="(val) => (selectedDeviceId = val)"
         @update:new-config-name="(val) => (newConfigName = val)"
         @add-device="addDevice"
@@ -840,6 +965,8 @@ function onKeyDown(e: KeyboardEvent) {
         @update:canvas-width="(val: number) => (canvasWidth = val)"
         @update:canvas-height="(val: number) => (canvasHeight = val)"
         @remove-selected-device="removeSelectedDevice"
+        @update:line-color="(val: string) => (lineColor.value = val)"
+        @toggle-link-enabled="toggleLinkEnabled"
       />
       <!-- 设备实例渲染 -->
       <template v-for="dev in devicesOnCanvas" :key="dev._uuid">
@@ -974,7 +1101,7 @@ function onKeyDown(e: KeyboardEvent) {
         <path
           v-if="drawingLine && drawingLine.from && mousePos"
           :d="bezierPath(drawingLine.from, mousePos)"
-          stroke="#01E6FF"
+          :stroke="lineColor"
           stroke-width="2"
           fill="none"
           stroke-dasharray="5,4"
@@ -989,7 +1116,7 @@ function onKeyDown(e: KeyboardEvent) {
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M0,0 L8,4 L0,8" fill="#01E6FF" />
+            <path d="M0,0 L8,4 L0,8" fill="currentColor" />
           </marker>
         </defs>
       </svg>
