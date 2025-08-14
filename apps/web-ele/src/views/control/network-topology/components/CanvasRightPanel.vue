@@ -55,7 +55,7 @@
             (设备:{{ cfg.devices.length }} 连线:{{ cfg.edges.length }})
           </span>
         </span>
-        <button @click.stop="restoreConfigToCanvas(cfg)" style="margin-right: 5px">
+        <button @click.stop="restoreConfigToCanvas(name, cfg)" style="margin-right: 5px">
           恢复
         </button>
         <button @click.stop="exportOneConfig(name)" style="margin-right: 5px">
@@ -97,7 +97,8 @@ const emits = defineEmits([
   'importConfigs',
 ]);
 const exportAllConfigs = () => emits('exportAllConfigs');
-const restoreConfigToCanvas = (cfg: any) => emits('restoreConfigToCanvas', cfg);
+const restoreConfigToCanvas = (name: string, cfg: any) =>
+  emits('restoreConfigToCanvas', name, cfg);
 const exportOneConfig = (name: string) => emits('exportOneConfig', name);
 const removeConfig = (name: string) => emits('removeConfig', name);
 const connectToExternalRoom = (name: string) => emits('connectToExternalRoom', name);
