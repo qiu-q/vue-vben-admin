@@ -699,24 +699,13 @@ function getEdgePositions(edge: any) {
     return { x, y };
   };
 
-  const current = currentCanvasName.value;
   let source = null;
   let target = null;
-  if (
-    edge.source.canvas === undefined ||
-    edge.source.canvas === current
-  ) {
-    if (edge.source.devUUid && edge.source.portId) {
-      source = portPos(edge.source.devUUid, edge.source.portId);
-    }
+  if (edge.source.devUUid && edge.source.portId) {
+    source = portPos(edge.source.devUUid, edge.source.portId);
   }
-  if (
-    (edge.target as any).canvas === undefined ||
-    (edge.target as any).canvas === current
-  ) {
-    if ((edge.target as any).devUUid && (edge.target as any).portId) {
-      target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
-    }
+  if ((edge.target as any).devUUid && (edge.target as any).portId) {
+    target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
   }
 
   const roomList = Object.keys(topoConfigs.value);
@@ -732,7 +721,7 @@ function getEdgePositions(edge: any) {
     const idx = roomList.indexOf(name);
     source = {
       x: canvasWidth - 30,
-      y: 120 + (idx >= 0 ? idx : roomList.length) * gapY,
+      y: 120 + (idx >= 0 ? idx : 0) * gapY,
     };
     externalName = name;
     externalPoint = source;
@@ -745,7 +734,7 @@ function getEdgePositions(edge: any) {
     const idx = roomList.indexOf(name);
     target = {
       x: canvasWidth - 30,
-      y: 120 + (idx >= 0 ? idx : roomList.length) * gapY,
+      y: 120 + (idx >= 0 ? idx : 0) * gapY,
     };
     externalName = name;
     externalPoint = target;
