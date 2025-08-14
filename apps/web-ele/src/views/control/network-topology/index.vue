@@ -696,13 +696,24 @@ function getEdgePositions(edge: any) {
     return { x, y };
   };
 
+  const current = currentCanvasName.value;
   let source = null;
   let target = null;
-  if (edge.source.devUUid && edge.source.portId) {
-    source = portPos(edge.source.devUUid, edge.source.portId);
+  if (
+    edge.source.canvas === undefined ||
+    edge.source.canvas === current
+  ) {
+    if (edge.source.devUUid && edge.source.portId) {
+      source = portPos(edge.source.devUUid, edge.source.portId);
+    }
   }
-  if ((edge.target as any).devUUid && (edge.target as any).portId) {
-    target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
+  if (
+    (edge.target as any).canvas === undefined ||
+    (edge.target as any).canvas === current
+  ) {
+    if ((edge.target as any).devUUid && (edge.target as any).portId) {
+      target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
+    }
   }
 
   const roomList = Object.keys(topoConfigs.value);
@@ -716,7 +727,10 @@ function getEdgePositions(edge: any) {
   if (!source) {
     const name = edge.source.canvas || edge.source.externalRoom || '';
     const idx = roomList.indexOf(name);
-    source = { x: canvasWidth - 30, y: 120 + idx * gapY };
+    source = {
+      x: canvasWidth - 30,
+      y: 120 + (idx >= 0 ? idx : roomList.length) * gapY,
+    };
     externalName = name;
     externalPoint = source;
   }
@@ -726,7 +740,10 @@ function getEdgePositions(edge: any) {
       (edge.target as any).externalRoom ||
       '';
     const idx = roomList.indexOf(name);
-    target = { x: canvasWidth - 30, y: 120 + idx * gapY };
+    target = {
+      x: canvasWidth - 30,
+      y: 120 + (idx >= 0 ? idx : roomList.length) * gapY,
+    };
     externalName = name;
     externalPoint = target;
   }
@@ -822,16 +839,21 @@ function onPortClick(devUUid: string, portId: string) {
           portId,
         },
       };
+      // 在源画布记录原向连线
       source.edges.push(deepClone(edge));
       // 在当前(目标)画布记录反向连线
       edges.value.push({
         external: true,
         source: {
+          canvas: currentCanvasName.value || '',
+          devUUid,
+          portId,
+        },
+        target: {
           canvas: source.name || '',
           devUUid: source.sourcePort.devUUid,
           portId: source.sourcePort.portId,
         },
-        target: { devUUid, portId },
       });
       if (currentCanvasName.value && topoConfigs.value[currentCanvasName.value]) {
         topoConfigs.value[currentCanvasName.value].edges = deepClone(edges.value);
