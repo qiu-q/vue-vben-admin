@@ -113,6 +113,8 @@ const edges = ref<
     external?: boolean;
     source: { devUUid: string; portId: string };
     target: { devUUid: string; portId: string } | { externalRoom: string };
+    targetDevUuid?: string;
+    targetPortId?: string;
   }[]
 >([]);
 const drawingLine = ref<null | {
@@ -685,6 +687,8 @@ function getEdgePositions(edge: any) {
   }
   if ((edge.target as any).devUUid && (edge.target as any).portId) {
     target = portPos((edge.target as any).devUUid, (edge.target as any).portId);
+  } else if (edge.targetDevUuid && edge.targetPortId) {
+    target = portPos(edge.targetDevUuid, edge.targetPortId);
   } else if ((edge.target as any).externalRoom) {
     // 动态根据 canvas 宽高，自动靠右、自动分布
     const roomList = Object.keys(topoConfigs.value);
@@ -791,6 +795,8 @@ function connectToExternalRoom(roomName: string) {
         portId: drawingLine.value.portId,
       },
       target: { externalRoom: roomName },
+      targetDevUuid: '',
+      targetPortId: '',
       external: true,
     });
     drawingLine.value = null;

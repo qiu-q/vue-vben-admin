@@ -69,6 +69,27 @@
     <div v-else style="color: #888; padding: 20px 0; text-align: center">
       暂无保存的画布
     </div>
+
+    <div style="font-weight: bold; margin: 16px 0 8px">跨画布连线</div>
+    <div v-if="crossEdges.length > 0">
+      <div
+        v-for="(edge, idx) in crossEdges"
+        :key="idx"
+        style="background: #212837; margin-bottom: 8px; padding: 6px 8px; border-radius: 5px"
+      >
+        <div>
+          <span>{{ edge.sourceRoom }} / {{ edge.sourceDev }} ({{ edge.sourcePort }})</span>
+        </div>
+        <div style="margin-top: 2px">
+          <span>
+            → {{ edge.targetRoom }} / {{ edge.targetDev }} ({{ edge.targetPort }})
+          </span>
+        </div>
+      </div>
+    </div>
+    <div v-else style="color: #888; padding: 10px 0; text-align: center">
+      暂无跨画布连线
+    </div>
     <div
       v-if="connectMode === 'external'"
       style="color: #ffa500; margin-top: 18px; font-size: 13px"
@@ -82,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 const props = defineProps([
   'topoConfigs',
   'connectMode',
@@ -120,4 +141,48 @@ function onFileChange(e: Event) {
   };
   reader.readAsText(file);
 }
+
+const crossEdges = computed(() => {
+  const result: Array<{
+    sourceRoom: string;
+    sourceDev: string;
+    sourcePort: string;
+    targetRoom: string;
+    targetDev: string;
+    targetPort: string;
+  }> = [];
+  for (const [roomName, cfg] of Object.entries(props.topoConfigs || {})) {
+    (cfg as any).edges
+      ?.filter((e: any) => e.external)
+      .forEach((edge: any) => {
+        const srcDev = (cfg as any).devices?.find(
+          (d: any) => d._uuid === edge.source?.devUUid,
+        );
+        const sourceDevName = srcDev?.deviceId || edge.source?.devUUid || '';
+        const targetRoom = edge.target?.externalRoom || '';
+        let targetDevName = '';
+        let targetPort = '';
+        if (edge.targetDevUuid && edge.targetPortId) {
+          const targetCfg: any = (props.topoConfigs as any)[targetRoom];
+          const tgtDev = targetCfg?.devices?.find(
+            (d: any) => d._uuid === edge.targetDevUuid,
+          );
+          targetDevName = tgtDev?.deviceId || edge.targetDevUuid;
+          targetPort = edge.targetPortId;
+        } else {
+          targetDevName = '-';
+          targetPort = '-';
+        }
+        result.push({
+          sourceRoom: roomName,
+          sourceDev: sourceDevName,
+          sourcePort: edge.source?.portId || '',
+          targetRoom,
+          targetDev: targetDevName,
+          targetPort,
+        });
+      });
+  }
+  return result;
+});
 </script>
