@@ -172,6 +172,13 @@ const TOPO_CONFIGS_KEY = 'topo_configs_store';
 // 连线模式
 const connectMode = ref<'external' | 'internal'>('internal');
 const pendingExternalRoom = ref<null | string>(null);
+const externalLinkContext = ref<
+  | null
+  | {
+      backup: TopoConfig;
+      source: { devUUid: string; portId: string };
+    }
+>(null);
 // 当前拖拽指针悬停的机柜 _uuid
 const hoveredCabinetId = ref<string | null>(null);
 // 当前悬停机柜中的 U 索引(0 = 顶部 U42)
@@ -719,6 +726,17 @@ function setConnectMode(mode: 'external' | 'internal') {
 
 // 端口点击
 function onPortClick(devUUid: string, portId: string) {
+  if (externalLinkContext.value) {
+    const { backup, source } = externalLinkContext.value;
+    backup.edges.push({
+      source,
+      target: { devUUid, portId },
+    });
+    restoreConfigToCanvas(backup);
+    externalLinkContext.value = null;
+    setConnectMode('internal');
+    return;
+  }
   if (connectMode.value === 'internal') {
     const dev = devicesOnCanvas.value.find((d) => d._uuid === devUUid);
     if (!dev) return;
@@ -798,6 +816,23 @@ function connectToExternalRoom(roomName: string) {
     mousePos.value = null;
     pendingExternalRoom.value = null;
   }
+}
+
+function onExternalEdgeClick(edge: any) {
+  const roomName = (edge.target as any).externalRoom;
+  const cfg = topoConfigs.value[roomName];
+  if (!cfg) return;
+  externalLinkContext.value = {
+    backup: {
+      devices: deepClone(devicesOnCanvas.value),
+      edges: deepClone(edges.value.filter((e) => e !== edge)),
+      width: canvasWidth.value,
+      height: canvasHeight.value,
+    },
+    source: deepClone(edge.source),
+  };
+  restoreConfigToCanvas(cfg);
+  setConnectMode('internal');
 }
 
 onMounted(() => {
@@ -969,6 +1004,7 @@ function onKeyDown(e: KeyboardEvent) {
           :edges="edges.filter((e) => e.external)"
           :get-edge-positions="getEdgePositions"
           :bezier-path="bezierPath"
+          @edge-click="onExternalEdgeClick"
         />
         <!-- 正在画线预览 -->
         <path

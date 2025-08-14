@@ -7,7 +7,7 @@
     </linearGradient>
   </defs>
   <template v-for="(edge, idx) in edges" :key="idx">
-    <g v-if="getEdgePositions(edge)">
+    <g v-if="getEdgePositions(edge)" @click="$emit('edge-click', edge)">
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
         stroke="#ffa50055"
@@ -52,4 +52,6 @@ defineProps<{
   getEdgePositions: (edge: any) => any;
   bezierPath: (from: any, to: any) => string;
 }>();
+
+defineEmits(['edge-click']);
 </script>
