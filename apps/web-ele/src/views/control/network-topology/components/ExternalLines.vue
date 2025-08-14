@@ -34,8 +34,8 @@
         />
       </path>
       <text
-        :x="getEdgePositions(edge).target.x + 7"
-        :y="getEdgePositions(edge).target.y + 12"
+        :x="getEdgePositions(edge).externalPoint.x + 7"
+        :y="getEdgePositions(edge).externalPoint.y + 12"
         font-size="14"
         fill="#FFA500"
         style="pointer-events: none; font-weight: bold"

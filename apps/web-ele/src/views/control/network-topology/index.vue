@@ -712,11 +712,13 @@ function getEdgePositions(edge: any) {
   const gapY = Math.max(60, (canvasHeight - 240) / Math.max(1, roomList.length));
 
   let externalName = '';
+  let externalPoint = null;
   if (!source) {
     const name = edge.source.canvas || edge.source.externalRoom || '';
     const idx = roomList.indexOf(name);
-    source = { x: 30, y: 120 + idx * gapY };
+    source = { x: canvasWidth - 30, y: 120 + idx * gapY };
     externalName = name;
+    externalPoint = source;
   }
   if (!target) {
     const name =
@@ -726,6 +728,7 @@ function getEdgePositions(edge: any) {
     const idx = roomList.indexOf(name);
     target = { x: canvasWidth - 30, y: 120 + idx * gapY };
     externalName = name;
+    externalPoint = target;
   }
 
   if (!source || !target) return null;
@@ -734,6 +737,7 @@ function getEdgePositions(edge: any) {
     target,
     color: edge.external ? '#FFA500' : '#01E6FF',
     externalName,
+    externalPoint,
   };
 }
 
