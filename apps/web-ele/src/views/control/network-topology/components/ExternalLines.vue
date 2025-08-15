@@ -1,18 +1,24 @@
 <template>
+  <defs>
+    <linearGradient id="orangeWhiteDash" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFA500"/>
+      <stop offset="50%" stop-color="#fff"/>
+      <stop offset="100%" stop-color="#FFA500"/>
+    </linearGradient>
+  </defs>
   <template v-for="(edge, idx) in edges" :key="idx">
     <g v-if="getEdgePositions(edge)">
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
-        :stroke="(edge.color || '#FFA500') + '55'"
+        stroke="#ffa50055"
         stroke-width="2"
         fill="none"
         stroke-linecap="round"
         marker-end="url(#arrowhead)"
-        :style="{ color: edge.color || '#FFA500' }"
       />
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
-        :stroke="edge.color || '#FFA500'"
+        stroke="url(#orangeWhiteDash)"
         stroke-width="4"
         fill="none"
         stroke-linecap="round"
@@ -31,7 +37,7 @@
         :x="getEdgePositions(edge).externalPoint.x + 7"
         :y="getEdgePositions(edge).externalPoint.y + 12"
         font-size="14"
-        :fill="edge.color || '#FFA500'"
+        fill="#FFA500"
         style="pointer-events: none; font-weight: bold"
       >
         {{ getEdgePositions(edge).externalName }}

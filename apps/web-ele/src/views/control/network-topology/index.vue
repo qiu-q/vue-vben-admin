@@ -111,7 +111,6 @@ const selectedDeviceId = ref<string>('');
 const edges = ref<
   {
     external?: boolean;
-    color?: string;
     source: { devUUid: string; portId: string; canvas?: string };
     target:
       | { devUUid: string; portId: string; canvas?: string }
@@ -188,8 +187,6 @@ const sourceCanvasBackup = ref<
 // 连线模式
 const connectMode = ref<'external' | 'internal'>('internal');
 const pendingExternalRoom = ref<null | string>(null);
-const linkEnabled = ref(true);
-const lineColor = ref('#01E6FF');
 // 当前拖拽指针悬停的机柜 _uuid
 const hoveredCabinetId = ref<string | null>(null);
 // 当前悬停机柜中的 U 索引(0 = 顶部 U42)
@@ -770,19 +767,8 @@ function setConnectMode(mode: 'external' | 'internal') {
   pendingExternalRoom.value = null;
 }
 
-function toggleLinkEnabled() {
-  linkEnabled.value = !linkEnabled.value;
-  if (!linkEnabled.value) {
-    drawingLine.value = null;
-    selectedPort.value = null;
-    mousePos.value = null;
-    pendingExternalRoom.value = null;
-  }
-}
-
 // 端口点击
 function onPortClick(devUUid: string, portId: string) {
-  if (!linkEnabled.value) return;
   if (connectMode.value === 'internal') {
     const dev = devicesOnCanvas.value.find((d) => d._uuid === devUUid);
     if (!dev) return;
@@ -806,7 +792,6 @@ function onPortClick(devUUid: string, portId: string) {
         drawingLine.value.portId !== portId
       ) {
         edges.value.push({
-          color: lineColor.value,
           source: {
             devUUid: drawingLine.value.devUUid,
             portId: drawingLine.value.portId,
@@ -843,7 +828,6 @@ function onPortClick(devUUid: string, portId: string) {
       const source = sourceCanvasBackup.value;
       const edge = {
         external: true,
-        color: lineColor.value,
         source: {
           canvas: source.name || '',
           devUUid: source.sourcePort.devUUid,
@@ -860,7 +844,6 @@ function onPortClick(devUUid: string, portId: string) {
       // 在当前(目标)画布记录反向连线
       edges.value.push({
         external: true,
-        color: lineColor.value,
         source: {
           canvas: currentCanvasName.value || '',
           devUUid,
@@ -897,30 +880,28 @@ function onPortClick(devUUid: string, portId: string) {
 // 外部模式下，点击缩略图进入指定画布选择端口
 function connectToExternalRoom(roomName: string) {
   if (
-    !linkEnabled.value ||
-    connectMode.value !== 'external' ||
-    !drawingLine.value ||
-    !selectedPort.value
+    connectMode.value === 'external' &&
+    drawingLine.value &&
+    selectedPort.value
   ) {
-    return;
+    // 备份当前画布信息
+    sourceCanvasBackup.value = {
+      name: currentCanvasName.value,
+      devices: deepClone(devicesOnCanvas.value),
+      edges: deepClone(edges.value),
+      sourcePort: {
+        devUUid: drawingLine.value.devUUid,
+        portId: drawingLine.value.portId,
+      },
+    };
+    pendingExternalRoom.value = roomName;
+    // 切换到目标画布进行端口选择
+    const cfg = topoConfigs.value[roomName];
+    if (cfg) restoreConfigToCanvas(roomName, cfg);
+    drawingLine.value = null;
+    selectedPort.value = null;
+    mousePos.value = null;
   }
-  // 备份当前画布信息
-  sourceCanvasBackup.value = {
-    name: currentCanvasName.value,
-    devices: deepClone(devicesOnCanvas.value),
-    edges: deepClone(edges.value),
-    sourcePort: {
-      devUUid: drawingLine.value.devUUid,
-      portId: drawingLine.value.portId,
-    },
-  };
-  pendingExternalRoom.value = roomName;
-  // 切换到目标画布进行端口选择
-  const cfg = topoConfigs.value[roomName];
-  if (cfg) restoreConfigToCanvas(roomName, cfg);
-  drawingLine.value = null;
-  selectedPort.value = null;
-  mousePos.value = null;
 }
 
 onMounted(() => {
@@ -955,8 +936,6 @@ function onKeyDown(e: KeyboardEvent) {
         :connect-mode="connectMode"
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
-        :line-color="lineColor"
-        :link-enabled="linkEnabled"
         @update:selected-device-id="(val) => (selectedDeviceId = val)"
         @update:new-config-name="(val) => (newConfigName = val)"
         @add-device="addDevice"
@@ -965,8 +944,6 @@ function onKeyDown(e: KeyboardEvent) {
         @update:canvas-width="(val: number) => (canvasWidth = val)"
         @update:canvas-height="(val: number) => (canvasHeight = val)"
         @remove-selected-device="removeSelectedDevice"
-        @update:line-color="(val: string) => (lineColor.value = val)"
-        @toggle-link-enabled="toggleLinkEnabled"
       />
       <!-- 设备实例渲染 -->
       <template v-for="dev in devicesOnCanvas" :key="dev._uuid">
@@ -1101,7 +1078,7 @@ function onKeyDown(e: KeyboardEvent) {
         <path
           v-if="drawingLine && drawingLine.from && mousePos"
           :d="bezierPath(drawingLine.from, mousePos)"
-          :stroke="lineColor"
+          stroke="#01E6FF"
           stroke-width="2"
           fill="none"
           stroke-dasharray="5,4"
@@ -1116,7 +1093,7 @@ function onKeyDown(e: KeyboardEvent) {
             orient="auto"
             markerUnits="strokeWidth"
           >
-            <path d="M0,0 L8,4 L0,8" fill="currentColor" />
+            <path d="M0,0 L8,4 L0,8" fill="#01E6FF" />
           </marker>
         </defs>
       </svg>

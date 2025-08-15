@@ -13,7 +13,7 @@
 
     <!-- 添加普通设备 -->
     <button @click="emit('add-device')">添加设备到画布</button>
-    
+
     <!-- ★ 新增：添加机柜按钮 -->
     <button @click="emit('add-cabinet')" style="background:#444;color:#fff">
       添加机柜
@@ -80,24 +80,6 @@
     >
       外部连接
     </button>
-
-    <!-- 连线颜色选择 -->
-    <input
-      type="color"
-      :value="lineColor"
-      @input="emit('update:line-color', ($event.target as HTMLInputElement).value)"
-    />
-
-    <!-- 连线开关 -->
-    <button
-      :style="{
-        background: linkEnabled ? '#0f0' : '#222',
-        color: linkEnabled ? '#222' : '#fff',
-      }"
-      @click="emit('toggle-link-enabled')"
-    >
-      {{ linkEnabled ? '禁用连线' : '启用连线' }}
-    </button>
   </div>
 </template>
 
@@ -111,8 +93,6 @@ const props = defineProps<{
   connectMode: string;
   canvasWidth: number;
   canvasHeight: number;
-  lineColor: string;
-  linkEnabled: boolean;
 }>();
 const { canvasWidth, canvasHeight } = toRefs(props);
 
@@ -126,8 +106,6 @@ const emit = defineEmits([
   'update:canvas-width',
   'update:canvas-height',
   'remove-selected-device',
-  'update:line-color',
-  'toggle-link-enabled',
 ]);
 
 /* ---------- methods ---------- */
