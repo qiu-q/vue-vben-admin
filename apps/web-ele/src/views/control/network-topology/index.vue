@@ -111,6 +111,7 @@ const selectedDeviceId = ref<string>('');
 const edges = ref<
   {
     external?: boolean;
+    color?: string;
     source: { devUUid: string; portId: string; canvas?: string };
     target:
       | { devUUid: string; portId: string; canvas?: string }
@@ -186,6 +187,9 @@ const sourceCanvasBackup = ref<
 
 // 连线模式
 const connectMode = ref<'external' | 'internal'>('internal');
+const lineColor = ref('#01E6FF');
+const connectEnabled = ref(true);
+const showLines = ref(true);
 const pendingExternalRoom = ref<null | string>(null);
 // 当前拖拽指针悬停的机柜 _uuid
 const hoveredCabinetId = ref<string | null>(null);
@@ -752,7 +756,7 @@ function getEdgePositions(edge: any) {
   return {
     source,
     target,
-    color: edge.external ? '#FFA500' : '#01E6FF',
+    color: edge.color || (edge.external ? '#FFA500' : '#01E6FF'),
     externalName,
     externalPoint,
   };
@@ -769,6 +773,7 @@ function setConnectMode(mode: 'external' | 'internal') {
 
 // 端口点击
 function onPortClick(devUUid: string, portId: string) {
+  if (!connectEnabled.value) return;
   if (connectMode.value === 'internal') {
     const dev = devicesOnCanvas.value.find((d) => d._uuid === devUUid);
     if (!dev) return;
@@ -797,6 +802,7 @@ function onPortClick(devUUid: string, portId: string) {
             portId: drawingLine.value.portId,
           },
           target: { devUUid, portId },
+          color: lineColor.value,
         });
       }
       drawingLine.value = null;
@@ -828,6 +834,7 @@ function onPortClick(devUUid: string, portId: string) {
       const source = sourceCanvasBackup.value;
       const edge = {
         external: true,
+        color: lineColor.value,
         source: {
           canvas: source.name || '',
           devUUid: source.sourcePort.devUUid,
@@ -844,6 +851,7 @@ function onPortClick(devUUid: string, portId: string) {
       // 在当前(目标)画布记录反向连线
       edges.value.push({
         external: true,
+        color: lineColor.value,
         source: {
           canvas: currentCanvasName.value || '',
           devUUid,
@@ -936,6 +944,9 @@ function onKeyDown(e: KeyboardEvent) {
         :connect-mode="connectMode"
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
+        :line-color="lineColor"
+        :show-lines="showLines"
+        :connect-enabled="connectEnabled"
         @update:selected-device-id="(val) => (selectedDeviceId = val)"
         @update:new-config-name="(val) => (newConfigName = val)"
         @add-device="addDevice"
@@ -944,6 +955,16 @@ function onKeyDown(e: KeyboardEvent) {
         @update:canvas-width="(val: number) => (canvasWidth = val)"
         @update:canvas-height="(val: number) => (canvasHeight = val)"
         @remove-selected-device="removeSelectedDevice"
+        @update:line-color="(val: string) => (lineColor = val)"
+        @update:show-lines="(val: boolean) => (showLines = val)"
+        @update:connect-enabled="(val: boolean) => {
+          connectEnabled = val;
+          if (!val) {
+            drawingLine = null;
+            selectedPort = null;
+            mousePos = null;
+          }
+        }"
       />
       <!-- 设备实例渲染 -->
       <template v-for="dev in devicesOnCanvas" :key="dev._uuid">
@@ -1054,6 +1075,7 @@ function onKeyDown(e: KeyboardEvent) {
       </template>
       <!-- SVG连线层（内部线、外部线） -->
       <svg
+        v-if="showLines"
         :width="canvasDomRef?.offsetWidth || 1920"
         :height="canvasDomRef?.offsetHeight || 1080"
         style="
@@ -1078,24 +1100,11 @@ function onKeyDown(e: KeyboardEvent) {
         <path
           v-if="drawingLine && drawingLine.from && mousePos"
           :d="bezierPath(drawingLine.from, mousePos)"
-          stroke="#01E6FF"
+          :stroke="lineColor"
           stroke-width="2"
           fill="none"
           stroke-dasharray="5,4"
         />
-        <defs>
-          <marker
-            id="arrowhead"
-            markerWidth="8"
-            markerHeight="8"
-            refX="8"
-            refY="4"
-            orient="auto"
-            markerUnits="strokeWidth"
-          >
-            <path d="M0,0 L8,4 L0,8" fill="#01E6FF" />
-          </marker>
-        </defs>
       </svg>
     </div>
     <!-- 右侧：全部画布列表（支持外部连线模式下点击） -->
