@@ -1,24 +1,18 @@
 <template>
-  <defs>
-    <linearGradient id="blueWhiteDash" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#01E6FF" />
-      <stop offset="50%" stop-color="white" />
-      <stop offset="100%" stop-color="#01E6FF" />
-    </linearGradient>
-  </defs>
   <template v-for="(edge, idx) in edges" :key="idx">
     <g v-if="getEdgePositions(edge)">
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
-        stroke="#19baff66"
+        :stroke="(edge.color || '#01E6FF') + '55'"
         stroke-width="2"
         fill="none"
         stroke-linecap="round"
         marker-end="url(#arrowhead)"
+        :style="{ color: edge.color || '#01E6FF' }"
       />
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
-        stroke="url(#blueWhiteDash)"
+        :stroke="edge.color || '#01E6FF'"
         stroke-width="4"
         fill="none"
         stroke-linecap="round"
