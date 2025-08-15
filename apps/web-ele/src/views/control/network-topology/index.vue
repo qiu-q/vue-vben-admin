@@ -950,7 +950,7 @@ function onKeyDown(e: KeyboardEvent) {
         @update:canvas-width="(val: number) => (canvasWidth = val)"
         @update:canvas-height="(val: number) => (canvasHeight = val)"
         @remove-selected-device="removeSelectedDevice"
-        @update:line-color="(val: string) => (lineColor.value = val)"
+        @update:line-color="(val: string) => (lineColor = val)"
       />
       <!-- 设备实例渲染 -->
       <template v-for="dev in devicesOnCanvas" :key="dev._uuid">
