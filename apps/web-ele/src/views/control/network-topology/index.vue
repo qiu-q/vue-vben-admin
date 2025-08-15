@@ -118,11 +118,15 @@ const edges = ref<
       | { externalRoom: string };
   }[]
 >([]);
-const drawingLine = ref<null | {
-  devUUid: string;
-  from: { x: number; y: number };
-  portId: string;
-}>(null);
+const drawingLine = ref<
+  | null
+  | {
+      devUUid: string;
+      from: { x: number; y: number };
+      portId: string;
+      color: string;
+    }
+>(null);
 const mousePos = ref<null | { x: number; y: number }>(null);
 const selectedPort = ref<null | { devUUid: string; portId: string }>(null);
 const dragging = ref(false);
@@ -755,7 +759,7 @@ function getEdgePositions(edge: any) {
   return {
     source,
     target,
-    color: edge.external ? '#FFA500' : '#01E6FF',
+    color: edge.color || (edge.external ? '#FFA500' : lineColor.value),
     externalName,
     externalPoint,
   };
@@ -806,7 +810,7 @@ function onPortClick(devUUid: string, portId: string) {
         drawingLine.value.portId !== portId
       ) {
         edges.value.push({
-          color: lineColor.value,
+          color: drawingLine.value.color,
           source: {
             devUUid: drawingLine.value.devUUid,
             portId: drawingLine.value.portId,
@@ -818,7 +822,7 @@ function onPortClick(devUUid: string, portId: string) {
       selectedPort.value = null;
       mousePos.value = null;
     } else {
-      drawingLine.value = { devUUid, portId, from: pos };
+      drawingLine.value = { devUUid, portId, from: pos, color: lineColor.value };
       selectedPort.value = { devUUid, portId };
     }
   } else if (connectMode.value === 'external') {
@@ -843,7 +847,7 @@ function onPortClick(devUUid: string, portId: string) {
       const source = sourceCanvasBackup.value;
       const edge = {
         external: true,
-        color: lineColor.value,
+        color: drawingLine.value?.color || lineColor.value,
         source: {
           canvas: source.name || '',
           devUUid: source.sourcePort.devUUid,
@@ -860,7 +864,7 @@ function onPortClick(devUUid: string, portId: string) {
       // 在当前(目标)画布记录反向连线
       edges.value.push({
         external: true,
-        color: lineColor.value,
+        color: drawingLine.value?.color || lineColor.value,
         source: {
           canvas: currentCanvasName.value || '',
           devUUid,
@@ -888,7 +892,7 @@ function onPortClick(devUUid: string, portId: string) {
       selectedPort.value = null;
       mousePos.value = null;
     } else {
-      drawingLine.value = { devUUid, portId, from: pos };
+      drawingLine.value = { devUUid, portId, from: pos, color: lineColor.value };
       selectedPort.value = { devUUid, portId };
     }
   }
