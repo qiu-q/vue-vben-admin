@@ -48,14 +48,10 @@ const controlRoutes: RouteRecordRaw[] = [
     component: () => import('#/views/control/test/index.vue'),
     meta: { icon: 'lucide:monitor', title: '机柜', order: 5 },
   },
-  // apps/web-ele/src/views/control/networkTopologyDiagram/components/TopologyGraph.vue
   {
     name: 'TopologyGraph',
     path: '/control/topology-graph',
-    component: () =>
-      import(
-        '#/views/control/networkTopologyDiagram/components/TopologyGraph.vue'
-      ),
+    component: () => import('#/views/control/networkTopologyDiagram/index.vue'),
   },
 ];
 

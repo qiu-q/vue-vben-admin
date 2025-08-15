@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, toRef, watch } from 'vue';
 
 /* ---------- Types ---------- */
 interface RawTopology {
@@ -11,10 +11,15 @@ interface NodeMeta {
 }
 
 /* ---------- Props ---------- */
-const props = defineProps<{
-  resolve?: (id: string) => NodeMeta;
-  topologyData: RawTopology;
-}>();
+const props = withDefaults(
+  defineProps<{
+    lineColor?: string;
+    resolve?: (id: string) => NodeMeta;
+    topologyData: RawTopology;
+  }>(),
+  { lineColor: '#4cafef', resolve: undefined },
+);
+const lineColor = toRef(props, 'lineColor');
 
 /**
  * ----------------------------
@@ -67,11 +72,15 @@ const icons: Record<string, HTMLImageElement> = {};
 ICON_KEYS.forEach((key) => {
   const img = new Image();
   img.src = `${MINIO_BASE}/${key}.png`;
-  img.onload = () => console.log('✅ loaded:', img.src);
-  img.onerror = () => console.warn('❌ failed to load:', img.src);
+  img.addEventListener('load', () => {
+    console.warn('✅ loaded:', img.src);
+  });
+  img.addEventListener('error', () => {
+    console.warn('❌ failed to load:', img.src);
+  });
   icons[key] = img;
 });
-const FALLBACK_ICON = icons['default'] ?? '';
+const FALLBACK_ICON = icons.default ?? '';
 
 /* ---------- Default resolve ---------- */
 function builtinResolve(id: string): NodeMeta {
@@ -130,16 +139,12 @@ function buildGraph(data: RawTopology) {
 
 /* ---------- Draw ---------- */
 function draw() {
-  console.log('🎨 draw called');
   if (!ctx) return;
   const source =
     !props.topologyData || Object.keys(props.topologyData).length === 0
       ? mockTopo
       : props.topologyData;
   const { nodes, links } = buildGraph(source);
-
-  console.log('👀 nodes', nodes);
-  console.log('🔗 links', links);
 
   ctx.clearRect(0, 0, WIDTH * DPR, HEIGHT * DPR);
   ctx.save();
@@ -157,7 +162,7 @@ function draw() {
   ctx.fillRect(10, 10, 100, 50);
 
   /* Bezier Links */
-  ctx.strokeStyle = '#4cafef'; // 亮色连线，黑底可见
+  ctx.strokeStyle = lineColor.value; // 亮色连线，黑底可见
   ctx.lineWidth = 2;
   links.forEach(({ from, to }) => {
     const cpX = (from.x + to.x) / 2;
@@ -199,9 +204,13 @@ onMounted(async () => {
   await Promise.all(
     Object.values(icons).map(
       (img) =>
-        new Promise<void>((res) =>
-          img.complete ? res() : (img.onload = () => res()),
-        ),
+        new Promise<void>((res) => {
+          if (img.complete) {
+            res();
+          } else {
+            img.addEventListener('load', () => res());
+          }
+        }),
     ),
   );
   draw();
@@ -210,12 +219,7 @@ watch(() => props.topologyData, draw, { deep: true });
 </script>
 
 <template>
-  <canvas
-    ref="canvasRef"
-    width="1200"
-    height="1800"
-    style="background: black; display: block; width: 100%;"
-  />
+  <canvas ref="canvasRef" width="1200" height="1800"></canvas>
 </template>
 
 <style scoped>
