@@ -808,7 +808,7 @@ function onPortClick(devUUid: string, portId: string) {
         drawingLine.value.portId !== portId
       ) {
         edges.value.push({
-          color: drawingLine.value.color,
+          color: drawingLine.value?.color || lineColor.value,
           source: {
             devUUid: drawingLine.value.devUUid,
             portId: drawingLine.value.portId,
@@ -880,6 +880,7 @@ function onPortClick(devUUid: string, portId: string) {
       // 还原源画布并保存
       devicesOnCanvas.value = source.devices;
       edges.value = source.edges;
+      lineColor.value = source.color;
       if (source.name && topoConfigs.value[source.name]) {
         topoConfigs.value[source.name].edges = deepClone(source.edges);
       }
