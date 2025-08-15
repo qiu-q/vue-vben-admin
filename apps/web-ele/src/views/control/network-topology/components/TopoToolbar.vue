@@ -80,6 +80,13 @@
     >
       外部连接
     </button>
+
+    <label style="margin-left:8px">颜色:</label>
+    <input
+      type="color"
+      :value="lineColor"
+      @input="emit('update:line-color', ($event.target as HTMLInputElement).value)"
+    />
   </div>
 </template>
 
@@ -93,6 +100,7 @@ const props = defineProps<{
   connectMode: string;
   canvasWidth: number;
   canvasHeight: number;
+  lineColor: string;
 }>();
 const { canvasWidth, canvasHeight } = toRefs(props);
 
@@ -106,6 +114,7 @@ const emit = defineEmits([
   'update:canvas-width',
   'update:canvas-height',
   'remove-selected-device',
+  'update:line-color',
 ]);
 
 /* ---------- methods ---------- */
