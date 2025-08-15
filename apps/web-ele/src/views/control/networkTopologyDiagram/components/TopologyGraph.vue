@@ -150,17 +150,6 @@ function draw() {
   ctx.save();
   ctx.scale(DPR, DPR);
 
-  // DEBUG: draw a red line and green box
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(300, 300);
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  ctx.fillStyle = 'green';
-  ctx.fillRect(10, 10, 100, 50);
-
   /* Bezier Links */
   ctx.strokeStyle = lineColor.value; // 亮色连线，黑底可见
   ctx.lineWidth = 2;
@@ -216,6 +205,7 @@ onMounted(async () => {
   draw();
 });
 watch(() => props.topologyData, draw, { deep: true });
+watch(lineColor, draw);
 </script>
 
 <template>
