@@ -82,11 +82,7 @@
     </button>
 
     <!-- 连线颜色选择 -->
-    <input
-      type="color"
-      :value="lineColor"
-      @input="emit('update:line-color', ($event.target as HTMLInputElement).value)"
-    />
+    <input type="color" v-model="lineColorModel" />
 
     <!-- 连线开关 -->
     <button
@@ -102,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { toRefs } from 'vue';
+import { computed, toRefs } from 'vue';
 /* ---------- props / emits ---------- */
 const props = defineProps<{
   selectedDeviceId: string;
@@ -129,6 +125,12 @@ const emit = defineEmits([
   'update:line-color',
   'toggle-link-enabled',
 ]);
+
+/* ---------- two-way bindings ---------- */
+const lineColorModel = computed({
+  get: () => props.lineColor,
+  set: (val: string) => emit('update:line-color', val),
+});
 
 /* ---------- methods ---------- */
 function onSelectDevice(e: Event) {

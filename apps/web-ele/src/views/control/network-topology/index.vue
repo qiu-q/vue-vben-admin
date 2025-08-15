@@ -755,7 +755,7 @@ function getEdgePositions(edge: any) {
   return {
     source,
     target,
-    color: edge.external ? '#FFA500' : '#01E6FF',
+    color: edge.color || (edge.external ? '#FFA500' : '#01E6FF'),
     externalName,
     externalPoint,
   };
