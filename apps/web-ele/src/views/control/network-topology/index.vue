@@ -188,6 +188,8 @@ const sourceCanvasBackup = ref<
 // 连线模式
 const connectMode = ref<'external' | 'internal'>('internal');
 const lineColor = ref('#01E6FF');
+const connectEnabled = ref(true);
+const showLines = ref(true);
 const pendingExternalRoom = ref<null | string>(null);
 // 当前拖拽指针悬停的机柜 _uuid
 const hoveredCabinetId = ref<string | null>(null);
@@ -771,6 +773,7 @@ function setConnectMode(mode: 'external' | 'internal') {
 
 // 端口点击
 function onPortClick(devUUid: string, portId: string) {
+  if (!connectEnabled.value) return;
   if (connectMode.value === 'internal') {
     const dev = devicesOnCanvas.value.find((d) => d._uuid === devUUid);
     if (!dev) return;
@@ -942,6 +945,8 @@ function onKeyDown(e: KeyboardEvent) {
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
         :line-color="lineColor"
+        :show-lines="showLines"
+        :connect-enabled="connectEnabled"
         @update:selected-device-id="(val) => (selectedDeviceId = val)"
         @update:new-config-name="(val) => (newConfigName = val)"
         @add-device="addDevice"
@@ -951,6 +956,15 @@ function onKeyDown(e: KeyboardEvent) {
         @update:canvas-height="(val: number) => (canvasHeight = val)"
         @remove-selected-device="removeSelectedDevice"
         @update:line-color="(val: string) => (lineColor = val)"
+        @update:show-lines="(val: boolean) => (showLines = val)"
+        @update:connect-enabled="(val: boolean) => {
+          connectEnabled = val;
+          if (!val) {
+            drawingLine = null;
+            selectedPort = null;
+            mousePos = null;
+          }
+        }"
       />
       <!-- 设备实例渲染 -->
       <template v-for="dev in devicesOnCanvas" :key="dev._uuid">
@@ -1061,6 +1075,7 @@ function onKeyDown(e: KeyboardEvent) {
       </template>
       <!-- SVG连线层（内部线、外部线） -->
       <svg
+        v-if="showLines"
         :width="canvasDomRef?.offsetWidth || 1920"
         :height="canvasDomRef?.offsetHeight || 1080"
         style="
