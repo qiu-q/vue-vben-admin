@@ -85,7 +85,8 @@
     <input
       type="color"
       :value="lineColor"
-      @input="emit('update:line-color', ($event.target as HTMLInputElement).value)"
+      @input="updateLineColor"
+      @change="updateLineColor"
     />
 
     <!-- 连线开关 -->
@@ -114,7 +115,7 @@ const props = defineProps<{
   lineColor: string;
   linkEnabled: boolean;
 }>();
-const { canvasWidth, canvasHeight } = toRefs(props);
+const { canvasWidth, canvasHeight, lineColor } = toRefs(props);
 
 const emit = defineEmits([
   'update:selected-device-id',
@@ -134,6 +135,10 @@ const emit = defineEmits([
 function onSelectDevice(e: Event) {
   const val = (e.target as HTMLSelectElement).value;
   emit('update:selected-device-id', val);
+}
+
+function updateLineColor(e: Event) {
+  emit('update:line-color', (e.target as HTMLInputElement).value);
 }
 </script>
 

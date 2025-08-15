@@ -755,7 +755,10 @@ function getEdgePositions(edge: any) {
   return {
     source,
     target,
-    color: edge.external ? '#FFA500' : '#01E6FF',
+    // Use the edge's own color when provided; otherwise fall back to the
+    // currently selected line color for internal connections, keeping the
+    // default orange for external lines.
+    color: edge.color || (edge.external ? '#FFA500' : lineColor.value),
     externalName,
     externalPoint,
   };
@@ -955,7 +958,7 @@ function onKeyDown(e: KeyboardEvent) {
         :connect-mode="connectMode"
         :canvas-width="canvasWidth"
         :canvas-height="canvasHeight"
-        :line-color="lineColor"
+        :line-color="lineColor.value"
         :link-enabled="linkEnabled"
         @update:selected-device-id="(val) => (selectedDeviceId = val)"
         @update:new-config-name="(val) => (newConfigName = val)"

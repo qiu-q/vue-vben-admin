@@ -3,16 +3,16 @@
     <g v-if="getEdgePositions(edge)">
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
-        :stroke="(edge.color || '#FFA500') + '55'"
+        :stroke="getEdgePositions(edge).color + '55'"
         stroke-width="2"
         fill="none"
         stroke-linecap="round"
         marker-end="url(#arrowhead)"
-        :style="{ color: edge.color || '#FFA500' }"
+        :style="{ color: getEdgePositions(edge).color }"
       />
       <path
         :d="bezierPath(getEdgePositions(edge).source, getEdgePositions(edge).target)"
-        :stroke="edge.color || '#FFA500'"
+        :stroke="getEdgePositions(edge).color"
         stroke-width="4"
         fill="none"
         stroke-linecap="round"
@@ -31,7 +31,7 @@
         :x="getEdgePositions(edge).externalPoint.x + 7"
         :y="getEdgePositions(edge).externalPoint.y + 12"
         font-size="14"
-        :fill="edge.color || '#FFA500'"
+        :fill="getEdgePositions(edge).color"
         style="pointer-events: none; font-weight: bold"
       >
         {{ getEdgePositions(edge).externalName }}
