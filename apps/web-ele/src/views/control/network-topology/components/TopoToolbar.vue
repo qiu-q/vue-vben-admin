@@ -85,7 +85,7 @@
     <input
       type="color"
       :value="lineColor"
-      @input="emit('update:line-color', ($event.target as HTMLInputElement).value)"
+      @change="emit('update:line-color', ($event.target as HTMLInputElement).value)"
     />
 
     <!-- 连线开关 -->
