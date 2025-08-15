@@ -122,6 +122,7 @@ const drawingLine = ref<null | {
   devUUid: string;
   from: { x: number; y: number };
   portId: string;
+  color: string;
 }>(null);
 const mousePos = ref<null | { x: number; y: number }>(null);
 const selectedPort = ref<null | { devUUid: string; portId: string }>(null);
@@ -182,6 +183,7 @@ const sourceCanvasBackup = ref<
       devices: RuntimeDevice[];
       edges: any[];
       sourcePort: { devUUid: string; portId: string };
+      color: string;
     }
 >(null);
 
@@ -806,7 +808,7 @@ function onPortClick(devUUid: string, portId: string) {
         drawingLine.value.portId !== portId
       ) {
         edges.value.push({
-          color: lineColor.value,
+          color: drawingLine.value.color,
           source: {
             devUUid: drawingLine.value.devUUid,
             portId: drawingLine.value.portId,
@@ -818,7 +820,7 @@ function onPortClick(devUUid: string, portId: string) {
       selectedPort.value = null;
       mousePos.value = null;
     } else {
-      drawingLine.value = { devUUid, portId, from: pos };
+      drawingLine.value = { devUUid, portId, from: pos, color: lineColor.value };
       selectedPort.value = { devUUid, portId };
     }
   } else if (connectMode.value === 'external') {
@@ -843,7 +845,7 @@ function onPortClick(devUUid: string, portId: string) {
       const source = sourceCanvasBackup.value;
       const edge = {
         external: true,
-        color: lineColor.value,
+        color: source.color,
         source: {
           canvas: source.name || '',
           devUUid: source.sourcePort.devUUid,
@@ -860,7 +862,7 @@ function onPortClick(devUUid: string, portId: string) {
       // 在当前(目标)画布记录反向连线
       edges.value.push({
         external: true,
-        color: lineColor.value,
+        color: source.color,
         source: {
           canvas: currentCanvasName.value || '',
           devUUid,
@@ -888,7 +890,7 @@ function onPortClick(devUUid: string, portId: string) {
       selectedPort.value = null;
       mousePos.value = null;
     } else {
-      drawingLine.value = { devUUid, portId, from: pos };
+      drawingLine.value = { devUUid, portId, from: pos, color: lineColor.value };
       selectedPort.value = { devUUid, portId };
     }
   }
@@ -913,6 +915,7 @@ function connectToExternalRoom(roomName: string) {
       devUUid: drawingLine.value.devUUid,
       portId: drawingLine.value.portId,
     },
+    color: drawingLine.value.color,
   };
   pendingExternalRoom.value = roomName;
   // 切换到目标画布进行端口选择
@@ -1101,7 +1104,7 @@ function onKeyDown(e: KeyboardEvent) {
         <path
           v-if="drawingLine && drawingLine.from && mousePos"
           :d="bezierPath(drawingLine.from, mousePos)"
-          :stroke="lineColor"
+          :stroke="drawingLine?.color || lineColor"
           stroke-width="2"
           fill="none"
           stroke-dasharray="5,4"
