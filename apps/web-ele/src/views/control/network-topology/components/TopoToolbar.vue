@@ -66,7 +66,10 @@
       :style="{
         background: connectMode === 'internal' ? '#01e6ff' : '#222',
         color: connectMode === 'internal' ? '#222' : '#fff',
+        opacity: connectEnabled ? 1 : 0.5,
+        cursor: connectEnabled ? 'pointer' : 'not-allowed',
       }"
+      :disabled="!connectEnabled"
       @click="emit('set-connect-mode', 'internal')"
     >
       内部连接
@@ -75,10 +78,20 @@
       :style="{
         background: connectMode === 'external' ? '#ffa500' : '#222',
         color: connectMode === 'external' ? '#222' : '#ffa500',
+        opacity: connectEnabled ? 1 : 0.5,
+        cursor: connectEnabled ? 'pointer' : 'not-allowed',
       }"
+      :disabled="!connectEnabled"
       @click="emit('set-connect-mode', 'external')"
     >
       外部连接
+    </button>
+
+    <button @click="emit('update:show-lines', !showLines)">
+      {{ showLines ? '隐藏连线' : '显示连线' }}
+    </button>
+    <button @click="emit('update:connect-enabled', !connectEnabled)">
+      {{ connectEnabled ? '禁用连接' : '启用连接' }}
     </button>
 
     <label style="margin-left:8px">颜色:</label>
@@ -101,6 +114,8 @@ const props = defineProps<{
   canvasWidth: number;
   canvasHeight: number;
   lineColor: string;
+  showLines: boolean;
+  connectEnabled: boolean;
 }>();
 const { canvasWidth, canvasHeight } = toRefs(props);
 
@@ -115,6 +130,8 @@ const emit = defineEmits([
   'update:canvas-height',
   'remove-selected-device',
   'update:line-color',
+  'update:show-lines',
+  'update:connect-enabled',
 ]);
 
 /* ---------- methods ---------- */
