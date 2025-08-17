@@ -1,11 +1,22 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import DevicePreviewRender from '#/views/control/device-preview/DevicePreviewRender.vue';
 
 const route = useRoute();
 const deviceId = ref((route.params.deviceId as string) || '');
-const config = ref<any>(null);
+const frontConfig = ref<any>(null);
+const backConfig = ref<any>(null);
+const detailConfig = ref<any>(null);
+type ViewType = 'front' | 'back' | 'detail';
+const viewType = ref<ViewType>('detail');
+const config = computed(() =>
+  viewType.value === 'front'
+    ? frontConfig.value
+    : viewType.value === 'back'
+      ? backConfig.value
+      : detailConfig.value,
+);
 const loading = ref(true);
 const error = ref('');
 const viewRef = ref<HTMLElement | null>(null);
@@ -43,25 +54,32 @@ async function loadConfig() {
   try {
     const resp = await fetch(`/api/jx-device/Device/${deviceId.value}`);
     const json = await resp.json();
-    if (json.code === 200 && json.data?.deviceJson) {
-      let parsed: any = {};
-      try {
-        parsed = JSON.parse(json.data.deviceJson);
-      } catch {
-        console.warn('deviceJson parse failed');
-      }
-      parsed.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
-      parsed.materialsTree = Array.isArray(parsed.materialsTree)
-        ? parsed.materialsTree
-        : [];
-      parsed.apiList = Array.isArray(parsed.apiList) ? parsed.apiList : [];
-      syncApiPush(parsed);
-      config.value = {
-        deviceId: deviceId.value,
-        width: 1920,
-        height: 1080,
-        ...parsed,
+    if (json.code === 200 && json.data) {
+      const parseCfg = (str: any) => {
+        if (!str) return {};
+        try {
+          return JSON.parse(str);
+        } catch {
+          return {};
+        }
       };
+      const normalize = (cfg: any) => {
+        cfg.layers = Array.isArray(cfg.layers) ? cfg.layers : [];
+        cfg.materialsTree = Array.isArray(cfg.materialsTree)
+          ? cfg.materialsTree
+          : [];
+        cfg.apiList = Array.isArray(cfg.apiList) ? cfg.apiList : [];
+        syncApiPush(cfg);
+        return {
+          deviceId: deviceId.value,
+          width: 1920,
+          height: 1080,
+          ...cfg,
+        };
+      };
+      frontConfig.value = normalize(parseCfg(json.data.deviceJson));
+      backConfig.value = normalize(parseCfg(json.data.deviceBack));
+      detailConfig.value = normalize(parseCfg(json.data.deviceDetails));
     } else {
       error.value = json.msg || '未找到设备配置';
     }
@@ -88,8 +106,15 @@ onUnmounted(() => window.removeEventListener('resize', updateScale));
     <div
       v-else
       ref="viewRef"
-      class="flex h-full items-center justify-center bg-[#181a20]"
+      class="relative flex h-full items-center justify-center bg-[#181a20]"
     >
+      <div class="toolbar">
+        <select v-model="viewType" class="rounded bg-white/90 px-2 py-1 text-black">
+          <option value="detail">详情</option>
+          <option value="front">正面</option>
+          <option value="back">背面</option>
+        </select>
+      </div>
       <div
         :style="{
           transform: `scale(${scale})`,
@@ -116,5 +141,10 @@ onUnmounted(() => window.removeEventListener('resize', updateScale));
   height: 100%;
   color: #ccc;
   background: #181a20;
+}
+.toolbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
 }
 </style>
