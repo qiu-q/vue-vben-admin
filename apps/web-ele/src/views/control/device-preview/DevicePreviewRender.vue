@@ -21,7 +21,7 @@ const hoveredPortInfo = ref<null | {
   ips: string[];
   found: Set<string>;
 }>(null);
-const eventPopup = ref<null | { x: number; y: number; text: string }>(null);
+const eventPopup = ref<null | { x: number; y: number; html: string }>(null);
 let advClickCount = 0;
 let advClickTimer: number | null = null;
 let eventPopupTimer: number | null = null;
@@ -341,13 +341,21 @@ function showAdvEventValue(
   type: 'hover' | 'click' | 'dblclick' | 'triple',
 ) {
   const cfg = layer.config.events?.[type];
-  if (!cfg || !cfg.apiId) return;
-  const apiResp = apiDataMap.value[cfg.apiId];
-  if (!apiResp || apiResp.error) return;
-  const value = cfg.dataKey ? getValueByPath(apiResp, cfg.dataKey) : apiResp;
+  if (!cfg) return;
+  let html = '';
+  if (cfg.content) {
+    html = cfg.content;
+  } else if (cfg.apiId) {
+    const apiResp = apiDataMap.value[cfg.apiId];
+    if (!apiResp || apiResp.error) return;
+    const value = cfg.dataKey ? getValueByPath(apiResp, cfg.dataKey) : apiResp;
+    html = String(value ?? '');
+  } else {
+    return;
+  }
   const x = layer.config.x + (layer.config.width || 0) / 2;
   const y = layer.config.y;
-  eventPopup.value = { x, y, text: String(value ?? '') };
+  eventPopup.value = { x, y, html };
   if (type !== 'hover') {
     if (eventPopupTimer) clearTimeout(eventPopupTimer);
     eventPopupTimer = window.setTimeout(() => {
@@ -598,9 +606,8 @@ watch(
         textAlign: 'center',
         whiteSpace: 'pre-wrap'
       }"
-    >
-      {{ eventPopup.text }}
-    </div>
+      v-html="eventPopup.html"
+    ></div>
   </div>
   <div v-else class="p-8 text-center text-gray-500">
     暂无有效设备数据 / 请检查配置
