@@ -341,13 +341,21 @@ function showAdvEventValue(
   type: 'hover' | 'click' | 'dblclick' | 'triple',
 ) {
   const cfg = layer.config.events?.[type];
-  if (!cfg || !cfg.apiId) return;
-  const apiResp = apiDataMap.value[cfg.apiId];
-  if (!apiResp || apiResp.error) return;
-  const value = cfg.dataKey ? getValueByPath(apiResp, cfg.dataKey) : apiResp;
+  if (!cfg) return;
+  let text = '';
+  if (cfg.text) {
+    text = cfg.text;
+  } else if (cfg.apiId) {
+    const apiResp = apiDataMap.value[cfg.apiId];
+    if (!apiResp || apiResp.error) return;
+    const value = cfg.dataKey ? getValueByPath(apiResp, cfg.dataKey) : apiResp;
+    text = String(value ?? '');
+  } else {
+    return;
+  }
   const x = layer.config.x + (layer.config.width || 0) / 2;
   const y = layer.config.y;
-  eventPopup.value = { x, y, text: String(value ?? '') };
+  eventPopup.value = { x, y, text };
   if (type !== 'hover') {
     if (eventPopupTimer) clearTimeout(eventPopupTimer);
     eventPopupTimer = window.setTimeout(() => {
@@ -598,9 +606,8 @@ watch(
         textAlign: 'center',
         whiteSpace: 'pre-wrap'
       }"
-    >
-      {{ eventPopup.text }}
-    </div>
+      v-html="eventPopup.text"
+    ></div>
   </div>
   <div v-else class="p-8 text-center text-gray-500">
     暂无有效设备数据 / 请检查配置

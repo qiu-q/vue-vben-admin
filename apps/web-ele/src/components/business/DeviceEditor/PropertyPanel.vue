@@ -218,6 +218,10 @@ const advDblApiId = ref('');
 const advDblDataKey = ref('');
 const advTripleApiId = ref('');
 const advTripleDataKey = ref('');
+const advHoverText = ref('');
+const advClickText = ref('');
+const advDblText = ref('');
+const advTripleText = ref('');
 const advHoverKeyOptions = computed(() => getKeyOptions(advHoverApiId.value));
 const advClickKeyOptions = computed(() => getKeyOptions(advClickApiId.value));
 const advDblKeyOptions = computed(() => getKeyOptions(advDblApiId.value));
@@ -399,14 +403,30 @@ function handleSaveAdv() {
   }
   selectedLayer.value.config.statusMapping = mapping;
   const events: Record<string, any> = {};
-  if (advHoverApiId.value)
-    events.hover = { apiId: advHoverApiId.value, dataKey: advHoverDataKey.value };
-  if (advClickApiId.value)
-    events.click = { apiId: advClickApiId.value, dataKey: advClickDataKey.value };
-  if (advDblApiId.value)
-    events.dblclick = { apiId: advDblApiId.value, dataKey: advDblDataKey.value };
-  if (advTripleApiId.value)
-    events.triple = { apiId: advTripleApiId.value, dataKey: advTripleDataKey.value };
+  const hoverCfg: Record<string, any> = {
+    apiId: advHoverApiId.value,
+    dataKey: advHoverDataKey.value,
+    text: advHoverText.value,
+  };
+  if (hoverCfg.apiId || hoverCfg.text) events.hover = hoverCfg;
+  const clickCfg: Record<string, any> = {
+    apiId: advClickApiId.value,
+    dataKey: advClickDataKey.value,
+    text: advClickText.value,
+  };
+  if (clickCfg.apiId || clickCfg.text) events.click = clickCfg;
+  const dblCfg: Record<string, any> = {
+    apiId: advDblApiId.value,
+    dataKey: advDblDataKey.value,
+    text: advDblText.value,
+  };
+  if (dblCfg.apiId || dblCfg.text) events.dblclick = dblCfg;
+  const tripleCfg: Record<string, any> = {
+    apiId: advTripleApiId.value,
+    dataKey: advTripleDataKey.value,
+    text: advTripleText.value,
+  };
+  if (tripleCfg.apiId || tripleCfg.text) events.triple = tripleCfg;
   selectedLayer.value.config.events = events;
   syncApiList();
   emit('update', props.config);
@@ -762,12 +782,16 @@ watch(
     const events = layer.type === 'port-adv' ? layer.config.events || {} : {};
     advHoverApiId.value = events.hover?.apiId || '';
     advHoverDataKey.value = events.hover?.dataKey || '';
+    advHoverText.value = events.hover?.text || '';
     advClickApiId.value = events.click?.apiId || '';
     advClickDataKey.value = events.click?.dataKey || '';
+    advClickText.value = events.click?.text || '';
     advDblApiId.value = events.dblclick?.apiId || '';
     advDblDataKey.value = events.dblclick?.dataKey || '';
+    advDblText.value = events.dblclick?.text || '';
     advTripleApiId.value = events.triple?.apiId || '';
     advTripleDataKey.value = events.triple?.dataKey || '';
+    advTripleText.value = events.triple?.text || '';
   },
   { immediate: true },
 );
@@ -988,6 +1012,10 @@ watch(
                   <option v-for="k in advHoverKeyOptions" :key="k" :value="k">{{ k }}</option>
                 </select>
               </div>
+              <div class="mt-1">
+                <label>静态内容：</label>
+                <textarea v-model="advHoverText" rows="2" class="w-full border p-1 text-xs"></textarea>
+              </div>
             </div>
             <div class="mb-2">
               <label>单击接口：</label>
@@ -1001,6 +1029,10 @@ watch(
                   <option value="">(根)</option>
                   <option v-for="k in advClickKeyOptions" :key="k" :value="k">{{ k }}</option>
                 </select>
+              </div>
+              <div class="mt-1">
+                <label>静态内容：</label>
+                <textarea v-model="advClickText" rows="2" class="w-full border p-1 text-xs"></textarea>
               </div>
             </div>
             <div class="mb-2">
@@ -1016,6 +1048,10 @@ watch(
                   <option v-for="k in advDblKeyOptions" :key="k" :value="k">{{ k }}</option>
                 </select>
               </div>
+              <div class="mt-1">
+                <label>静态内容：</label>
+                <textarea v-model="advDblText" rows="2" class="w-full border p-1 text-xs"></textarea>
+              </div>
             </div>
             <div class="mb-2">
               <label>三击接口：</label>
@@ -1029,6 +1065,10 @@ watch(
                   <option value="">(根)</option>
                   <option v-for="k in advTripleKeyOptions" :key="k" :value="k">{{ k }}</option>
                 </select>
+              </div>
+              <div class="mt-1">
+                <label>静态内容：</label>
+                <textarea v-model="advTripleText" rows="2" class="w-full border p-1 text-xs"></textarea>
               </div>
             </div>
           </div>
