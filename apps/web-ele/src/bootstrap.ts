@@ -2,7 +2,7 @@ import { createApp, watchEffect } from 'vue';
 
 import { registerAccessDirective } from '@vben/access';
 import { registerLoadingDirective } from '@vben/common-ui';
-import { preferences } from '@vben/preferences';
+import { preferences, updatePreferences } from '@vben/preferences';
 import { initStores } from '@vben/stores';
 import '@vben/styles';
 import '@vben/styles/ele';
@@ -57,6 +57,16 @@ async function bootstrap(namespace: string) {
 
   // 安装权限指令
   registerAccessDirective(app);
+
+  // 强制将布局切换为内容全屏（项目默认）并关闭顶部导航栏
+  try {
+    updatePreferences({
+      app: { layout: 'full-content' },
+      header: { enable: false, hidden: true },
+      // 如不需要标签栏，可一起关闭；若需保留可删除此行
+      tabbar: { enable: false },
+    });
+  } catch {}
 
   // 初始化 tippy
   const { initTippy } = await import('@vben/common-ui/es/tippy');

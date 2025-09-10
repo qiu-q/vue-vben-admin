@@ -1,0 +1,34 @@
+<template>
+  <div class="toolbar">
+    <select :value="selectedDeviceId" @change="onSelectDevice">
+      <option v-for="dev in allDeviceOptions" :key="dev.deviceId" :value="dev.deviceId">{{ dev.deviceName || dev.deviceId }}</option>
+    </select>
+    <button @click="emit('add-device')">添加设备到画布</button>
+    <button @click="emit('add-cabinet')" style="background:#444;color:#fff">添加机柜</button>
+    <label style="margin-left:8px">W:</label>
+    <input type="number" :value="canvasWidth" style="width:80px" @input="emit('update:canvas-width', ($event.target as HTMLInputElement).valueAsNumber)" />
+    <label>H:</label>
+    <input type="number" :value="canvasHeight" style="width:80px" @input="emit('update:canvas-height', ($event.target as HTMLInputElement).valueAsNumber)" />
+    <button @click="emit('remove-selected-device')" style="color:#f44">删除设备</button>
+    <input :value="newConfigName" @input="(e)=> emit('update:new-config-name', (e.target as HTMLInputElement).value)" placeholder="画布名" style="width: 120px" />
+    <button @click="emit('save-current-canvas-to-configs')">保存当前画布</button>
+    <button :style="{ background: connectMode === 'internal' ? '#01e6ff' : '#222', color: connectMode === 'internal' ? '#222' : '#fff', opacity: connectEnabled ? 1 : 0.5, cursor: connectEnabled ? 'pointer' : 'not-allowed' }" :disabled="!connectEnabled" @click="emit('set-connect-mode', 'internal')">内部连接</button>
+    <button :style="{ background: connectMode === 'external' ? '#ffa500' : '#222', color: connectMode === 'external' ? '#222' : '#ffa500', opacity: connectEnabled ? 1 : 0.5, cursor: connectEnabled ? 'pointer' : 'not-allowed' }" :disabled="!connectEnabled" @click="emit('set-connect-mode', 'external')">外部连接</button>
+    <button @click="emit('update:show-lines', !showLines)">{{ showLines ? '隐藏连线' : '显示连线' }}</button>
+    <button @click="emit('update:connect-enabled', !connectEnabled)">{{ connectEnabled ? '禁用连接' : '启用连接' }}</button>
+    <label style="margin-left:8px">颜色:</label>
+    <input type="color" :value="lineColor" @input="emit('update:line-color', ($event.target as HTMLInputElement).value)" />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { toRefs } from 'vue';
+const props = defineProps<{ selectedDeviceId: string; allDeviceOptions: any[]; newConfigName: string; connectMode: string; canvasWidth: number; canvasHeight: number; lineColor: string; showLines: boolean; connectEnabled: boolean; }>();
+const { canvasWidth, canvasHeight } = toRefs(props);
+const emit = defineEmits(['update:selected-device-id','update:new-config-name','add-device','add-cabinet','save-current-canvas-to-configs','set-connect-mode','update:canvas-width','update:canvas-height','remove-selected-device','update:line-color','update:show-lines','update:connect-enabled']);
+function onSelectDevice(e: Event) { const val = (e.target as HTMLSelectElement).value; emit('update:selected-device-id', val); }
+</script>
+
+<style scoped>
+.toolbar { position: absolute; top: 10px; left: 20px; z-index: 10; display: flex; gap: 8px; align-items: center; }
+</style>

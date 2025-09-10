@@ -46,6 +46,18 @@ function setupCommonGuard(router: Router) {
  */
 function setupAccessGuard(router: Router) {
   router.beforeEach(async (to, from) => {
+    // 捕获 fullScreen=true 提前写入会话，用于展示只读模式
+    try {
+      const fs = String((to.query as any)?.fullScreen ?? '').toLowerCase();
+      if (fs === 'true') {
+        sessionStorage.setItem('TOPOLOGY_READ_ONLY', '1');
+      }
+      const cid = (to.query as any)?.cabinetId;
+      if (cid != null && cid !== '') {
+        sessionStorage.setItem('TOPOLOGY_AUTO_CABINET_ID', String(cid));
+      }
+    } catch {}
+
     const accessStore = useAccessStore();
     const userStore = useUserStore();
     const authStore = useAuthStore();

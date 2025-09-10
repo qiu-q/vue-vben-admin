@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "baseUrl": ".",
+    "paths": {
+      "#/*": ["src/*"],
+      "@vben/preferences": ["src/shims/vben-preferences.ts"],
+      "@vben/utils": ["src/shims/vben-utils.ts"]
+    }
+  },
+  "include": ["src"]
+}
+

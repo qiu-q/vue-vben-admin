@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { updatePreferences } from '@vben/preferences';
 
 import html2canvas from 'html2canvas';
 import DevicePreviewRender from '#/views/control/device-preview/DevicePreviewRender.vue';
@@ -14,6 +15,72 @@ import InternalLines from './components/InternalLines.vue';
 import TopoToolbar from './components/TopoToolbar.vue';
 
 const router = useRouter();
+const route = useRoute();
+const wantFullScreen = computed(
+  () => String((route.query as any)?.fullScreen ?? '').toLowerCase() === 'true',
+);
+const READONLY_SS_KEY = 'TOPOLOGY_READ_ONLY';
+const AUTO_CABINET_ID_SS_KEY = 'TOPOLOGY_AUTO_CABINET_ID';
+const sessionReadOnly = ref(
+  typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).get('fullScreen')?.toLowerCase() === 'true' ||
+      sessionStorage.getItem(READONLY_SS_KEY) === '1')
+    ? true
+    : false,
+);
+const isReadOnly = computed(() => wantFullScreen.value || sessionReadOnly.value);
+const isFullscreen = ref(false);
+const showFullScreenPrompt = ref(false);
+const autoFitScale = ref(1);
+
+function getFullscreenElement(): any {
+  return (
+    document.fullscreenElement ||
+    (document as any).webkitFullscreenElement ||
+    (document as any).mozFullScreenElement ||
+    (document as any).msFullscreenElement
+  );
+}
+function requestFs(el: any) {
+  const rfs =
+    el.requestFullscreen ||
+    el.webkitRequestFullscreen ||
+    el.mozRequestFullScreen ||
+    el.msRequestFullscreen;
+  if (typeof rfs === 'function') return rfs.call(el);
+  return Promise.reject('Fullscreen API not supported');
+}
+async function tryEnterFullscreen() {
+  const el: any = canvasDomRef.value || document.documentElement;
+  try {
+    await requestFs(el);
+  } catch (e) {
+    // 大多数浏览器需要用户手势，失败时显示提示按钮
+    showFullScreenPrompt.value = true;
+  }
+}
+function onFullscreenChange() {
+  isFullscreen.value = !!getFullscreenElement();
+  if (isFullscreen.value) showFullScreenPrompt.value = false;
+}
+
+function computeAutoFitScale() {
+  // 仅在只读/展示模式下按窗口自适应缩放，编辑模式保持原始像素避免坐标错位
+  if (!isReadOnly.value) {
+    autoFitScale.value = 1;
+    return;
+  }
+  const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+  if (!vw || !vh) {
+    autoFitScale.value = 1;
+    return;
+  }
+  const scaleW = vw / (canvasWidth.value || 1);
+  const scaleH = vh / (canvasHeight.value || 1);
+  // 只缩小不放大
+  autoFitScale.value = Math.min(scaleW, scaleH, 1);
+}
 
 interface PortLayer {
   id: string;
@@ -103,6 +170,25 @@ interface TopoConfig {
   width?: number;
   height?: number;
 }
+
+// ====== Cabinet CRUD (server) ======
+interface CabinetItem {
+  cabinetId?: number;
+  cabinetName?: string;
+  cabinetUCount?: number;
+  cabinetJson?: string;
+}
+const CABINET_BASE = '/api/jx-device/Cabinet';
+const cabinetOptions = ref<{ value: string; label: string }[]>([]);
+const selectedCabinetId = ref<string>('');
+const cabinetNameInput = ref<string>('');
+const showCabinetModal = ref(false);
+const cabinetModalMode = ref<'create' | 'edit'>('create');
+const cabinetForm = ref<{ cabinetName: string; machineRoomId: number | null; cabinetUCount: number | null }>({
+  cabinetName: '',
+  machineRoomId: null,
+  cabinetUCount: null,
+});
 
 // 状态
 const allDeviceOptions = ref<DeviceTemplate[]>([]);
@@ -263,11 +349,42 @@ async function saveCurrentCanvasToConfigs() {
     width: canvasWidth.value,
     height: canvasHeight.value,
   };
-  topoConfigs.value[name] = config;
-  saveConfigsToStorage();
-  currentCanvasName.value = name;
-  newConfigName.value = '';
-  alert(`画布【${name}】已保存`);
+  // 先尝试保存到后端，再本地入库
+  try {
+    const payload: Record<string, any> = {
+      cabinetName: name,
+      cabinetJson: JSON.stringify(config),
+    };
+    const hasCabinet42U = devicesOnCanvas.value.some((d) => d.deviceId === 'CABINET-42U');
+    if (hasCabinet42U) payload.cabinetUCount = 42;
+
+    const resp = await fetch('/api/jx-device/Cabinet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await resp.json();
+    if (json && (json.code === 200 || json.success)) {
+      topoConfigs.value[name] = config;
+      saveConfigsToStorage();
+      currentCanvasName.value = name;
+      newConfigName.value = '';
+      alert(`画布【${name}】已保存（服务器 + 本地）`);
+    } else {
+      alert(`服务器保存失败：${json?.msg ?? '未知错误'}`);
+      topoConfigs.value[name] = config;
+      saveConfigsToStorage();
+      currentCanvasName.value = name;
+      newConfigName.value = '';
+    }
+  } catch (err) {
+    console.error('保存到服务器失败：', err);
+    topoConfigs.value[name] = config;
+    saveConfigsToStorage();
+    currentCanvasName.value = name;
+    newConfigName.value = '';
+    alert(`网络异常，已仅保存到本地：${name}`);
+  }
 
   // 清空当前画布方便继续新建
   devicesOnCanvas.value = [];
@@ -275,14 +392,240 @@ async function saveCurrentCanvasToConfigs() {
   currentCanvasName.value = null;
 }
 
+// ===== Server CRUD helpers =====
+function buildCurrentConfigForServer(): TopoConfig {
+  return {
+    devices: devicesOnCanvas.value.map((dev) => ({
+      deviceId: dev.deviceId,
+      _uuid: dev._uuid,
+      position: dev.position,
+      scaleX: dev.scaleX,
+      scaleY: dev.scaleY,
+      rotate: dev.rotate,
+      parentCabinetId: dev.parentCabinetId,
+    })),
+    edges: deepClone(edges.value),
+    saveTime: Date.now(),
+    width: canvasWidth.value,
+    height: canvasHeight.value,
+  };
+}
+
+async function fetchCabinetList() {
+  try {
+    const resp = await fetch(`${CABINET_BASE}/list?pageSize=0`);
+    if (!resp.ok) return; // 后端未启动时静默
+    const text = await resp.text();
+    const json = text ? JSON.parse(text) : {};
+    if (json && (json.code === 200 || json.success !== false)) {
+      const rows: CabinetItem[] = json.rows || json.data || [];
+      cabinetOptions.value = (rows || []).map((r: any) => ({
+        value: String(r.cabinetId),
+        label: r.cabinetName || `机柜#${r.cabinetId}`,
+      }));
+    } else {
+      // 静默
+    }
+  } catch (e) {
+    // 后端未启动：静默
+  }
+}
+
+async function loadCabinet(id: string) {
+  if (!id) return;
+  try {
+    const resp = await fetch(`${CABINET_BASE}/${id}`);
+    if (!resp.ok) {
+      alert(`获取详情失败：http${resp.status}`);
+      return;
+    }
+    const text = await resp.text();
+    const json = text ? JSON.parse(text) : {};
+    if (json && (json.code === 200 || json.success)) {
+      const data = json.data || json.rows || json;
+      const rawCfg = data?.cabinetJson;
+      const name = data?.cabinetName as string;
+      let cfg: TopoConfig | null = null;
+      if (rawCfg) {
+        if (typeof rawCfg === 'string') {
+          try {
+            cfg = JSON.parse(rawCfg);
+          } catch (e) {
+            console.warn('cabinetJson 解析失败(字符串)', e);
+            cfg = null;
+          }
+        } else if (typeof rawCfg === 'object') {
+          cfg = rawCfg as TopoConfig;
+        }
+      }
+      // 确保设备模板已加载，避免还未拉取设备就恢复失败
+      if ((!allDeviceOptions.value || allDeviceOptions.value.length === 0) && cfg) {
+        try {
+          await fetchDevices();
+        } catch {}
+      }
+      if (cfg) {
+        // 使用已有的恢复逻辑
+        restoreConfigToCanvas(name || `cabinet_${id}`, cfg);
+        cabinetNameInput.value = name || '';
+        selectedCabinetId.value = id;
+      } else {
+        alert('该机柜无有效配置');
+      }
+    } else {
+      alert(`获取详情失败：${json?.msg ?? '未知错误'}`);
+    }
+  } catch (e) {
+    console.error('loadCabinet error', e);
+    alert('获取详情失败，请检查网络或服务器');
+  }
+}
+
+function openCreateCabinetModal() {
+  cabinetModalMode.value = 'create';
+  const hasCabinet42U = devicesOnCanvas.value.some((d) => d.deviceId === 'CABINET-42U');
+  cabinetForm.value = {
+    cabinetName: cabinetNameInput.value || '',
+    machineRoomId: null,
+    cabinetUCount: hasCabinet42U ? 42 : null,
+  };
+  showCabinetModal.value = true;
+}
+
+async function saveCabinet() {
+  const name = cabinetNameInput.value.trim();
+  if (!name) {
+    alert('请输入机柜名称');
+    return;
+  }
+  const config = buildCurrentConfigForServer();
+  const payload: Record<string, any> = {
+    cabinetName: name,
+    cabinetJson: JSON.stringify(config),
+  };
+  const hasCabinet42U = devicesOnCanvas.value.some((d) => d.deviceId === 'CABINET-42U');
+  if (hasCabinet42U) payload.cabinetUCount = 42;
+
+  const isUpdate = !!selectedCabinetId.value;
+  if (isUpdate) payload.cabinetId = Number(selectedCabinetId.value);
+  try {
+    const resp = await fetch(CABINET_BASE, {
+      method: isUpdate ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await resp.json();
+    if (json && (json.code === 200 || json.success)) {
+      alert(isUpdate ? '修改成功' : '新增成功');
+      await fetchCabinetList();
+      // 如果是新增，尝试将返回的id设为当前选择
+      const newId = json.data?.cabinetId || json.data?.id || json?.cabinetId;
+      if (!isUpdate && newId) selectedCabinetId.value = String(newId);
+    } else {
+      alert(`保存失败：${json?.msg ?? '未知错误'}`);
+    }
+  } catch (e) {
+    console.error('saveCabinet error', e);
+    alert('保存失败，请检查网络或服务器');
+  }
+}
+
+async function deleteCabinet() {
+  if (!selectedCabinetId.value) {
+    alert('请选择要删除的机柜');
+    return;
+  }
+  if (!window.confirm('确认删除该机柜吗？')) return;
+  try {
+    const resp = await fetch(`${CABINET_BASE}/${selectedCabinetId.value}`, {
+      method: 'DELETE',
+    });
+    const json = await resp.json();
+    if (json && (json.code === 200 || json.success)) {
+      alert('删除成功');
+      await fetchCabinetList();
+      startNewCabinet();
+    } else {
+      alert(`删除失败：${json?.msg ?? '未知错误'}`);
+    }
+  } catch (e) {
+    console.error('deleteCabinet error', e);
+    alert('删除失败，请检查网络或服务器');
+  }
+}
+
+function exportCurrentCanvasJson() {
+  const cfg = buildCurrentConfigForServer();
+  const str = JSON.stringify(cfg, null, 2);
+  const blob = new Blob([str], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cabinetNameInput.value || 'topology'}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function confirmCreateCabinet() {
+  if (!cabinetForm.value.cabinetName) {
+    alert('请输入机柜名称');
+    return;
+  }
+  const cfg = buildCurrentConfigForServer();
+  const payload: any = {
+    cabinetName: cabinetForm.value.cabinetName,
+    cabinetJson: JSON.stringify(cfg),
+  };
+  if (cabinetForm.value.machineRoomId != null && cabinetForm.value.machineRoomId !== ('' as any)) {
+    payload.machineRoomId = cabinetForm.value.machineRoomId;
+  }
+  if (cabinetForm.value.cabinetUCount != null && cabinetForm.value.cabinetUCount !== ('' as any)) {
+    payload.cabinetUCount = cabinetForm.value.cabinetUCount;
+  } else {
+    const hasCabinet42U = devicesOnCanvas.value.some((d) => d.deviceId === 'CABINET-42U');
+    if (hasCabinet42U) payload.cabinetUCount = 42;
+  }
+  try {
+    const resp = await fetch(CABINET_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json = await resp.json();
+    if (json && (json.code === 200 || json.success)) {
+      alert('新增成功');
+      showCabinetModal.value = false;
+      cabinetNameInput.value = cabinetForm.value.cabinetName;
+      await fetchCabinetList();
+      const newId = json.data?.cabinetId || json.data?.id || json?.cabinetId;
+      if (newId) selectedCabinetId.value = String(newId);
+    } else {
+      alert(`新增失败：${json?.msg ?? '未知错误'}`);
+    }
+  } catch (e) {
+    console.error('create cabinet error', e);
+    alert('新增失败，请检查网络或服务器');
+  }
+}
+
+function createPlaceholderTemplate(id: string): DeviceTemplate {
+  return {
+    deviceId: id,
+    deviceName: `设备${id}`,
+    width: 200,
+    height: 120,
+    layers: [],
+    materialsTree: [],
+    apiList: [],
+  };
+}
+
 function restoreConfigToCanvas(name: string, config: TopoConfig) {
   currentCanvasName.value = name;
   devicesOnCanvas.value = config.devices.map((devCfg: any) => {
-    const tmpl = allDeviceOptions.value.find(
-      (t) => t.deviceId === devCfg.deviceId,
-    );
-    if (!tmpl) throw new Error(`找不到模板: ${devCfg.deviceId}`);
-    const dev = deepClone(tmpl);
+    const tmpl = allDeviceOptions.value.find((t) => t.deviceId === devCfg.deviceId);
+    const base = tmpl ? deepClone(tmpl) : createPlaceholderTemplate(String(devCfg.deviceId));
+    const dev = base as RuntimeDevice;
     dev._uuid = devCfg._uuid;
     dev.position = devCfg.position;
     dev.scaleX = devCfg.scaleX ?? 1;
@@ -359,11 +702,10 @@ async function fetchDevices() {
   const API = '/api/jx-device/Device/list?pageSize=0';
   try {
     const resp = await fetch(API);
-    const json = await resp.json();
-    if (json.code !== 200) {
-      console.error('获取设备列表失败', json.msg);
-      return;
-    }
+    if (!resp.ok) throw new Error(`http ${resp.status}`);
+    const text = await resp.text();
+    const json = text ? JSON.parse(text) : { code: 200, rows: [] };
+    if (json.code !== 200) return;
   const rows = Array.isArray(json.rows) ? json.rows : [];
   allDeviceOptions.value = rows.map((row: any) => {
     let cfg: any = {};
@@ -396,7 +738,15 @@ async function fetchDevices() {
     if (allDeviceOptions.value.length > 0)
       selectedDeviceId.value = allDeviceOptions.value[0].deviceId;
   } catch (error) {
-    console.error('fetchDevices error', error);
+    // 后端未启动：提供内置机柜模板，避免全空
+    allDeviceOptions.value = [];
+    if (!allDeviceOptions.value.find((d) => d.deviceId === 'CABINET-42U')) {
+      allDeviceOptions.value.push(createCabinetTemplate());
+    }
+    if (!allDeviceOptions.value.find((d) => d.deviceId === 'POWER-CABINET')) {
+      allDeviceOptions.value.push(createPowerCabinetTemplate());
+    }
+    selectedDeviceId.value = allDeviceOptions.value[0]?.deviceId || '';
   }
 }
 
@@ -915,28 +1265,97 @@ function connectToExternalRoom(roomName: string) {
 onMounted(() => {
   fetchDevices();
   loadConfigsFromStorage();
+  fetchCabinetList();
   window.addEventListener('keydown', onKeyDown);
+  // 监听全屏变化
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange as any);
+  document.addEventListener('mozfullscreenchange', onFullscreenChange as any);
+  document.addEventListener('MSFullscreenChange', onFullscreenChange as any);
+  // 若带 fullScreen=true，则尝试自动进入全屏，失败时给出按钮
+  if (wantFullScreen.value) {
+    nextTick(() => {
+      // 将只读标记写入 session，防止某些跳转丢失 query
+      try {
+        sessionReadOnly.value = true;
+        sessionStorage.setItem(READONLY_SS_KEY, '1');
+      } catch {}
+      // 在 WebView/小视口环境下，Vben 会把 layout 退回侧边栏模式（isMobile=true）。
+      // 在 fullScreen 模式下，强制切到内容全屏并隐藏头部/侧边/底部/标签栏。
+      try {
+        updatePreferences({
+          app: { layout: 'full-content', isMobile: false },
+          header: { hidden: true },
+          sidebar: { hidden: true },
+          footer: { enable: false },
+          tabbar: { enable: false },
+        });
+      } catch {}
+      tryEnterFullscreen();
+      // 若短时间未进入全屏，显示提示按钮
+      setTimeout(() => {
+        if (!getFullscreenElement()) showFullScreenPrompt.value = true;
+      }, 300);
+    });
+  }
+
+  // 若带 cabinetId，则自动加载对应机柜（从 query 或 session）
+  try {
+    const idFromQuery = (route.query as any)?.cabinetId as string | undefined;
+    const idFromSession = sessionStorage.getItem(AUTO_CABINET_ID_SS_KEY) || undefined;
+    const cid = (idFromQuery && String(idFromQuery)) || idFromSession;
+    if (cid) {
+      // 延迟到设备模板与列表初始化后再拉取，减少竞态
+      setTimeout(() => loadCabinet(String(cid)), 50);
+    }
+  } catch {}
+
+  // 初始化与监听窗口变化，维持自适应缩放
+  computeAutoFitScale();
+  window.addEventListener('resize', computeAutoFitScale);
 });
-onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown);
+  document.removeEventListener('fullscreenchange', onFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', onFullscreenChange as any);
+  document.removeEventListener('mozfullscreenchange', onFullscreenChange as any);
+  document.removeEventListener('MSFullscreenChange', onFullscreenChange as any);
+  try {
+    sessionReadOnly.value = false;
+    sessionStorage.removeItem(READONLY_SS_KEY);
+    sessionStorage.removeItem(AUTO_CABINET_ID_SS_KEY);
+  } catch {}
+  window.removeEventListener('resize', computeAutoFitScale);
+});
 
 function onKeyDown(e: KeyboardEvent) {
+  if (isReadOnly.value) return;
   if (e.key === 'Delete') removeSelectedDevice();
 }
 </script>
 
 <template>
-  <div style="display: flex; flex-direction: row; width: 100%">
-    <!-- 画布区域 -->
+  <div class="network-topology-page">
+    <div style="display: flex; flex-direction: row; width: 100%">
+      <!-- 画布区域 -->
     <div
       class="canvas-bg"
       ref="canvasDomRef"
-      :style="{ position: 'relative', width: canvasWidth + 'px', height: canvasHeight + 'px' }"
+      :style="{
+        position: 'relative',
+        width: canvasWidth + 'px',
+        height: canvasHeight + 'px',
+        transform: isReadOnly ? `scale(${autoFitScale})` : undefined,
+        transformOrigin: 'top left',
+      }"
+      :class="{ 'no-local-bg': isReadOnly }"
       @mousemove="onMouseMove"
       @mouseup="onCanvasMouseUp"
       @click.self="activeDeviceId = null"
     >
       <!-- 控制栏 -->
       <TopoToolbar
+        v-if="!isReadOnly"
         style="z-index: 10000"
         :selected-device-id="selectedDeviceId"
         :all-device-options="allDeviceOptions"
@@ -971,8 +1390,8 @@ function onKeyDown(e: KeyboardEvent) {
         <div
           class="device-wrap"
           :class="{ 'active-device': activeDeviceId === dev._uuid }"
-          @click.stop="activeDeviceId = dev._uuid"
-          @dblclick.stop="openDeviceView(dev)"
+          @click.stop="isReadOnly ? null : (activeDeviceId = dev._uuid)"
+          @dblclick.stop="isReadOnly ? null : openDeviceView(dev)"
           :style="{
             position: 'absolute',
             left: `${dev.position.x}px`,
@@ -986,7 +1405,7 @@ function onKeyDown(e: KeyboardEvent) {
                   ? 10
                   : 20,
           }"
-          @mousedown="startDragDevice(dev, $event)"
+          @mousedown="isReadOnly ? null : startDragDevice(dev, $event)"
         >
           <!-- 机柜视图：结构化 42U -->
           <template v-if="dev.deviceId === 'CABINET-42U'">
@@ -1024,6 +1443,7 @@ function onKeyDown(e: KeyboardEvent) {
                 (l) => l.type === 'port' || l.type === 'port-adv',
               )"
               :key="port.id"
+              v-if="!isReadOnly"
               class="port-spot"
               :class="[
                 selectedPort &&
@@ -1049,7 +1469,7 @@ function onKeyDown(e: KeyboardEvent) {
               @click.stop="onPortClick(dev._uuid, port.id)"
             ></div>
           </template>
-          <template v-if="activeDeviceId === dev._uuid">
+          <template v-if="!isReadOnly && activeDeviceId === dev._uuid">
             <div
               class="resize-handle tl"
               :style="handleStyle(dev, 'tl')"
@@ -1109,6 +1529,7 @@ function onKeyDown(e: KeyboardEvent) {
     </div>
     <!-- 右侧：全部画布列表（支持外部连线模式下点击） -->
     <CanvasRightPanel
+      v-if="!isReadOnly"
       :topo-configs="topoConfigs"
       :connect-mode="connectMode"
       :drawing-line="drawingLine"
@@ -1119,10 +1540,115 @@ function onKeyDown(e: KeyboardEvent) {
       @connect-to-external-room="connectToExternalRoom"
       @import-configs="importConfigs"
     />
+    </div>
+
+  <!-- 底部：机柜增删改查工具条 -->
+  <div
+    v-if="!isReadOnly"
+    style="
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 12px;
+      z-index: 10001;
+      background: linear-gradient(180deg, rgba(20,20,24,0.0), rgba(20,20,24,0.85));
+      backdrop-filter: blur(2px);
+    "
+  >
+    <select
+      v-model="selectedCabinetId"
+      style="padding: 6px 8px; border-radius: 6px; background: #fff; color: #000"
+    >
+      <option value="">选择机柜...</option>
+      <option v-for="opt in cabinetOptions" :key="opt.value" :value="opt.value">
+        {{ opt.label }}
+      </option>
+    </select>
+
+    <input
+      v-model="cabinetNameInput"
+      placeholder="机柜名称"
+      style="width: 200px; padding: 6px 8px; border-radius: 6px; border: 1px solid #666; background:#fff"
+    />
+
+    <button @click="fetchCabinetList" style="padding:6px 10px; border:1px solid #3ae0ff; border-radius:6px; color:#3ae0ff; background:#23242a">查询</button>
+    <button @click="() => loadCabinet(selectedCabinetId)" :disabled="!selectedCabinetId" style="padding:6px 10px; border:1px solid #3ae0ff; border-radius:6px; color:#3ae0ff; background:#23242a" >加载</button>
+    <button @click="openCreateCabinetModal" style="padding:6px 10px; border:1px solid #38dbb8; border-radius:6px; color:#fff; background:#2ba672">新增</button>
+    <button @click="saveCabinet" style="padding:6px 10px; border:1px solid #38dbb8; border-radius:6px; color:#fff; background:#2a69d7">保存</button>
+    <button @click="deleteCabinet" :disabled="!selectedCabinetId" style="padding:6px 10px; border:1px solid #ff6384; border-radius:6px; color:#fff; background:#d84a4a">删除</button>
+    <button @click="exportCurrentCanvasJson" style="padding:6px 10px; border:1px solid #3ae0ff; border-radius:6px; color:#3ae0ff; background:#23242a">导出JSON</button>
+  </div>
+
+  <!-- 新增机柜弹窗 -->
+  <div v-if="!isReadOnly && showCabinetModal" class="fixed inset-0 z-[10002] flex items-center justify-center bg-black/60">
+    <div class="w-[520px] rounded-lg bg-[#20222a] p-6 text-white shadow-xl">
+      <h3 class="mb-4 text-lg font-bold">{{ cabinetModalMode === 'create' ? '新增机柜' : '编辑机柜' }}</h3>
+      <form @submit.prevent="() => {}">
+        <div class="mb-3">
+          <label class="mb-1 block text-sm text-gray-300">机柜名称</label>
+          <input v-model="cabinetForm.cabinetName" class="w-full rounded border border-[#444] bg-[#1d1e24] p-2 text-white" placeholder="请输入机柜名称" />
+        </div>
+        <div class="mb-3">
+          <label class="mb-1 block text-sm text-gray-300">机房ID（可选）</label>
+          <input v-model.number="cabinetForm.machineRoomId" type="number" class="w-full rounded border border-[#444] bg-[#1d1e24] p-2 text-white" placeholder="机房ID" />
+        </div>
+        <div class="mb-3">
+          <label class="mb-1 block text-sm text-gray-300">机柜U数（可选）</label>
+          <input v-model.number="cabinetForm.cabinetUCount" type="number" class="w-full rounded border border-[#444] bg-[#1d1e24] p-2 text-white" min="0" placeholder="如 42" />
+        </div>
+        <div class="mt-5 flex justify-end gap-2">
+          <button type="button" @click="showCabinetModal = false" class="rounded bg-gray-500 px-4 py-2 text-white">取消</button>
+          <button type="button" @click="confirmCreateCabinet" class="rounded bg-blue-600 px-4 py-2 text-white">确定</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 全屏提示（在需要全屏但接口被浏览器手势策略阻止时显示） -->
+  <button
+    v-if="wantFullScreen && showFullScreenPrompt && !isFullscreen"
+    @click="tryEnterFullscreen"
+    style="
+      position: fixed;
+      right: 16px;
+      bottom: 64px;
+      z-index: 10003;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #3ae0ff;
+      color: #fff;
+      background: #2a69d7;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    "
+  >
+    点击进入全屏
+  </button>
   </div>
 </template>
 
 <style scoped>
+.network-topology-page {
+  position: relative;
+  z-index: 0;
+}
+.network-topology-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: url('../../../assets/network-topology/bg.png');
+  background-size: cover;
+  background-position: center center;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
+}
 .canvas-bg {
   position: relative;
 }
@@ -1136,6 +1662,9 @@ function onKeyDown(e: KeyboardEvent) {
   background-image: url('../../../assets/network-topology/bg.png');
   background-size: cover;
   opacity: 0.3;
+}
+.no-local-bg::before {
+  display: none;
 }
 .device-wrap {
   user-select: none;

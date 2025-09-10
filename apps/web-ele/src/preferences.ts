@@ -9,5 +9,7 @@ export const overridesPreferences = defineOverridesPreferences({
   // overrides
   app: {
     name: import.meta.env.VITE_APP_TITLE,
+    // 启用 Vben 内容全屏布局，隐藏头部/侧边/底部/标签栏区域
+    layout: 'full-content',
   },
 });
