@@ -1,0 +1,1794 @@
+{
+  "device": {
+    "deviceId": 25,
+    "name": "PLC1",
+    "ip": "172.168.172.11"
+  },
+  "modules": [
+    {
+      "index": 1,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=1&pageSize=0",
+      "registers": [
+        {
+          "registerId": 592,
+          "registerAddress": "%IX0.0",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵变频器-远程",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 593,
+          "registerAddress": "%IX0.1",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵变频器-运行",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 594,
+          "registerAddress": "%IX0.2",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵变频器-就绪",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 595,
+          "registerAddress": "%IX0.3",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵变频器-轻故障",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 596,
+          "registerAddress": "%IX0.4",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵变频器-重故障",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 597,
+          "registerAddress": "%IX0.5",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵变频器-远程",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 598,
+          "registerAddress": "%IX0.6",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵变频器-运行",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 599,
+          "registerAddress": "%IX0.7",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵变频器-就绪",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 600,
+          "registerAddress": "%IX0.8",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵变频器-轻故障",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 601,
+          "registerAddress": "%IX0.9",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵变频器-重故障",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 602,
+          "registerAddress": "%IX0.10",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵变频器-远程",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 603,
+          "registerAddress": "%IX0.11",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵变频器-运行",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 604,
+          "registerAddress": "%IX0.12",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵变频器-就绪",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 605,
+          "registerAddress": "%IX0.13",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵变频器-轻故障",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 606,
+          "registerAddress": "%IX0.14",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵变频器-重故障",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 607,
+          "registerAddress": "%IX0.15",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵补偿柜-合闸 ",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=2&pageSize=0",
+      "registers": [
+        {
+          "registerId": 608,
+          "registerAddress": "%IX2.0",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵进水电动蝶阀-远程",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 609,
+          "registerAddress": "%IX2.1",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵进水电动蝶阀-全开",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 610,
+          "registerAddress": "%IX2.2",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵进水电动蝶阀-全关",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 611,
+          "registerAddress": "%IX2.3",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵进水电动蝶阀-故障",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 612,
+          "registerAddress": "%IX2.4",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵进水电动蝶阀-远程",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 613,
+          "registerAddress": "%IX2.5",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵进水电动蝶阀-全开",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 614,
+          "registerAddress": "%IX2.6",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵进水电动蝶阀-全关",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 615,
+          "registerAddress": "%IX2.7",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵进水电动蝶阀-故障",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 616,
+          "registerAddress": "%IX2.8",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵进水电动蝶阀-远程",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 617,
+          "registerAddress": "%IX2.9",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵进水电动蝶阀-全开",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 618,
+          "registerAddress": "%IX2.10",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵进水电动蝶阀-全关",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 619,
+          "registerAddress": "%IX2.11",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵进水电动蝶阀-故障",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 620,
+          "registerAddress": "%IX2.12",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵进水电动蝶阀-远程",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 621,
+          "registerAddress": "%IX2.13",
+          "registerAddressState": true,
+          "registerDescribe": "4#配水泵进水电动蝶阀-全开",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 622,
+          "registerAddress": "%IX2.14",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵进水电动蝶阀-全关",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 625,
+          "registerAddress": "%IX2.15",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵进水电动蝶阀-故障",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=3&pageSize=0",
+      "registers": [
+        {
+          "registerId": 626,
+          "registerAddress": "%IX4.0",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵1#冷却风机-远程",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 627,
+          "registerAddress": "%IX4.1",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵1#冷却风机-运行",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 628,
+          "registerAddress": "%IX4.2",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵1#冷却风机-故障",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 629,
+          "registerAddress": "%IX4.3",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵2#冷却风机-远程",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 630,
+          "registerAddress": "%IX4.4",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵2#冷却风机-运行",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 631,
+          "registerAddress": "%IX4.5",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵2#冷却风机-故障",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 632,
+          "registerAddress": "%IX4.6",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵1#冷却风机-远程",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 633,
+          "registerAddress": "%IX4.7",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵1#冷却风机-运行",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 634,
+          "registerAddress": "%IX4.8",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵1#冷却风机-故障",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 635,
+          "registerAddress": "%IX4.9",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵2#冷却风机-远程",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 636,
+          "registerAddress": "%IX4.10",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵2#冷却风机-运行",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 637,
+          "registerAddress": "%IX4.11",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵2#冷却风机-故障",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 638,
+          "registerAddress": "%IX4.12",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵1#冷却风机-远程",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 639,
+          "registerAddress": "%IX4.13",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵1#冷却风机-运行",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 640,
+          "registerAddress": "%IX4.14",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵1#冷却风机-故障",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 641,
+          "registerAddress": "%IX4.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=4&pageSize=0",
+      "registers": [
+        {
+          "registerId": 642,
+          "registerAddress": "%IX6.0",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵2#冷却风机-远程",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 643,
+          "registerAddress": "%IX6.1",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵2#冷却风机-运行",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 644,
+          "registerAddress": "%IX6.2",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵2#冷却风机-故障",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 645,
+          "registerAddress": "%IX6.3",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵电机加热器-远程",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 646,
+          "registerAddress": "%IX6.4",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机加热器-运行",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 647,
+          "registerAddress": "%IX6.5",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机加热器-故障",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 648,
+          "registerAddress": "%IX6.6",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵电机加热器-远程",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 649,
+          "registerAddress": "%IX6.7",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机加热器-运行",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 650,
+          "registerAddress": "%IX6.8",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机加热器-故障",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 651,
+          "registerAddress": "%IX6.9",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵电机加热器-远程",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 652,
+          "registerAddress": "%IX6.10",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机加热器-运行",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 653,
+          "registerAddress": "%IX6.11",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机加热器-故障",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 654,
+          "registerAddress": "%IX6.12",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机加热器-远程",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 655,
+          "registerAddress": "%IX6.13",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机加热器-运行",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 656,
+          "registerAddress": "%IX6.14",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机加热器-故障",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 658,
+          "registerAddress": "%IX6.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=5&pageSize=0",
+      "registers": [
+        {
+          "registerId": 659,
+          "registerAddress": "%IX8.0",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵流量开关-全开",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 660,
+          "registerAddress": "%IX8.1",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵流量开关-全开",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 661,
+          "registerAddress": "%IX8.2",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵流量开关-全开",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 662,
+          "registerAddress": "%IX8.3",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵流量开关-全开",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 663,
+          "registerAddress": "%IX8.4",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房1#排污泵-运行",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 664,
+          "registerAddress": "%IX8.5",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房1#排污泵-故障",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 665,
+          "registerAddress": "%IX8.6",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房2#排污泵-运行",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 666,
+          "registerAddress": "%IX8.7",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房2#排污泵-故障",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 667,
+          "registerAddress": "%IX8.8",
+          "registerAddressState": false,
+          "registerDescribe": " 配水泵房液位开关-超高液位",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 668,
+          "registerAddress": "%IX8.9",
+          "registerAddressState": true,
+          "registerDescribe": "配水泵房1#厂区照明-远程",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 669,
+          "registerAddress": "%IX8.10",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房1#厂区照明-运行",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 670,
+          "registerAddress": "%IX8.11",
+          "registerAddressState": true,
+          "registerDescribe": "配水泵房2#厂区照明-远程",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 671,
+          "registerAddress": "%IX8.12",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房2#厂区照明-运行",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 672,
+          "registerAddress": "%IX8.13",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 673,
+          "registerAddress": "%IX8.14",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 674,
+          "registerAddress": "%IX8.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "name": "LK610 DO",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=6&pageSize=0",
+      "registers": [
+        {
+          "registerId": 675,
+          "registerAddress": "%QX0.0",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵变频器-启动",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 676,
+          "registerAddress": "%QX0.1",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵变频器-停止",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 677,
+          "registerAddress": "%QX0.2",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 678,
+          "registerAddress": "%QX0.3",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵变频器-启动",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 679,
+          "registerAddress": "%QX0.4",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵变频器-停止",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 680,
+          "registerAddress": "%QX0.5",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 681,
+          "registerAddress": "%QX0.6",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵变频器-启动",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 682,
+          "registerAddress": "%QX0.7",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵变频器-停止",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 683,
+          "registerAddress": "%QX0.8",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 684,
+          "registerAddress": "%QX0.9",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 685,
+          "registerAddress": "%QX0.10",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 686,
+          "registerAddress": "%QX0.11",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 687,
+          "registerAddress": "%QX0.12",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵进水电动蝶阀-开阀",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 688,
+          "registerAddress": "%QX0.13",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵进水电动蝶阀-关阀",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 689,
+          "registerAddress": "%QX0.14",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵进水电动蝶阀-开阀",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 690,
+          "registerAddress": "%QX0.15",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵进水电动蝶阀-关阀",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "name": "LK610 DO",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=7&pageSize=0",
+      "registers": [
+        {
+          "registerId": 691,
+          "registerAddress": "%QX2.0",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵进水电动蝶阀-开阀",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 692,
+          "registerAddress": "%QX2.1",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵进水电动蝶阀-关阀",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 693,
+          "registerAddress": "%QX2.2",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵进水电动蝶阀-开阀",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 694,
+          "registerAddress": "%QX2.3",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵进水电动蝶阀-关阀",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 695,
+          "registerAddress": "%QX2.4",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#1摄像机-联动1#预置位",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 696,
+          "registerAddress": "%QX2.5",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#1摄像机-联动2#预置位",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 697,
+          "registerAddress": "%QX2.6",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#2摄像机-联动1#预置位",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 698,
+          "registerAddress": "%QX2.7",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#2摄像机-联动2#预置位",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 699,
+          "registerAddress": "%QX2.8",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#3摄像机-联动1#预置位",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 700,
+          "registerAddress": "%QX2.9",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#3摄像机-联动2#预置位",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 701,
+          "registerAddress": "%QX2.10",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#4摄像机-联动1#预置位",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 702,
+          "registerAddress": "%QX2.11",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#4摄像机-联动2#预置位",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 703,
+          "registerAddress": "%QX2.12",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#5摄像机-联动1#预置位",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 704,
+          "registerAddress": "%QX2.13",
+          "registerAddressState": false,
+          "registerDescribe": "炭池#5摄像机-联动2#预置位",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 705,
+          "registerAddress": "%QX2.14",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 706,
+          "registerAddress": "%QX2.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "name": "LK610 DO",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=8&pageSize=0",
+      "registers": [
+        {
+          "registerId": 707,
+          "registerAddress": "%QX4.0",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机加热器-启停",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 708,
+          "registerAddress": "%QX4.1",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 709,
+          "registerAddress": "%QX4.2",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机加热器-启停",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 710,
+          "registerAddress": "%QX4.3",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 711,
+          "registerAddress": "%QX4.4",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机加热器-启停",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 712,
+          "registerAddress": "%QX4.5",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 713,
+          "registerAddress": "%QX4.6",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机加热器-启停",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 714,
+          "registerAddress": "%QX4.7",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 715,
+          "registerAddress": "%QX4.8",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 716,
+          "registerAddress": "%QX4.9",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 717,
+          "registerAddress": "%QX4.10",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 718,
+          "registerAddress": "%QX4.11",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 719,
+          "registerAddress": "%QX4.12",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房1#厂区照明-启停",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 720,
+          "registerAddress": "%QX4.13",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房2#厂区照明-启停",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 721,
+          "registerAddress": "%QX4.14",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 722,
+          "registerAddress": "%QX4.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=9&pageSize=0",
+      "registers": [
+        {
+          "registerId": 723,
+          "registerAddress": "%IX16.0",
+          "registerAddressState": true,
+          "registerDescribe": "配水泵房10KV 1#进线柜-合闸",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 724,
+          "registerAddress": "%IX16.1",
+          "registerAddressState": true,
+          "registerDescribe": "配水泵房10KV 2#进线柜-合闸",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 725,
+          "registerAddress": "%IX16.2",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房10KV 母联柜-合闸",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 726,
+          "registerAddress": "%IX16.3",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机出线柜-远程",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 727,
+          "registerAddress": "%IX16.4",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵电机出线柜-运行",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 728,
+          "registerAddress": "%IX16.5",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机出线柜-故障",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 729,
+          "registerAddress": "%IX16.6",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机出线柜-远程",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 730,
+          "registerAddress": "%IX16.7",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵电机出线柜-运行",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 731,
+          "registerAddress": "%IX16.8",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机出线柜-故障",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 732,
+          "registerAddress": "%IX16.9",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机出线柜-远程",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 733,
+          "registerAddress": "%IX16.10",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵电机出线柜-运行",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 734,
+          "registerAddress": "%IX16.11",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机出线柜-故障",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 735,
+          "registerAddress": "%IX16.12",
+          "registerAddressState": true,
+          "registerDescribe": "4#配水泵电机出线柜-远程",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 736,
+          "registerAddress": "%IX16.13",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机出线柜-运行",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 737,
+          "registerAddress": "%IX16.14",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机出线柜-故障",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 738,
+          "registerAddress": "%IX16.15",
+          "registerAddressState": true,
+          "registerDescribe": "配水泵房10KV 1#变压器-合闸",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=10&pageSize=0",
+      "registers": [
+        {
+          "registerId": 739,
+          "registerAddress": "%IX18.0",
+          "registerAddressState": true,
+          "registerDescribe": "配水泵房10KV 2#变压器-合闸",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 740,
+          "registerAddress": "%IX18.1",
+          "registerAddressState": true,
+          "registerDescribe": "分配电室1 10KV 1#电源-合闸",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 741,
+          "registerAddress": "%IX18.2",
+          "registerAddressState": true,
+          "registerDescribe": "分配电室1 10KV 2#电源-合闸",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 742,
+          "registerAddress": "%IX18.3",
+          "registerAddressState": true,
+          "registerDescribe": "分配电室2 10KV 1#电源-合闸",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 743,
+          "registerAddress": "%IX18.4",
+          "registerAddressState": true,
+          "registerDescribe": "分配电室2 10KV 2#电源-合闸",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 744,
+          "registerAddress": "%IX18.5",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 745,
+          "registerAddress": "%IX18.6",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 746,
+          "registerAddress": "%IX18.7",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 747,
+          "registerAddress": "%IX18.8",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 748,
+          "registerAddress": "%IX18.9",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 749,
+          "registerAddress": "%IX18.10",
+          "registerAddressState": false,
+          "registerDescribe": "直流屏进线1-合闸",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 750,
+          "registerAddress": "%IX18.11",
+          "registerAddressState": false,
+          "registerDescribe": "直流屏进线2-合闸",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 751,
+          "registerAddress": "%IX18.12",
+          "registerAddressState": false,
+          "registerDescribe": "UPS进线1-合闸",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 752,
+          "registerAddress": "%IX18.13",
+          "registerAddressState": false,
+          "registerDescribe": "UPS进线2-合闸",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 753,
+          "registerAddress": "%IX18.14",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房10KV 1#变压器-温度报警",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 754,
+          "registerAddress": "%IX18.15",
+          "registerAddressState": false,
+          "registerDescribe": "配水泵房10KV 2#变压器-温度报警",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=11&pageSize=0",
+      "registers": [
+        {
+          "registerId": 755,
+          "registerAddress": "%IX20.0",
+          "registerAddressState": true,
+          "registerDescribe": "0.4KV 1#进线柜-合闸",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 756,
+          "registerAddress": "%IX20.1",
+          "registerAddressState": true,
+          "registerDescribe": "0.4KV 2#进线柜-合闸",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 757,
+          "registerAddress": "%IX20.2",
+          "registerAddressState": false,
+          "registerDescribe": "0.4KV 母联柜-合闸",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 758,
+          "registerAddress": "%IX20.3",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 759,
+          "registerAddress": "%IX20.4",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 760,
+          "registerAddress": "%IX20.5",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 761,
+          "registerAddress": "%IX20.6",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 762,
+          "registerAddress": "%IX20.7",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 763,
+          "registerAddress": "%IX20.8",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 764,
+          "registerAddress": "%IX20.9",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 765,
+          "registerAddress": "%IX20.10",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 766,
+          "registerAddress": "%IX20.11",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 767,
+          "registerAddress": "%IX20.12",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 768,
+          "registerAddress": "%IX20.13",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 769,
+          "registerAddress": "%IX20.14",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 770,
+          "registerAddress": "%IX20.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "name": "LK610 DI",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=12&pageSize=0",
+      "registers": [
+        {
+          "registerId": 771,
+          "registerAddress": "%IX22.0",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵出水液控蝶阀-远程",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 772,
+          "registerAddress": "%IX22.1",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵出水液控蝶阀-全开",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 773,
+          "registerAddress": "%IX22.2",
+          "registerAddressState": true,
+          "registerDescribe": "1#配水泵出水液控蝶阀-全关",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 774,
+          "registerAddress": "%IX22.3",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵出水液控蝶阀-故障",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 775,
+          "registerAddress": "%IX22.4",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵出水液控蝶阀-远程",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 776,
+          "registerAddress": "%IX22.5",
+          "registerAddressState": true,
+          "registerDescribe": "2#配水泵出水液控蝶阀-全开",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 777,
+          "registerAddress": "%IX22.6",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵出水液控蝶阀-全关",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 778,
+          "registerAddress": "%IX22.7",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵出水液控蝶阀-故障",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 779,
+          "registerAddress": "%IX22.8",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵出水液控蝶阀-远程",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 780,
+          "registerAddress": "%IX22.9",
+          "registerAddressState": true,
+          "registerDescribe": "3#配水泵出水液控蝶阀-全开",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 781,
+          "registerAddress": "%IX22.10",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵出水液控蝶阀-全关",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 782,
+          "registerAddress": "%IX22.11",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵出水液控蝶阀-故障",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 783,
+          "registerAddress": "%IX22.12",
+          "registerAddressState": true,
+          "registerDescribe": "4#配水泵出水液控蝶阀-远程",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 784,
+          "registerAddress": "%IX22.13",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵出水液控蝶阀-全开",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 785,
+          "registerAddress": "%IX22.14",
+          "registerAddressState": true,
+          "registerDescribe": "4#配水泵出水液控蝶阀-全关",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 786,
+          "registerAddress": "%IX22.15",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵出水液控蝶阀-故障",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "name": "LK610 DO",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=13&pageSize=0",
+      "registers": [
+        {
+          "registerId": 787,
+          "registerAddress": "%QX6.0",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机出线柜-启动",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 788,
+          "registerAddress": "%QX6.1",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵电机出线柜-停止",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 789,
+          "registerAddress": "%QX6.2",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机出线柜-启动",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 790,
+          "registerAddress": "%QX6.3",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵电机出线柜-停止",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 791,
+          "registerAddress": "%QX6.4",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机出线柜-启动",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 792,
+          "registerAddress": "%QX6.5",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵电机出线柜-停止",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 793,
+          "registerAddress": "%QX6.6",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机出线柜-启动",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 794,
+          "registerAddress": "%QX6.7",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵电机出线柜-停止",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 795,
+          "registerAddress": "%QX6.8",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵出水液控蝶阀-开阀",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 796,
+          "registerAddress": "%QX6.9",
+          "registerAddressState": false,
+          "registerDescribe": "1#配水泵出水液控蝶阀-关阀",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 797,
+          "registerAddress": "%QX6.10",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵出水液控蝶阀-开阀",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 798,
+          "registerAddress": "%QX6.11",
+          "registerAddressState": false,
+          "registerDescribe": "2#配水泵出水液控蝶阀-关阀",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 799,
+          "registerAddress": "%QX6.12",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵出水液控蝶阀-开阀",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 800,
+          "registerAddress": "%QX6.13",
+          "registerAddressState": false,
+          "registerDescribe": "3#配水泵出水液控蝶阀-关阀",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 801,
+          "registerAddress": "%QX6.14",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵出水液控蝶阀-开阀",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 802,
+          "registerAddress": "%QX6.15",
+          "registerAddressState": false,
+          "registerDescribe": "4#配水泵出水液控蝶阀-关阀",
+          "registerNumber": 16
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "name": "LK610 DO",
+      "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=14&pageSize=0",
+      "registers": [
+        {
+          "registerId": 803,
+          "registerAddress": "%QX8.0",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#1摄像机-联动1#预置位",
+          "registerNumber": 1
+        },
+        {
+          "registerId": 804,
+          "registerAddress": "%QX8.1",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#1摄像机-联动2#预置位",
+          "registerNumber": 2
+        },
+        {
+          "registerId": 805,
+          "registerAddress": "%QX8.2",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#2摄像机-联动1#预置位",
+          "registerNumber": 3
+        },
+        {
+          "registerId": 806,
+          "registerAddress": "%QX8.3",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#2摄像机-联动2#预置位",
+          "registerNumber": 4
+        },
+        {
+          "registerId": 807,
+          "registerAddress": "%QX8.4",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#3摄像机-联动1#预置位",
+          "registerNumber": 5
+        },
+        {
+          "registerId": 808,
+          "registerAddress": "%QX8.5",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#3摄像机-联动2#预置位",
+          "registerNumber": 6
+        },
+        {
+          "registerId": 809,
+          "registerAddress": "%QX8.6",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#4摄像机-联动1#预置位",
+          "registerNumber": 7
+        },
+        {
+          "registerId": 810,
+          "registerAddress": "%QX8.7",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#4摄像机-联动2#预置位",
+          "registerNumber": 8
+        },
+        {
+          "registerId": 811,
+          "registerAddress": "%QX8.8",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#5摄像机-联动1#预置位",
+          "registerNumber": 9
+        },
+        {
+          "registerId": 812,
+          "registerAddress": "%QX8.9",
+          "registerAddressState": false,
+          "registerDescribe": "砂池#5摄像机-联动2#预置位",
+          "registerNumber": 10
+        },
+        {
+          "registerId": 813,
+          "registerAddress": "%QX8.10",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 11
+        },
+        {
+          "registerId": 814,
+          "registerAddress": "%QX8.11",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 12
+        },
+        {
+          "registerId": 815,
+          "registerAddress": "%QX8.12",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 13
+        },
+        {
+          "registerId": 816,
+          "registerAddress": "%QX8.13",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 14
+        },
+        {
+          "registerId": 817,
+          "registerAddress": "%QX8.14",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 15
+        },
+        {
+          "registerId": 818,
+          "registerAddress": "%QX8.15",
+          "registerAddressState": false,
+          "registerDescribe": "",
+          "registerNumber": 16
+        }
+      ]
+    }
+  ],
+  "apis": [
+    {
+      "index": 1,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=1&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=1&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=1&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=1&pageSize=0' | jq ."
+    },
+    {
+      "index": 2,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=2&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=2&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=2&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=2&pageSize=0' | jq ."
+    },
+    {
+      "index": 3,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=3&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=3&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=3&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=3&pageSize=0' | jq ."
+    },
+    {
+      "index": 4,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=4&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=4&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=4&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=4&pageSize=0' | jq ."
+    },
+    {
+      "index": 5,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=5&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=5&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=5&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=5&pageSize=0' | jq ."
+    },
+    {
+      "index": 6,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=6&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=6&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=6&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=6&pageSize=0' | jq ."
+    },
+    {
+      "index": 7,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=7&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=7&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=7&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=7&pageSize=0' | jq ."
+    },
+    {
+      "index": 8,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=8&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=8&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=8&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=8&pageSize=0' | jq ."
+    },
+    {
+      "index": 9,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=9&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=9&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=9&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=9&pageSize=0' | jq ."
+    },
+    {
+      "index": 10,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=10&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=10&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=10&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=10&pageSize=0' | jq ."
+    },
+    {
+      "index": 11,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=11&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=11&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=11&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=11&pageSize=0' | jq ."
+    },
+    {
+      "index": 12,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=12&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=12&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=12&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=12&pageSize=0' | jq ."
+    },
+    {
+      "index": 13,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=13&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=13&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=13&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=13&pageSize=0' | jq ."
+    },
+    {
+      "index": 14,
+      "directUrl": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=14&pageSize=0",
+      "proxyUrl": "/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=14&pageSize=0",
+      "method": "GET",
+      "curl": "curl -s 'http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=14&pageSize=0' | jq .",
+      "curlProxy": "curl -s 'http://localhost:5777/api/jx-device/registerTable/list?deviceId=25&registerModuleIndex=14&pageSize=0' | jq ."
+    }
+  ],
+  "meta": {
+    "source": "apps/web-ele/设备示例/jx-sql.sql",
+    "generatedAt": "2025-11-14T08:05:54.876Z",
+    "note": "registerAddressState values reflect the snapshot in SQL sample; runtime values should come from the API endpoints in apis[]."
+  }
+}

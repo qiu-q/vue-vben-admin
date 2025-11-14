@@ -19,11 +19,19 @@ const layers = computed(() =>
   Array.isArray(props.config.layers) ? props.config.layers : [],
 );
 const selectedId = ref<null | string>(props.modelValue ?? null);
+// 支持多选（Ctrl/⌘ 切换选择）+ 框选
+const selectedSet = ref<Set<string>>(new Set());
+const canvasEl = ref<HTMLElement | null>(null);
+const marqueeSelecting = ref(false);
+const marqueeStart = ref({ x: 0, y: 0 });
+const marqueeRect = ref({ x: 0, y: 0, width: 0, height: 0 });
 
 watch(
   () => props.modelValue,
   (val) => {
     selectedId.value = val ?? null;
+    selectedSet.value.clear();
+    if (selectedId.value) selectedSet.value.add(selectedId.value);
   },
 );
 
@@ -36,9 +44,60 @@ const activeLayer = computed(() =>
   layers.value.find((l: any) => l.id === selectedId.value),
 );
 
+function isSelected(id: string) {
+  return selectedSet.value.has(id);
+}
+
+function setSingleSelection(id: string) {
+  selectedSet.value.clear();
+  selectedSet.value.add(id);
+  selectedId.value = id;
+  emit('select', id);
+}
+
+function toggleSelection(id: string) {
+  if (selectedSet.value.has(id)) {
+    selectedSet.value.delete(id);
+    if (selectedId.value === id) {
+      const first = selectedSet.value.values().next().value ?? null;
+      selectedId.value = first;
+      if (first) emit('select', first);
+    }
+  } else {
+    selectedSet.value.add(id);
+    selectedId.value = id;
+    emit('select', id);
+  }
+}
+
 let rafId: null | number = null;
 let nextPos = { x: 0, y: 0 };
 let nextSize = { width: 0, height: 0 };
+// 组移动支持
+let moveModeMulti = false;
+let dragTargets: Array<{ id: string; startX: number; startY: number }> = [];
+let baseMainX = 0;
+let baseMainY = 0;
+let pendingDx = 0;
+let pendingDy = 0;
+
+// 多选工具条输入框
+const groupInput = ref('');
+
+function setGroupForSelection() {
+  const gid = (groupInput.value || `group-${Date.now().toString().slice(-5)}`).trim();
+  (props.config.layers || []).forEach((l: any) => {
+    if (selectedSet.value.has(l.id)) l.groupId = gid;
+  });
+  emit('update', props.config);
+}
+
+function clearGroupForSelection() {
+  (props.config.layers || []).forEach((l: any) => {
+    if (selectedSet.value.has(l.id)) delete l.groupId;
+  });
+  emit('update', props.config);
+}
 
 // --------- 网格与刻度 ---------
 const gridSize = 32;
@@ -306,10 +365,10 @@ function onDrop(e: DragEvent) {
 }
 
 // --------- 选中 ---------
-function selectLayer(id: string) {
+function selectLayer(e: MouseEvent, id: string) {
   if (moving.value || resizing.value) return; // 拖动缩放时不能切换
-  selectedId.value = id;
-  emit('select', id);
+  if (e.ctrlKey || e.metaKey) toggleSelection(id);
+  else setSingleSelection(id);
 }
 
 // --------- 拖动图层（带辅助线） ---------
@@ -317,13 +376,30 @@ const hoverGuide = ref({ x: null as null | number, y: null as null | number });
 
 function onMouseDownLayer(e: MouseEvent, layer: any) {
   if (resizing.value) return;
-  selectLayer(layer.id);
+  const alreadySelected = selectedSet.value.has(layer.id);
+  const multi = selectedSet.value.size > 1;
+  // 若当前已是多选且点击项包含在多选中，则保持多选不变（用于移动整组）
+  if (!(multi && alreadySelected)) {
+    selectLayer(e, layer.id);
+  }
   moving.value = true;
   dragOffset.value = {
     x: e.clientX - layer.config.x,
     y: e.clientY - layer.config.y,
   };
   nextPos = { x: layer.config.x, y: layer.config.y };
+  moveModeMulti = selectedSet.value.size > 1 && selectedSet.value.has(layer.id);
+  baseMainX = layer.config.x;
+  baseMainY = layer.config.y;
+  // 记录待拖拽目标及其起始位置
+  const ids = moveModeMulti ? Array.from(selectedSet.value) : [layer.id];
+  dragTargets = ids
+    .map((id) => {
+      const t = layers.value.find((l: any) => l.id === id);
+      if (!t) return null;
+      return { id, startX: Number(t.config.x) || 0, startY: Number(t.config.y) || 0 };
+    })
+    .filter(Boolean) as Array<{ id: string; startX: number; startY: number }>;
   document.body.style.cursor = 'move';
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
@@ -347,6 +423,8 @@ function onMove(e: MouseEvent) {
 
     nextPos.x = newX;
     nextPos.y = newY;
+    pendingDx = newX - baseMainX;
+    pendingDy = newY - baseMainY;
     if (!rafId) {
       rafId = requestAnimationFrame(updateLayerPosition);
     }
@@ -363,7 +441,15 @@ function onMove(e: MouseEvent) {
 }
 
 function updateLayerPosition() {
-  if (activeLayer.value) {
+  if (moveModeMulti && dragTargets.length) {
+    // 批量移动：按起始位移增量应用到每个目标
+    for (const t of dragTargets) {
+      const layer = layers.value.find((l: any) => l.id === t.id);
+      if (!layer) continue;
+      layer.config.x = t.startX + pendingDx;
+      layer.config.y = t.startY + pendingDy;
+    }
+  } else if (activeLayer.value) {
     activeLayer.value.config.x = nextPos.x;
     activeLayer.value.config.y = nextPos.y;
   }
@@ -393,7 +479,7 @@ function onUp() {
 
 // --------- 缩放 ---------
 function onResizeMouseDown(e: MouseEvent, layer: any) {
-  selectLayer(layer.id);
+  setSingleSelection(layer.id);
   resizing.value = true;
   resizeOrigin.value = {
     mouseX: e.clientX,
@@ -412,6 +498,8 @@ function onResizeMouseDown(e: MouseEvent, layer: any) {
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMove);
   window.removeEventListener('mouseup', onUp);
+  window.removeEventListener('mousemove', onCanvasMouseMove as any);
+  window.removeEventListener('mouseup', onCanvasMouseUp as any);
   if (rafId) cancelAnimationFrame(rafId);
   cleanupApiTimers();
 });
@@ -435,6 +523,78 @@ watch(
   () => startPollingApis(),
   { immediate: true, deep: true },
 );
+
+// ========= 框选（画布空白处按下并拖动） =========
+function getCanvasPoint(e: MouseEvent) {
+  const el = canvasEl.value as HTMLElement | null;
+  if (!el) return { x: 0, y: 0 };
+  const rect = el.getBoundingClientRect();
+  // 兼容缩放：换算为画布设计坐标
+  const scaleX = rect.width / props.config.width;
+  const scaleY = rect.height / props.config.height;
+  const scale = Math.min(scaleX || 1, scaleY || 1);
+  return {
+    x: (e.clientX - rect.left) / scale,
+    y: (e.clientY - rect.top) / scale,
+  };
+}
+
+function onCanvasMouseDown(e: MouseEvent) {
+  if (moving.value || resizing.value) return;
+  marqueeSelecting.value = true;
+  const p = getCanvasPoint(e);
+  marqueeStart.value = p;
+  marqueeRect.value = { x: p.x, y: p.y, width: 0, height: 0 };
+  selectedSet.value.clear();
+  selectedId.value = null;
+  window.addEventListener('mousemove', onCanvasMouseMove);
+  window.addEventListener('mouseup', onCanvasMouseUp);
+}
+
+function onCanvasMouseMove(e: MouseEvent) {
+  if (!marqueeSelecting.value) return;
+  const p = getCanvasPoint(e);
+  const x = Math.min(p.x, marqueeStart.value.x);
+  const y = Math.min(p.y, marqueeStart.value.y);
+  const w = Math.abs(p.x - marqueeStart.value.x);
+  const h = Math.abs(p.y - marqueeStart.value.y);
+  marqueeRect.value = { x, y, width: w, height: h };
+}
+
+function rectsIntersect(a: {x:number;y:number;width:number;height:number}, b: {x:number;y:number;width:number;height:number}) {
+  return !(a.x + a.width < b.x || b.x + b.width < a.x || a.y + a.height < b.y || b.y + b.height < a.y);
+}
+
+function onCanvasMouseUp() {
+  if (!marqueeSelecting.value) return;
+  marqueeSelecting.value = false;
+  window.removeEventListener('mousemove', onCanvasMouseMove);
+  window.removeEventListener('mouseup', onCanvasMouseUp);
+  const m = marqueeRect.value;
+  const isClickOnly = m.width < 3 && m.height < 3;
+  if (isClickOnly) {
+    selectedSet.value.clear();
+    selectedId.value = null;
+    return;
+  }
+  const picked: Array<{ id: string; zIndex: number }> = [];
+  for (const l of layers.value) {
+    const cfg = l.config || {};
+    const r = { x: cfg.x || 0, y: cfg.y || 0, width: cfg.width || 0, height: cfg.height || 0 };
+    if (r.width <= 0 || r.height <= 0) continue;
+    if (rectsIntersect(m, r)) picked.push({ id: l.id, zIndex: Number(l.zIndex) || 0 });
+  }
+  selectedSet.value.clear();
+  picked.forEach((p) => selectedSet.value.add(p.id));
+  if (picked.length) {
+    picked.sort((a, b) => a.zIndex - b.zIndex);
+    const primary = picked[picked.length - 1].id;
+    selectedId.value = primary;
+    emit('select', primary);
+  } else {
+    selectedId.value = null;
+  }
+}
 </script>
 
 <template>
@@ -514,6 +674,8 @@ watch(
         width: `${config.width}px`,
         height: `${config.height}px`,
       }"
+      ref="canvasEl"
+      @mousedown="onCanvasMouseDown"
       @dragover="onDragOver"
       @drop="onDrop"
     >
@@ -537,11 +699,11 @@ watch(
             zIndex: layer.zIndex,
             transform: `rotate(${layer.config.rotate || 0}deg)`,
             transformOrigin: 'center center',
-            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
-            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+            outline: isSelected(layer.id) ? '2px solid #1976d2' : '',
+            boxShadow: isSelected(layer.id) ? '0 0 0 3px #90caf9aa' : '',
           }"
           @mousedown="onMouseDownLayer($event, layer)"
-          @click.stop="selectLayer(layer.id)"
+          @click.stop="selectLayer($event, layer.id)"
           draggable="false"
           @dragstart.prevent
         />
@@ -558,13 +720,13 @@ watch(
             fontSize: layer.config.fontSize || '11px',
             transform: `rotate(${layer.config.rotate || 0}deg)`,
             transformOrigin: 'center center',
-            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
-            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+            outline: isSelected(layer.id) ? '2px solid #1976d2' : '',
+            boxShadow: isSelected(layer.id) ? '0 0 0 3px #90caf9aa' : '',
             overflowX: 'auto',
             overflowY: layer.config.scrollY ? 'auto' : 'hidden',
           }"
           @mousedown="onMouseDownLayer($event, layer)"
-          @click.stop="selectLayer(layer.id)"
+          @click.stop="selectLayer($event, layer.id)"
           draggable="false"
           @dragstart.prevent
         >
@@ -611,11 +773,11 @@ watch(
             fontSize: layer.config.fontSize + 'px',
             transform: `rotate(${layer.config.rotate || 0}deg)`,
             transformOrigin: 'center center',
-            outline: selectedId === layer.id ? '2px solid #1976d2' : '',
-            boxShadow: selectedId === layer.id ? '0 0 0 3px #90caf9aa' : '',
+            outline: isSelected(layer.id) ? '2px solid #1976d2' : '',
+            boxShadow: isSelected(layer.id) ? '0 0 0 3px #90caf9aa' : '',
           }"
           @mousedown="onMouseDownLayer($event, layer)"
-          @click.stop="selectLayer(layer.id)"
+          @click.stop="selectLayer($event, layer.id)"
           draggable="false"
           @dragstart.prevent
         >
@@ -635,6 +797,21 @@ watch(
           @mousedown="onResizeMouseDown($event, layer)"
         ></div>
       </template>
+      <!-- 框选矩形 -->
+      <div
+        v-if="marqueeSelecting"
+        :style="{
+          position: 'absolute',
+          left: marqueeRect.x + 'px',
+          top: marqueeRect.y + 'px',
+          width: marqueeRect.width + 'px',
+          height: marqueeRect.height + 'px',
+          border: '1px dashed #3091ff',
+          background: 'rgba(48,145,255,0.15)',
+          zIndex: 25,
+          pointerEvents: 'none',
+        }"
+      ></div>
       <!-- 拖动辅助线 -->
       <div
         v-if="hoverGuide.x !== null"
@@ -662,6 +839,15 @@ watch(
           opacity: 0.7,
         }"
       ></div>
+    </div>
+    <!-- 多选工具条：当选择超过1个图层时显示，可设置/清空分组 -->
+    <div v-if="selectedSet.size > 1" class="absolute right-2 top-8 z-30 rounded border border-[#3a3f52] bg-[#1f2330] p-2 text-xs text-white shadow">
+      <div class="mb-1">已选 {{ selectedSet.size }} 个图层</div>
+      <div class="flex items-center gap-1">
+        <input v-model="groupInput" placeholder="组ID，如 group-1" class="w-36 rounded border bg-[#1d1e24] p-1" />
+        <button class="rounded border px-2 py-0.5" @click="setGroupForSelection">设置分组</button>
+        <button class="rounded border px-2 py-0.5" @click="clearGroupForSelection">清空分组</button>
+      </div>
     </div>
   </div>
 </template>
@@ -711,3 +897,19 @@ watch(
   box-shadow: 0 0 2px #1976d299;
 }
 </style>
+// 对外暴露：按 groupId 选中整组
+function selectGroup(groupId: string) {
+  selectedSet.value.clear();
+  const list = layers.value.filter((l: any) => l.groupId === groupId);
+  list.forEach((l: any) => selectedSet.value.add(l.id));
+  if (list.length) {
+    const primary = list.reduce((a: any, b: any) => (Number(a.zIndex || 0) > Number(b.zIndex || 0) ? a : b)).id;
+    selectedId.value = primary;
+    emit('select', primary);
+  } else {
+    selectedId.value = null;
+  }
+}
+
+// 供父组件调用
+defineExpose({ selectGroup });

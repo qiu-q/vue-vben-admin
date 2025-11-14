@@ -6,6 +6,7 @@ import CanvasEditor from '#/components/business/DeviceEditor/CanvasEditor.vue';
 import LayerList from '#/components/business/DeviceEditor/LayerList.vue';
 import PalettePanel from '#/components/business/DeviceEditor/PalettePanel.vue';
 import PropertyPanel from '#/components/business/DeviceEditor/PropertyPanel.vue';
+import AiAssistantPanel from '#/components/business/DeviceEditor/AiAssistantPanel.vue';
 
 /* -------------------------------------------------------------------------- */
 /* 工具函数                                                                    */
@@ -49,6 +50,7 @@ const palettePanelRef = ref<InstanceType<typeof PalettePanel>>();
 const deviceIdFromRoute = route.params.deviceId as string | undefined;
 
 const deviceOptions = ref<{ label: string; value: string }[]>([]);
+const canvasRef = ref<InstanceType<typeof CanvasEditor> | null>(null);
 const deviceRows = ref<any[]>([]);
 const selectedDeviceId = ref(deviceIdFromRoute ?? '');
 const creatingNew = ref(false);
@@ -204,6 +206,33 @@ const materialsList = computed<MaterialItem[]>(() => {
   walk(tree);
   return list;
 });
+
+// AI 助手弹窗（全局入口）
+const aiAssistantVisible = ref(false);
+function handleAiAssistantUpdate(cfg: any) {
+  config.value = cfg;
+  try { pushHistory(); } catch {}
+  try { rebuildAllApis(); } catch {}
+}
+function handleAiApplied(e: any) {
+  try { aiAssistantVisible.value = false; } catch {}
+  if (e?.save) {
+    try { handleSave(); } catch {}
+  }
+}
+
+// 当前设备范围内的接口（前/背/详情合并，设备级隔离）
+const deviceApis = computed<any[]>(() => {
+  const map = new Map<string, any>();
+  [frontConfig.value, backConfig.value, detailConfig.value].forEach((cfg) => {
+    (cfg.apiList || []).forEach((api: any) => map.set(api.id, api));
+  });
+  return Array.from(map.values());
+});
+
+function handleSelectGroup(groupId: string) {
+  try { canvasRef.value?.selectGroup?.(groupId); } catch {}
+}
 
 /* -------------------------------------------------------------------------- */
 /* 初始化与数据加载                                                            */
@@ -446,8 +475,11 @@ async function handleSave() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    const json = await resp.json();
-    if (json.code === 200) {
+    let json: any = null;
+    const ct = resp.headers.get('content-type') || '';
+    try { json = ct.includes('application/json') ? await resp.json() : { code: resp.status, msg: await resp.text() }; }
+    catch { json = { code: resp.status, msg: '无法解析响应' }; }
+    if (resp.ok && json.code === 200) {
       alert('保存成功！');
       if (creatingNew.value && json.data?.deviceId) {
         selectedDeviceId.value = String(json.data.deviceId);
@@ -455,7 +487,7 @@ async function handleSave() {
         fetchDeviceList();
       }
     } else {
-      alert(`保存失败：${json.msg ?? '未知错误'}`);
+      alert(`保存失败（${resp.status}）：${json.msg ?? json.message ?? '未知错误'}`);
     }
   } catch {
     alert('保存请求失败，请检查网络或服务器');
@@ -465,6 +497,15 @@ async function handlePreview() {
   await handleSave();
   if (selectedDeviceId.value) {
     router.push({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
+  }
+}
+
+// 设备信息弹窗提交：新增设备时，点“确定”即发起保存
+function handleDeviceInfoSubmit() {
+  showDeviceInfoModal.value = false;
+  if (creatingNew.value) {
+    // 对于新增流程，确认设备信息后直接保存，完成创建设备
+    handleSave();
   }
 }
 
@@ -503,6 +544,35 @@ function handleMoveView() {
     moveView(viewType.value, target as ViewType);
     alert('迁移成功！');
   }
+}
+
+// 清空方案
+function clearCurrentView() {
+  if (!confirm(`确定清空当前视图(${viewType.value})的所有图层与接口？此操作不可撤销。`)) return;
+  const empty = createDefaultConfig();
+  empty.deviceId = config.value.deviceId || selectedDeviceId.value || '';
+  empty.width = config.value.width;
+  empty.height = config.value.height;
+  if (viewType.value === 'front') frontConfig.value = empty;
+  else if (viewType.value === 'back') backConfig.value = empty;
+  else detailConfig.value = empty;
+  pushHistory();
+  rebuildAllApis();
+}
+function clearAllViews() {
+  if (!confirm('确定清空整台设备的所有视图(front/back/detail)？此操作不可撤销。')) return;
+  const make = () => {
+    const c = createDefaultConfig();
+    c.deviceId = selectedDeviceId.value || '';
+    c.width = config.value.width;
+    c.height = config.value.height;
+    return c;
+  };
+  frontConfig.value = make();
+  backConfig.value = make();
+  detailConfig.value = make();
+  pushHistory();
+  rebuildAllApis();
 }
 
 /**
@@ -624,13 +694,16 @@ async function handleImportJson(e: Event) {
       <button @click="handleSave" class="btn-primary border-[#38dbb8] bg-[#2ba672] hover:bg-[#225a45]">保存</button>
       <button @click="handlePreview" class="btn-primary border-[#3ae0ff] bg-[#2a69d7] hover:bg-[#154c8a]">阅览</button>
       <button @click="showDeviceInfoModal = true" class="btn-primary border-[#ffb638] bg-[#d78a2a] hover:bg-[#8a5b15]">设备信息</button>
+      <button @click="aiAssistantVisible = true" class="btn-primary border-[#8a6df3] bg-[#5b4cc4] hover:bg-[#4436a5]">AI 助手</button>
+      <button @click="clearCurrentView()" class="btn-primary border-[#ff6384] hover:bg-[#2a1f24]">清空当前视图</button>
+      <button @click="clearAllViews()" class="btn-primary border-[#ff3860] hover:bg-[#2a1b1d]">清空整台设备</button>
     </div>
 
     <!-- 设备信息弹窗 -->
     <div v-if="showDeviceInfoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
       <div class="w-[600px] rounded-lg bg-[#20222a] p-6">
         <h3 class="mb-4 text-lg font-bold text-white">设备信息</h3>
-        <form @submit.prevent="showDeviceInfoModal = false">
+        <form @submit.prevent="handleDeviceInfoSubmit">
           <div class="mb-3">
             <label class="block text-sm text-gray-400">设备类别</label>
             <select
@@ -666,7 +739,7 @@ async function handleImportJson(e: Event) {
       <PalettePanel ref="palettePanelRef" :config="config" @update="handleMaterialsTreeUpdate" />
     </aside>
     <aside class="w-1/6 overflow-y-auto border-r bg-[#181a20] p-2">
-      <LayerList :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @update="handleConfigUpdate" />
+      <LayerList :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @select-group="handleSelectGroup" @update="handleConfigUpdate" />
     </aside>
 
     <!-- 画布编辑区 -->
@@ -679,7 +752,7 @@ async function handleImportJson(e: Event) {
           height: `${config.height + 32}px`,
         }"
       >
-        <CanvasEditor :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @update="handleConfigUpdate" />
+        <CanvasEditor ref="canvasRef" :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @update="handleConfigUpdate" />
       </div>
       <div v-if="!config" class="flex h-full items-center justify-center text-gray-400">加载中…</div>
     </main>
@@ -691,7 +764,6 @@ async function handleImportJson(e: Event) {
           :config="config"
           :selected-layer-id="selectedLayerId"
           :materials-list="materialsList"
-          :all-api-list="allApis"
           @update="handleConfigUpdate"
         />
       </template>
@@ -718,6 +790,17 @@ async function handleImportJson(e: Event) {
         </div>
       </template>
     </aside>
+
+    <!-- AI 助手弹窗（全局） -->
+    <div v-if="aiAssistantVisible" class="fixed inset-0 z-[6500] bg-[rgba(0,0,0,0.55)]">
+      <div class="pointer-events-auto m-10 mx-auto w-[900px] max-w-[92vw] rounded-lg bg-[#24283b] p-4 text-white shadow-xl">
+        <div class="mb-2 flex items-center justify-between">
+          <div class="text-lg font-bold">AI 辅助助手</div>
+          <button class="rounded border px-3 py-1" @click="aiAssistantVisible = false">关闭</button>
+        </div>
+        <AiAssistantPanel :config="config" :available-apis="deviceApis" :materials-list="materialsList" @update="handleAiAssistantUpdate" @applied="handleAiApplied" />
+      </div>
+    </div>
   </div>
 </template>
 <style scoped>

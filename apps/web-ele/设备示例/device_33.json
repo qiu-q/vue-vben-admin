@@ -1,0 +1,920 @@
+{
+  "front": {
+    "deviceId": "33",
+    "width": 1920,
+    "height": 1080,
+    "layers": [
+      {
+        "id": "port-adv-1763103154416",
+        "type": "port-adv",
+        "zIndex": 1,
+        "name": "高级端口-4416",
+        "config": {
+          "x": 231.02031014887325,
+          "y": 520.6243046503201,
+          "width": 32,
+          "height": 32,
+          "src": "http://192.168.0.101:9000/qiuqiu/green.gif",
+          "rotate": 0,
+          "apiId": "",
+          "portDataKey": "",
+          "portKey": "",
+          "statusMapping": {},
+          "usePush": false,
+          "pushService": "",
+          "events": {}
+        }
+      },
+      {
+        "id": "layer-1763103373600-ui4g",
+        "name": "3#配水泵进水电动蝶阀-开阀",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 199,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[0].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-7eaz",
+        "name": "3#配水泵进水电动蝶阀-关阀",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 244,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[1].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-2hsb",
+        "name": "4#配水泵进水电动蝶阀-开阀",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 288,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[2].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-ee16",
+        "name": "4#配水泵进水电动蝶阀-关阀",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 332,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[3].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-jkdr",
+        "name": "炭池#1摄像机-联动1#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 376,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[4].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-z543",
+        "name": "炭池#1摄像机-联动2#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 420,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[5].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-obix",
+        "name": "炭池#2摄像机-联动1#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 464,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[6].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-45d6",
+        "name": "炭池#2摄像机-联动2#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 508,
+          "y": 100,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[7].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-6sk4",
+        "name": "炭池#3摄像机-联动1#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 200,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[8].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-fggt",
+        "name": "炭池#3摄像机-联动2#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 244,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[9].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-7dd7",
+        "name": "炭池#4摄像机-联动1#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 288,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[10].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-gm6k",
+        "name": "炭池#4摄像机-联动2#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 332,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[11].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-9kdn",
+        "name": "炭池#5摄像机-联动1#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 376,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[12].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-84gl",
+        "name": "炭池#5摄像机-联动2#预置位",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 420,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[13].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-iqly",
+        "name": "端口15",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 464,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[14].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      },
+      {
+        "id": "layer-1763103373600-8id1",
+        "name": "端口16",
+        "type": "port-adv",
+        "zIndex": 1,
+        "config": {
+          "x": 508,
+          "y": 144,
+          "width": 32,
+          "height": 32,
+          "rotate": 0,
+          "apiId": "api-17631031567415uyd",
+          "portDataKey": "rows[15].registerAddressState",
+          "portKey": "value",
+          "statusMapping": {
+            "true": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/off2蓝.gif",
+              "label": "开"
+            },
+            "false": {
+              "iconUrl": "http://192.168.0.101:9000/qiuqiu/green.gif",
+              "label": "关"
+            }
+          },
+          "events": {
+            "hover": {
+              "text": "{{registerDescribe}} {{registerAddressState}}"
+            }
+          },
+          "usePush": false,
+          "pushService": ""
+        }
+      }
+    ],
+    "materialsTree": [
+      {
+        "id": "root",
+        "name": "全部素材",
+        "expanded": true,
+        "parent": null,
+        "children": [],
+        "materials": [
+          {
+            "id": "port-default",
+            "url": "http://192.168.0.101:9000/qiuqiu/green.gif",
+            "name": "端口",
+            "type": "port",
+            "isBuiltIn": true
+          },
+          {
+            "id": "port-adv-default",
+            "url": "http://192.168.0.101:9000/qiuqiu/green.gif",
+            "name": "高级端口",
+            "type": "port-adv",
+            "isBuiltIn": true
+          },
+          {
+            "id": "table-default",
+            "url": "data:image/svg+xml,%3Csvg xmlns%3D\"http://www.w3.org/2000/svg\" width%3D\"56\" height%3D\"56\"%3E%3Crect x%3D\"1\" y%3D\"1\" width%3D\"54\" height%3D\"54\" fill%3D\"%23fff\" stroke%3D\"%23ccc\"/%3E%3Cline x1%3D\"1\" y1%3D\"19\" x2%3D\"55\" y2%3D\"19\" stroke%3D\"%23ccc\"/%3E%3Cline x1%3D\"1\" y1%3D\"37\" x2%3D\"55\" y2%3D\"37\" stroke%3D\"%23ccc\"/%3E%3Cline x1%3D\"19\" y1%3D\"1\" x2%3D\"19\" y2%3D\"55\" stroke%3D\"%23ccc\"/%3E%3Cline x1%3D\"37\" y1%3D\"1\" x2%3D\"37\" y2%3D\"55\" stroke%3D\"%23ccc\"/%3E%3C/svg%3E",
+            "name": "表格",
+            "type": "table",
+            "isBuiltIn": true
+          },
+          {
+            "id": "card-default",
+            "url": "data:image/svg+xml,%3Csvg xmlns%3D\"http://www.w3.org/2000/svg\" width%3D\"56\" height%3D\"56\"%3E%3Crect x%3D\"1\" y%3D\"1\" width%3D\"54\" height%3D\"54\" fill%3D\"%23fff\" stroke%3D\"%23ccc\"/%3E%3Ctext x%3D\"28\" y%3D\"34\" font-size%3D\"20\" text-anchor%3D\"middle\" fill%3D\"%23ccc\"%3ET%3C/text%3E%3C/svg%3E",
+            "name": "卡片",
+            "type": "card",
+            "isBuiltIn": true
+          }
+        ]
+      }
+    ],
+    "apiList": [
+      {
+        "id": "api-17631031567415uyd",
+        "name": "新接口",
+        "url": "http://192.168.0.101:8080/jx-device/registerTable/list?deviceId=25&registerModuleIndex=7&pageSize=0",
+        "method": "GET",
+        "interval": 3000,
+        "params": "",
+        "lastSample": {
+          "total": 16,
+          "rows": [
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 691,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.0",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "3#配水泵进水电动蝶阀-开阀",
+              "registerNumber": 1,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 692,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.1",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "3#配水泵进水电动蝶阀-关阀",
+              "registerNumber": 2,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 693,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.2",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "4#配水泵进水电动蝶阀-开阀",
+              "registerNumber": 3,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 694,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.3",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "4#配水泵进水电动蝶阀-关阀",
+              "registerNumber": 4,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 695,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.4",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#1摄像机-联动1#预置位",
+              "registerNumber": 5,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 696,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.5",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#1摄像机-联动2#预置位",
+              "registerNumber": 6,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 697,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.6",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#2摄像机-联动1#预置位",
+              "registerNumber": 7,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 698,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.7",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#2摄像机-联动2#预置位",
+              "registerNumber": 8,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 699,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.8",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#3摄像机-联动1#预置位",
+              "registerNumber": 9,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 700,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.9",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#3摄像机-联动2#预置位",
+              "registerNumber": 10,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 701,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.10",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#4摄像机-联动1#预置位",
+              "registerNumber": 11,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 702,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.11",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#4摄像机-联动2#预置位",
+              "registerNumber": 12,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 703,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.12",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#5摄像机-联动1#预置位",
+              "registerNumber": 13,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 704,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.13",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "炭池#5摄像机-联动2#预置位",
+              "registerNumber": 14,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 705,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.14",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "",
+              "registerNumber": 15,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            },
+            {
+              "createBy": null,
+              "createTime": null,
+              "updateBy": null,
+              "updateTime": null,
+              "remark": null,
+              "registerId": 706,
+              "deviceId": 25,
+              "registerModelName": "LK610 DO",
+              "registerAddress": "%QX2.15",
+              "registerAddressState": false,
+              "registerType": null,
+              "registerDescribe": "",
+              "registerNumber": 16,
+              "registerTop": null,
+              "registerBottom": null,
+              "registerModuleIndex": 7
+            }
+          ],
+          "code": 200,
+          "msg": "查询成功"
+        },
+        "usePush": false,
+        "pushUrl": ""
+      }
+    ]
+  },
+  "back": {
+    "deviceId": "33",
+    "width": 1920,
+    "height": 1080,
+    "layers": [],
+    "materialsTree": [],
+    "apiList": []
+  },
+  "detail": {
+    "deviceId": "33",
+    "width": 1920,
+    "height": 1080,
+    "layers": [],
+    "materialsTree": [],
+    "apiList": []
+  }
+}

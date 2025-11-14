@@ -6,6 +6,7 @@ const props = defineProps<{
   modelValue: boolean;
   data: any;
   title?: string;
+  actions?: Array<{ label: string; onClick: () => void; danger?: boolean }>;
 }>();
 const emit = defineEmits(['update:modelValue']);
 
@@ -113,7 +114,18 @@ function collapseAll() {
     <div class="max-h-[82vh] w-[860px] max-w-[92vw] overflow-hidden rounded-lg bg-[#1f2430] text-white shadow-xl">
       <div class="flex items-center justify-between border-b border-[#3a3f52] px-4 py-3">
         <div class="truncate font-semibold">{{ title || 'JSON 预览' }}</div>
-        <button class="rounded border border-gray-500 px-2 py-1 text-sm" @click="visible = false">关闭</button>
+        <div class="flex items-center gap-2">
+          <template v-for="(act, i) in (actions || [])" :key="i">
+            <button
+              class="rounded border px-2 py-1 text-sm"
+              :class="act.danger ? 'border-red-400 text-red-300' : 'border-gray-500'"
+              @click="act.onClick && act.onClick()"
+            >
+              {{ act.label }}
+            </button>
+          </template>
+          <button class="rounded border border-gray-500 px-2 py-1 text-sm" @click="visible = false">关闭</button>
+        </div>
       </div>
       <div class="flex items-center gap-2 border-b border-[#3a3f52] px-4 py-2 text-sm">
         <button class="rounded border border-gray-500 px-2 py-1" @click="expandAll">展开全部</button>

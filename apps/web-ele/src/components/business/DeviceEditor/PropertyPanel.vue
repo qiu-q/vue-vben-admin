@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import JsonPreviewModal from '#/components/common/JsonPreviewModal.vue';
+import AiAssistantPanel from '#/components/business/DeviceEditor/AiAssistantPanel.vue';
 
 import { uploadFile } from '#/api/device';
 import { WS_URLS } from '#/constants/ws';
@@ -29,6 +30,54 @@ const selectedLayer = computed(() => {
   if (!props.selectedLayerId) return null;
   return props.config.layers.find((l: any) => l.id === props.selectedLayerId);
 });
+
+// ========== 分组与快速复制 ==========
+function ensureUniqueId(prefix = 'layer') {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function deepClone(obj: any) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function duplicateOneLayer(layer: any, dx = 20, dy = 20) {
+  const clone = deepClone(layer);
+  clone.id = ensureUniqueId(layer.type || 'layer');
+  if (clone.name) clone.name = `${clone.name}-copy`;
+  if (clone.config) {
+    clone.config.x = (clone.config.x || 0) + dx;
+    clone.config.y = (clone.config.y || 0) + dy;
+  }
+  clone.zIndex = Math.max(1, (props.config.layers?.length || 0) + 1);
+  return clone;
+}
+
+function duplicateSelectedLayer() {
+  const layer = selectedLayer.value as any;
+  if (!layer) return;
+  const copy = duplicateOneLayer(layer);
+  props.config.layers.push(copy);
+  emit('update', props.config);
+}
+
+function getGroupLayers(groupId: string) {
+  return (props.config.layers || []).filter((l: any) => l.groupId === groupId);
+}
+
+function duplicateGroup() {
+  const layer = selectedLayer.value as any;
+  if (!layer || !layer.groupId) {
+    // 若未设置 groupId，则退化为复制当前图层
+    return duplicateSelectedLayer();
+  }
+  const group = getGroupLayers(layer.groupId);
+  if (!group.length) return;
+  // 统一偏移
+  const dx = 40, dy = 40;
+  const clones = group.map((l: any) => duplicateOneLayer(l, dx, dy));
+  props.config.layers.push(...clones);
+  emit('update', props.config);
+}
 
 const availableApis = computed(() => {
   const map = new Map<string, any>();
@@ -89,14 +138,30 @@ async function testApi(idx: number) {
   try {
     const resp = await (api.method === 'POST'
       ? fetch(api.url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: api.params || '{}',
-      })
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: api.params || '{}',
+        })
       : fetch(api.url));
     api.lastSample = await resp.json();
-  } catch {
-    api.lastSample = { error: '请求失败' };
+  } catch (err) {
+    // CORS/网络失败，尝试服务端代理
+    try {
+      const proxyResp = await fetch('/ai/fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: api.url,
+          method: api.method || 'GET',
+          body: api.method === 'POST' ? (api.params || '{}') : undefined,
+        }),
+      });
+      const data = await proxyResp.json();
+      if (proxyResp.ok) api.lastSample = data?.data ?? { error: '无数据' };
+      else api.lastSample = { error: data?.error || '代理请求失败' };
+    } catch (e) {
+      api.lastSample = { error: '请求失败' };
+    }
   }
   syncApiList();
 }
@@ -224,6 +289,9 @@ function handleRowDblClick(e: MouseEvent, idx: number) {
   if (tag) return; // 避免编辑时误触
   handlePreviewClick(idx);
 }
+
+// AI 助手弹窗
+const aiDialogVisible = ref(false);
 
 // ⚡ 新增：保存解析后的端口字典
 const portMap = ref<Record<string, any>>({});
@@ -818,6 +886,19 @@ watch(
         <input v-model="selectedLayer.name" class="border p-1" />
       </div>
 
+      <!-- 分组与快速复制 -->
+      <div class="mb-2 flex items-center gap-2">
+        <label>组ID：</label>
+        <input
+          v-model="selectedLayer.groupId"
+          class="border p-1"
+          placeholder="相同组ID可一起复制/移动"
+          @change="emit('update', props.config)"
+        />
+        <button class="rounded border px-2 py-1 text-xs" @click="duplicateSelectedLayer">复制图层</button>
+        <button class="rounded border px-2 py-1 text-xs" @click="duplicateGroup">复制组</button>
+      </div>
+
       <div v-if="selectedLayer.config">
         <!-- 位置信息 -->
         <div class="mb-2">
@@ -1171,6 +1252,7 @@ watch(
   <div>
     <b>页面数据源接口列表：</b>
     <button @click="addApi" class="ml-2 rounded border px-2 py-1 text-xs">+新增接口</button>
+    <button @click="aiDialogVisible = true" class="ml-2 rounded border px-2 py-1 text-xs">AI 辅助助手</button>
   </div>
   <div
     v-for="(api, idx) in apiList"
@@ -1279,6 +1361,17 @@ watch(
     </div>
   </div>
 </div>
+
+<!-- AI 助手弹窗 -->
+<div v-if="aiDialogVisible" class="fixed inset-0 z-[6100] bg-[rgba(0,0,0,0.55)]">
+  <div class="pointer-events-auto m-10 mx-auto w-[900px] max-w-[92vw] rounded-lg bg-[#24283b] p-4 text-white shadow-xl">
+    <div class="mb-2 flex items-center justify-between">
+      <div class="text-lg font-bold">AI 辅助助手</div>
+      <button class="rounded border px-3 py-1" @click="aiDialogVisible = false">关闭</button>
+    </div>
+    <AiAssistantPanel :config="props.config" :available-apis="availableApis" :materials-list="props.materialsList || []" @update="(cfg:any) => emit('update', cfg)" />
+  </div>
+  </div>
     <!-- ================== 图标选择弹窗 ================== -->
     <div
       v-if="iconSelectVisible"

@@ -13,6 +13,11 @@ export default defineConfig(async () => {
       ],
       server: {
         proxy: {
+          '/ai': {
+            target: 'http://localhost:8787',
+            changeOrigin: true,
+            rewrite: (p) => p,
+          },
           '/mockapi': {
             target: 'http://192.168.0.101:8080', // Python FastAPI 的端口
             changeOrigin: true,
