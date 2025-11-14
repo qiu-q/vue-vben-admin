@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import JsonPreviewModal from '#/components/common/JsonPreviewModal.vue';
 
 import { uploadFile } from '#/api/device';
 import { WS_URLS } from '#/constants/ws';
@@ -191,6 +192,38 @@ const dynamicPort = ref(false);
 const selectedApiId = ref('');
 const portKey = ref('');
 const testResult = ref<any>(null);
+// JSON 预览弹窗
+const jsonPreviewVisible = ref(false);
+const jsonPreviewData = ref<any>(null);
+const jsonPreviewTitle = ref('');
+
+function openJsonPreview(api: any) {
+  jsonPreviewData.value = api?.lastSample ?? null;
+  jsonPreviewTitle.value = api?.name || api?.url || 'JSON 预览';
+  jsonPreviewVisible.value = true;
+}
+
+function openJsonPreviewRaw(data: any, title = 'JSON 预览') {
+  jsonPreviewData.value = data ?? null;
+  jsonPreviewTitle.value = title;
+  jsonPreviewVisible.value = true;
+}
+
+async function handlePreviewClick(idx: number) {
+  const api = apiList.value[idx];
+  if (!api.lastSample) {
+    await testApi(idx);
+  }
+  openJsonPreview(api);
+}
+
+function handleRowDblClick(e: MouseEvent, idx: number) {
+  const t = e.target as HTMLElement | null;
+  if (!t) return;
+  const tag = t.closest('input, textarea, select, button, img, label');
+  if (tag) return; // 避免编辑时误触
+  handlePreviewClick(idx);
+}
 
 // ⚡ 新增：保存解析后的端口字典
 const portMap = ref<Record<string, any>>({});
@@ -1034,7 +1067,10 @@ watch(
           </div>
           <button class="mt-4 rounded border px-3 py-1" @click="handleSaveAdv">保存配置</button>
           <div v-if="advTestResult" class="mt-2">
-            <label class="mb-1 block">接口返回：</label>
+            <div class="mb-1 flex items-center justify-between">
+              <label class="block">接口返回：</label>
+              <button class="rounded border px-2 py-1 text-xs" @click="openJsonPreviewRaw(advTestResult, '接口返回预览')">在弹窗预览</button>
+            </div>
             <pre class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white">{{ JSON.stringify(advTestResult, null, 2) }}</pre>
           </div>
         </div>
@@ -1079,7 +1115,10 @@ watch(
             <textarea v-model="tableDataStr" rows="4" class="w-full border p-1 text-xs"></textarea>
           </div>
           <div v-if="testResult" class="mb-2">
-            <label class="mb-1 block">接口返回：</label>
+            <div class="mb-1 flex items-center justify-between">
+              <label class="block">接口返回：</label>
+              <button class="rounded border px-2 py-1 text-xs" @click="openJsonPreviewRaw(testResult, '接口返回预览')">在弹窗预览</button>
+            </div>
             <pre class="max-h-40 overflow-auto bg-[#1e1e1e] p-1 text-xs text-white">{{ JSON.stringify(testResult, null, 2) }}</pre>
           </div>
           <button class="mt-2 rounded border px-3 py-1" @click="handleSaveTable">保存配置</button>
@@ -1133,7 +1172,12 @@ watch(
     <b>页面数据源接口列表：</b>
     <button @click="addApi" class="ml-2 rounded border px-2 py-1 text-xs">+新增接口</button>
   </div>
-  <div v-for="(api, idx) in apiList" :key="api.id" class="mb-1 rounded border p-2">
+  <div
+    v-for="(api, idx) in apiList"
+    :key="api.id"
+    class="mb-1 rounded border p-2"
+    @dblclick="(e) => handleRowDblClick(e, idx)"
+  >
     <div class="mt-1">
       <label>
         <input
@@ -1222,9 +1266,15 @@ watch(
         "
       ></textarea>
     </div>
-    <div v-if="api.lastSample" class="mt-1 text-xs text-gray-400 break-all">
-      <span v-if="api.lastSample.error" style="color: #e55757">{{ api.lastSample.error }}</span>
-      <span v-else>返回：{{ JSON.stringify(api.lastSample) }}</span>
+    <div class="mt-1 text-xs text-gray-400">
+      <span v-if="api.lastSample?.error" style="color: #e55757">{{ api.lastSample.error }}</span>
+      <button
+        class="ml-2 rounded border px-2 py-1 text-xs"
+        @click="handlePreviewClick(idx)"
+        title="如未测试，将自动测试后预览"
+      >
+        预览返回
+      </button>
       <button @click="handleApiTestUse(idx)" class="ml-2 text-xs text-blue-500">选择本接口进行映射</button>
     </div>
   </div>
@@ -1257,5 +1307,12 @@ watch(
         </div>
       </div>
     </div>
+
+    <!-- JSON 预览弹窗 -->
+    <JsonPreviewModal
+      v-model="jsonPreviewVisible"
+      :data="jsonPreviewData"
+      :title="jsonPreviewTitle"
+    />
   </div>
 </template>

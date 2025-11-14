@@ -14,7 +14,7 @@ export default defineConfig(async () => {
       server: {
         proxy: {
           '/mockapi': {
-            target: 'http://192.168.124.8:5333', // Python FastAPI 的端口
+            target: 'http://192.168.0.101:8080', // Python FastAPI 的端口
             changeOrigin: true,
             rewrite: (path) => path, // 保持路径不变
           },
@@ -22,14 +22,14 @@ export default defineConfig(async () => {
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api/, ''),
             // mock代理目标地址
-            target: 'http://192.168.1.99:8080',
+            target: 'http://192.168.0.101:8080',
             ws: true,
           },
           '/python': {
             changeOrigin: true,
             rewrite: (path) => path.replace(/^\/api/, ''),
             // mock代理目标地址
-            target: 'http://127.0.0.1:5001',
+            target: 'http://192.168.0.101:8080',
             ws: true,
           },
         },
