@@ -234,6 +234,54 @@ function handleSelectGroup(groupId: string) {
   try { canvasRef.value?.selectGroup?.(groupId); } catch {}
 }
 
+function handleDuplicateGroup(groupId: string) {
+  const src = (config.value.layers || []).filter((l: any) => (l.groupId || '') === groupId);
+  if (!src.length) return;
+  const suffix = Date.now().toString().slice(-5);
+  const newGroupId = groupId ? `${groupId}-copy-${suffix}` : `group-${suffix}`;
+  const clones = src.map((l: any) => {
+    const c = deepClone(l);
+    c.id = `${l.id}-copy-${suffix}`;
+    c.groupId = newGroupId;
+    c.zIndex = Number(c.zIndex || 0) + 1;
+    if (c.config) {
+      c.config.x = Number(c.config.x || 0) + 40;
+      c.config.y = Number(c.config.y || 0) + 40;
+    }
+    return c;
+  });
+  config.value.layers.push(...clones);
+  pushHistory();
+}
+
+function downloadJson(filename: string, data: any) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function handleExportGroup(groupId: string) {
+  const layers = (config.value.layers || []).filter((l: any) => (l.groupId || '') === groupId);
+  const apiIds = new Set<string>();
+  layers.forEach((l: any) => { const id = l.config?.apiId; if (id) apiIds.add(id); });
+  const apis = (config.value.apiList || []).filter((a: any) => apiIds.has(a.id));
+  const payload = {
+    deviceId: config.value.deviceId,
+    groupId: groupId || '',
+    layers,
+    apis,
+    meta: { exportedAt: new Date().toISOString() },
+  };
+  const name = `group_${groupId || 'ungroup'}_${Date.now().toString().slice(-6)}.json`;
+  downloadJson(name, payload);
+}
+
 /* -------------------------------------------------------------------------- */
 /* 初始化与数据加载                                                            */
 /* -------------------------------------------------------------------------- */
@@ -739,7 +787,15 @@ async function handleImportJson(e: Event) {
       <PalettePanel ref="palettePanelRef" :config="config" @update="handleMaterialsTreeUpdate" />
     </aside>
     <aside class="w-1/6 overflow-y-auto border-r bg-[#181a20] p-2">
-      <LayerList :config="config" :selected-layer-id="selectedLayerId" @select="handleSelectLayer" @select-group="handleSelectGroup" @update="handleConfigUpdate" />
+      <LayerList
+        :config="config"
+        :selected-layer-id="selectedLayerId"
+        @select="handleSelectLayer"
+        @select-group="handleSelectGroup"
+        @duplicate-group="handleDuplicateGroup"
+        @export-group="handleExportGroup"
+        @update="handleConfigUpdate"
+      />
     </aside>
 
     <!-- 画布编辑区 -->

@@ -5,7 +5,7 @@ const props = defineProps<{
   config: any;
   selectedLayerId?: null | string;
 }>();
-const emit = defineEmits(['select', 'update']);
+const emit = defineEmits(['select', 'update', 'select-group', 'duplicate-group', 'export-group']);
 
 // 分组视图
 type Group = { id: string; label: string; layers: any[] };
@@ -69,8 +69,9 @@ function handleDragEnd() {
 }
 
 // 选中
-function handleSelect(layerId: string) {
-  emit('select', layerId);
+function handleSelect(layer: any) {
+  if (layer?.groupId) emit('select-group', layer.groupId);
+  else emit('select', layer.id);
 }
 
 // 右键菜单
@@ -148,7 +149,11 @@ function moveBottom() {
           <span>{{ g.label }}</span>
           <span class="text-[#7aa2f7]">({{ g.layers.length }})</span>
         </div>
-        <button class="rounded border px-2 py-0.5" @click="$emit('select-group', g.id === '__ungroup__' ? '' : g.id)">选择分组</button>
+        <div class="flex items-center gap-1">
+          <button class="rounded border px-2 py-0.5" @click="$emit('select-group', g.id === '__ungroup__' ? '' : g.id)">选择分组</button>
+          <button class="rounded border px-2 py-0.5" @click="$emit('duplicate-group', g.id === '__ungroup__' ? '' : g.id)">复制分组</button>
+          <button class="rounded border px-2 py-0.5" @click="$emit('export-group', g.id === '__ungroup__' ? '' : g.id)">导出分组</button>
+        </div>
       </div>
       <div v-show="isOpen(g.id)">
         <div
@@ -165,7 +170,7 @@ function moveBottom() {
           @dragenter="handleDragEnter(config.layers.findIndex((l:any)=>l.id===layer.id))"
           @dragend="handleDragEnd"
           @drop="handleDragEnd"
-          @click="handleSelect(layer.id)"
+          @click="handleSelect(layer)"
           @contextmenu="handleContextMenu($event, layer)"
         >
           <img v-if="layer.type === 'image'" :src="layer.config.src" class="mr-2 h-8 w-8 rounded border object-cover" />

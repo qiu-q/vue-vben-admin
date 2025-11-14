@@ -70,6 +70,25 @@ function toggleSelection(id: string) {
   }
 }
 
+// 群选模式：点击组内任一图层，自动选择整个分组
+const groupSelectMode = ref(true);
+function getGroupMembersByLayerId(id: string) {
+  const l = layers.value.find((x: any) => x.id === id);
+  if (!l || !l.groupId) return [] as any[];
+  return layers.value.filter((x: any) => x.groupId === l.groupId);
+}
+function setGroupSelectionByLayer(id: string) {
+  const members = getGroupMembersByLayerId(id);
+  if (!members.length) return false;
+  selectedSet.value.clear();
+  members.forEach((m) => selectedSet.value.add(m.id));
+  // 选 zIndex 最大为主选
+  const top = members.reduce((a: any, b: any) => (Number(a.zIndex || 0) > Number(b.zIndex || 0) ? a : b));
+  selectedId.value = top?.id ?? id;
+  emit('select', selectedId.value!);
+  return true;
+}
+
 let rafId: null | number = null;
 let nextPos = { x: 0, y: 0 };
 let nextSize = { width: 0, height: 0 };
@@ -368,6 +387,7 @@ function onDrop(e: DragEvent) {
 function selectLayer(e: MouseEvent, id: string) {
   if (moving.value || resizing.value) return; // 拖动缩放时不能切换
   if (e.ctrlKey || e.metaKey) toggleSelection(id);
+  else if (groupSelectMode.value && getGroupMembersByLayerId(id).length) setGroupSelectionByLayer(id);
   else setSingleSelection(id);
 }
 
@@ -848,6 +868,12 @@ function onCanvasMouseUp() {
         <button class="rounded border px-2 py-0.5" @click="setGroupForSelection">设置分组</button>
         <button class="rounded border px-2 py-0.5" @click="clearGroupForSelection">清空分组</button>
       </div>
+    </div>
+    <!-- 设置：群选模式开关 -->
+    <div class="absolute left-2 top-8 z-30 rounded border border-[#3a3f52] bg-[#1f2330] p-2 text-xs text-white shadow">
+      <label class="inline-flex items-center gap-1">
+        <input type="checkbox" v-model="groupSelectMode" /> 群选模式
+      </label>
     </div>
   </div>
 </template>
