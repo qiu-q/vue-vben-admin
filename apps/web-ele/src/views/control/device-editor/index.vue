@@ -282,6 +282,68 @@ function handleExportGroup(groupId: string) {
   downloadJson(name, payload);
 }
 
+// =============== 分组 JSON 在线查看与编辑 ===============
+const groupEditorVisible = ref(false);
+const groupEditorGroupId = ref('');
+const groupEditorJson = ref('');
+
+function openGroupEditor(groupId: string) {
+  const layers = (config.value.layers || []).filter((l: any) => (l.groupId || '') === groupId);
+  const apiIds = new Set<string>();
+  layers.forEach((l: any) => { const id = l.config?.apiId; if (id) apiIds.add(id); });
+  const apis = (config.value.apiList || []).filter((a: any) => apiIds.has(a.id));
+  const payload = {
+    deviceId: config.value.deviceId,
+    groupId: groupId || '',
+    layers,
+    apis,
+    meta: { openedAt: new Date().toISOString() },
+  };
+  groupEditorGroupId.value = groupId || '';
+  groupEditorJson.value = JSON.stringify(payload, null, 2);
+  groupEditorVisible.value = true;
+}
+
+function applyGroupEditor() {
+  let parsed: any;
+  try {
+    parsed = JSON.parse(groupEditorJson.value || '{}');
+  } catch (e) {
+    alert('JSON 解析失败，请检查格式');
+    return;
+  }
+  const gid = (parsed.groupId ?? groupEditorGroupId.value ?? '').toString();
+  const newLayers: any[] = Array.isArray(parsed.layers) ? parsed.layers : [];
+  const newApis: any[] = Array.isArray(parsed.apis) ? parsed.apis : [];
+  // 移除旧分组图层
+  const before = (config.value.layers || []).filter((l: any) => (l.groupId || '') !== groupEditorGroupId.value);
+  // 去重并分配新ID，防止冲突
+  const suffix = Date.now().toString().slice(-5);
+  const existingIds = new Set(before.map((l: any) => l.id));
+  const fixed = newLayers.map((l: any, idx: number) => {
+    const c = deepClone(l);
+    if (!c.id || existingIds.has(c.id)) c.id = `${gid || 'group'}-${idx}-${suffix}`;
+    c.groupId = gid;
+    // 兜底字段
+    c.zIndex = Number(c.zIndex || 0) + 1;
+    if (!c.config) c.config = {};
+    c.config.x = Number(c.config.x || 0);
+    c.config.y = Number(c.config.y || 0);
+    c.config.width = Number(c.config.width || 32);
+    c.config.height = Number(c.config.height || 32);
+    return c;
+  });
+  config.value.layers = before.concat(fixed);
+  // 合并 apis：存在则覆盖，不存在则新增
+  const map = new Map<string, any>((config.value.apiList || []).map((a: any) => [a.id, a]));
+  for (const a of newApis) {
+    if (a && a.id) map.set(a.id, a);
+  }
+  config.value.apiList = Array.from(map.values());
+  groupEditorVisible.value = false;
+  pushHistory();
+}
+
 /* -------------------------------------------------------------------------- */
 /* 初始化与数据加载                                                            */
 /* -------------------------------------------------------------------------- */
@@ -794,6 +856,7 @@ async function handleImportJson(e: Event) {
         @select-group="handleSelectGroup"
         @duplicate-group="handleDuplicateGroup"
         @export-group="handleExportGroup"
+        @edit-group="openGroupEditor"
         @update="handleConfigUpdate"
       />
     </aside>
@@ -855,6 +918,20 @@ async function handleImportJson(e: Event) {
           <button class="rounded border px-3 py-1" @click="aiAssistantVisible = false">关闭</button>
         </div>
         <AiAssistantPanel :config="config" :available-apis="deviceApis" :materials-list="materialsList" @update="handleAiAssistantUpdate" @applied="handleAiApplied" />
+      </div>
+    </div>
+
+    <!-- 分组 JSON 在线编辑弹窗 -->
+    <div v-if="groupEditorVisible" class="fixed inset-0 z-[6600] flex items-center justify-center bg-black/50">
+      <div class="w-[900px] max-w-[94vw] rounded-lg bg-[#20222a] p-4 text-white shadow-xl">
+        <div class="mb-2 flex items-center justify-between">
+          <div class="text-lg font-bold">编辑分组 JSON（{{ groupEditorGroupId || '未分组' }}）</div>
+          <div class="flex items-center gap-2">
+            <button class="rounded border px-3 py-1" @click="groupEditorVisible = false">关闭</button>
+            <button class="rounded border border-[#38dbb8] bg-[#2ba672] px-3 py-1" @click="applyGroupEditor">应用修改</button>
+          </div>
+        </div>
+        <textarea v-model="groupEditorJson" class="h-[60vh] w-full rounded border border-[#3a3f52] bg-[#14161c] p-2 font-mono text-xs text-white"></textarea>
       </div>
     </div>
   </div>

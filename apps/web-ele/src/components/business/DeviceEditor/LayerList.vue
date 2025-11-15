@@ -5,7 +5,7 @@ const props = defineProps<{
   config: any;
   selectedLayerId?: null | string;
 }>();
-const emit = defineEmits(['select', 'update', 'select-group', 'duplicate-group', 'export-group']);
+const emit = defineEmits(['select', 'update', 'select-group', 'duplicate-group', 'export-group', 'edit-group']);
 
 // 分组视图
 type Group = { id: string; label: string; layers: any[] };
@@ -153,6 +153,7 @@ function moveBottom() {
           <button class="rounded border px-2 py-0.5" @click="$emit('select-group', g.id === '__ungroup__' ? '' : g.id)">选择分组</button>
           <button class="rounded border px-2 py-0.5" @click="$emit('duplicate-group', g.id === '__ungroup__' ? '' : g.id)">复制分组</button>
           <button class="rounded border px-2 py-0.5" @click="$emit('export-group', g.id === '__ungroup__' ? '' : g.id)">导出分组</button>
+          <button class="rounded border px-2 py-0.5" @click="$emit('edit-group', g.id === '__ungroup__' ? '' : g.id)">编辑分组</button>
         </div>
       </div>
       <div v-show="isOpen(g.id)">
