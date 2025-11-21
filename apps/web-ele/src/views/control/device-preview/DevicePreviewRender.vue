@@ -427,6 +427,7 @@ watch(
           zIndex: layer.zIndex,
           transform: `rotate(${layer.config.rotate || 0}deg)`,
           transformOrigin: 'center center',
+          pointerEvents: 'none',
         }"
         draggable="false"
       />
@@ -462,7 +463,7 @@ watch(
       <!-- 高级端口 -->
       <img
         v-else-if="layer.type === 'port-adv'"
-        :src="getAdvPortStatus(layer)?.iconUrl || '/imgs/port-gray.png'"
+        :src="getAdvPortStatus(layer)?.iconUrl || (layer.config.statusMapping?.false?.iconUrl || 'http://192.168.0.101:9000/qiuqiu/null.png')"
         :title="getAdvPortStatus(layer)?.label || ''"
         :style="{
           position: 'absolute',
