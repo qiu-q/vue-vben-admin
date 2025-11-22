@@ -1,4 +1,4 @@
-import { initPreferences } from '@vben/preferences';
+import { initPreferences, updatePreferences } from '@vben/preferences';
 import { unmountGlobalLoading } from '@vben/utils';
 
 import { initAllWs } from '#/services/ws';
@@ -20,6 +20,12 @@ async function initApplication() {
   await initPreferences({
     namespace,
     overrides: overridesPreferences,
+  });
+  // 强制关闭 tab 缓存，避免页面切换后仍复用旧实例
+  updatePreferences({
+    tabbar: {
+      keepAlive: false,
+    },
   });
 
   // 启动应用并挂载

@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import DevicePreviewRender from '#/views/control/device-preview/DevicePreviewRender.vue';
 
 const route = useRoute();
+defineOptions({ name: 'ControlDeviceView' });
 const deviceId = ref((route.params.deviceId as string) || '');
 const frontConfig = ref<any>(null);
 const backConfig = ref<any>(null);
@@ -91,6 +92,16 @@ async function loadConfig() {
 }
 
 onMounted(loadConfig);
+watch(
+  () => route.params.deviceId,
+  (id) => {
+    const nextId = typeof id === 'string' ? id : '';
+    if (nextId && nextId !== deviceId.value) {
+      deviceId.value = nextId;
+      loadConfig();
+    }
+  },
+);
 watch(config, updateScale);
 onMounted(() => {
   window.addEventListener('resize', updateScale);

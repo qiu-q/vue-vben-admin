@@ -14,13 +14,13 @@ const controlRoutes: RouteRecordRaw[] = [
     name: 'NetworkTopology',
     path: '/control/topology',
     component: () => import('#/views/control/network-topology/index.vue'),
-    meta: { icon: 'lucide:network', title: '拓扑图', order: 1 },
+    meta: { icon: 'lucide:network', title: '拓扑图', order: 1, keepAlive: false },
   },
   {
     name: 'LldpNetworkTopology',
     path: '/control/lldp-topology',
     component: () => import('#/views/control/lldp-topology/index.vue'),
-    meta: { icon: 'lucide:git-branch', title: 'LLDP拓扑', order: 1.5 },
+    meta: { icon: 'lucide:git-branch', title: 'LLDP拓扑', order: 1.5, keepAlive: false },
   },
 
   // --- 设备编辑器 ---
@@ -28,25 +28,25 @@ const controlRoutes: RouteRecordRaw[] = [
     name: 'DeviceEditor',
     path: '/control/device-editor',
     component: () => import('#/views/control/device-editor/index.vue'),
-    meta: { icon: 'lucide:pencil-ruler', title: '设备编辑', order: 2 },
+    meta: { icon: 'lucide:pencil-ruler', title: '设备编辑', order: 2, keepAlive: false },
   },
 
   // --- 设备监控预览 ---
-  // {
-  //   name: 'DevicePreview',
-  //   path: '/control/device-preview/:deviceId',
-  //   component: () => import('#/views/control/device-preview/index.vue'),
-  //   meta: { icon: 'lucide:monitor', title: '设备预览', order: 3 },
-  //   props: true,
-  // },
+  {
+    name: 'DevicePreview',
+    path: '/control/device-preview/:deviceId',
+    component: () => import('#/views/control/device-preview/index.vue'),
+    meta: { icon: 'lucide:monitor', title: '设备预览', order: 3 },
+    props: true,
+  },
   // --- 简洁预览页面 ---
-  // {
-  //   name: 'DeviceView',
-  //   path: '/control/device-view/:deviceId',
-  //   component: () => import('#/views/control/device-view/index.vue'),
-  //   meta: { icon: 'lucide:eye', title: '阅览', order: 4 },
-  //   props: true,
-  // },
+  {
+    name: 'DeviceView',
+    path: '/control/device-view/:deviceId',
+    component: () => import('#/views/control/device-view/index.vue'),
+    meta: { icon: 'lucide:eye', title: '阅览', order: 4, keepAlive: false },
+    props: true,
+  },
   // // 机柜
   // {
   //   name: 'Cabinet',

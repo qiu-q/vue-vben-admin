@@ -623,7 +623,8 @@ async function handleSave() {
 async function handlePreview() {
   await handleSave();
   if (selectedDeviceId.value) {
-    router.push({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
+    const target = router.resolve({ name: 'DeviceView', params: { deviceId: selectedDeviceId.value } });
+    window.open(target.href, '_blank');
   }
 }
 
