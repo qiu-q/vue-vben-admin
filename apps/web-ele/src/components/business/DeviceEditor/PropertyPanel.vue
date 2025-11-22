@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { Ref } from 'vue';
 import JsonPreviewModal from '#/components/common/JsonPreviewModal.vue';
+import JsonTree from '#/components/common/JsonTree.vue';
 import AiAssistantPanel from '#/components/business/DeviceEditor/AiAssistantPanel.vue';
 
 import { uploadFile } from '#/api/device';
@@ -262,6 +264,15 @@ const jsonPreviewVisible = ref(false);
 const jsonPreviewData = ref<any>(null);
 const jsonPreviewTitle = ref('');
 
+// 取值 Key 弹窗
+const keyPickerVisible = ref(false);
+const keyPickerData = ref<any>(null);
+const keyPickerTitle = ref('选择取值 Key');
+const keyPickerTarget = ref<Ref<string> | null>(null);
+const keyPickerCurrent = ref('');
+const keyPickerAllowRoot = ref(false);
+const keyPickerExpanded = ref<Set<string>>(new Set());
+
 function openJsonPreview(api: any) {
   jsonPreviewData.value = api?.lastSample ?? null;
   jsonPreviewTitle.value = api?.name || api?.url || 'JSON 预览';
@@ -288,6 +299,70 @@ function handleRowDblClick(e: MouseEvent, idx: number) {
   const tag = t.closest('input, textarea, select, button, img, label');
   if (tag) return; // 避免编辑时误触
   handlePreviewClick(idx);
+}
+
+function initKeyPickerExpanded(depth = 1) {
+  const set = new Set<string>();
+  set.add('');
+  function walk(val: any, base: string, d: number) {
+    if (!val || typeof val !== 'object') return;
+    if (d <= depth) set.add(base);
+    if (Array.isArray(val)) {
+      val.forEach((v, i) => walk(v, `${base}[${i}]`, d + 1));
+    } else {
+      Object.keys(val).forEach((key) => {
+        const next = base ? `${base}.${key}` : key;
+        walk((val as any)[key], next, d + 1);
+      });
+    }
+  }
+  walk(keyPickerData.value, '', 0);
+  keyPickerExpanded.value = set;
+}
+
+function toggleKeyPickerPath(path: string) {
+  const set = new Set(keyPickerExpanded.value);
+  if (set.has(path)) set.delete(path);
+  else set.add(path);
+  keyPickerExpanded.value = set;
+}
+
+async function openKeyPickerForApi(apiId: string, target: Ref<string>, title: string, allowRoot = false) {
+  if (!apiId) {
+    alert('请先选择接口');
+    return;
+  }
+  let api = availableApis.value.find((a) => a.id === apiId);
+  if (!api) {
+    alert('未找到对应接口');
+    return;
+  }
+  if (!api.lastSample) {
+    const idx = apiList.value.findIndex((a) => a.id === apiId);
+    if (idx >= 0) {
+      await testApi(idx);
+      api = apiList.value[idx];
+    }
+  }
+  if (!api?.lastSample) {
+    alert('请先点击接口上的“测试”以获取数据');
+    return;
+  }
+  keyPickerData.value = api.lastSample;
+  keyPickerTitle.value = title;
+  keyPickerTarget.value = target;
+  keyPickerCurrent.value = target.value;
+  keyPickerAllowRoot.value = allowRoot;
+  keyPickerVisible.value = true;
+  initKeyPickerExpanded(1);
+}
+
+function handlePickKey(path: string) {
+  if (!keyPickerTarget.value) return;
+  keyPickerTarget.value.value = path;
+  keyPickerCurrent.value = path;
+  keyPickerVisible.value = false;
+  keyPickerTarget.value = null;
 }
 
 // AI 助手弹窗
@@ -1062,10 +1137,15 @@ watch(
           </div>
           <div class="mb-2" v-if="advApiId">
             <label>取值 Key：</label>
-            <select v-model="advPortDataKey" class="border p-1 w-44">
-              <option value="">(回退)</option>
-              <option v-for="k in getKeyOptions(advApiId)" :key="k" :value="k">{{ k }}</option>
-            </select>
+            <div class="flex items-center gap-2">
+              <select v-model="advPortDataKey" class="border p-1 w-44">
+                <option value="">(回退)</option>
+                <option v-for="k in getKeyOptions(advApiId)" :key="k" :value="k">{{ k }}</option>
+              </select>
+              <button class="rounded border px-2 py-1 text-xs" @click="openKeyPickerForApi(advApiId, advPortDataKey, '选择端口取值 Key', true)">
+                弹窗选择
+              </button>
+            </div>
           </div>
           <div v-if="advApiId && Object.keys(advPortMap).length" class="mt-2">
             <label>端口选择：</label>
@@ -1097,10 +1177,15 @@ watch(
               </select>
               <div v-if="advHoverApiId" class="mt-1">
                 <label>取值 Key：</label>
-                <select v-model="advHoverDataKey" class="border p-1 w-44">
-                  <option value="">(根)</option>
-                  <option v-for="k in advHoverKeyOptions" :key="k" :value="k">{{ k }}</option>
-                </select>
+                <div class="flex items-center gap-2">
+                  <select v-model="advHoverDataKey" class="border p-1 w-44">
+                    <option value="">(根)</option>
+                    <option v-for="k in advHoverKeyOptions" :key="k" :value="k">{{ k }}</option>
+                  </select>
+                  <button class="rounded border px-2 py-1 text-xs" @click="openKeyPickerForApi(advHoverApiId, advHoverDataKey, '选择鼠标移入取值 Key', true)">
+                    弹窗选择
+                  </button>
+                </div>
               </div>
             </div>
             <div class="mb-2">
@@ -1111,10 +1196,15 @@ watch(
               </select>
               <div v-if="advClickApiId" class="mt-1">
                 <label>取值 Key：</label>
-                <select v-model="advClickDataKey" class="border p-1 w-44">
-                  <option value="">(根)</option>
-                  <option v-for="k in advClickKeyOptions" :key="k" :value="k">{{ k }}</option>
-                </select>
+                <div class="flex items-center gap-2">
+                  <select v-model="advClickDataKey" class="border p-1 w-44">
+                    <option value="">(根)</option>
+                    <option v-for="k in advClickKeyOptions" :key="k" :value="k">{{ k }}</option>
+                  </select>
+                  <button class="rounded border px-2 py-1 text-xs" @click="openKeyPickerForApi(advClickApiId, advClickDataKey, '选择单击取值 Key', true)">
+                    弹窗选择
+                  </button>
+                </div>
               </div>
             </div>
             <div class="mb-2">
@@ -1125,10 +1215,15 @@ watch(
               </select>
               <div v-if="advDblApiId" class="mt-1">
                 <label>取值 Key：</label>
-                <select v-model="advDblDataKey" class="border p-1 w-44">
-                  <option value="">(根)</option>
-                  <option v-for="k in advDblKeyOptions" :key="k" :value="k">{{ k }}</option>
-                </select>
+                <div class="flex items-center gap-2">
+                  <select v-model="advDblDataKey" class="border p-1 w-44">
+                    <option value="">(根)</option>
+                    <option v-for="k in advDblKeyOptions" :key="k" :value="k">{{ k }}</option>
+                  </select>
+                  <button class="rounded border px-2 py-1 text-xs" @click="openKeyPickerForApi(advDblApiId, advDblDataKey, '选择双击取值 Key', true)">
+                    弹窗选择
+                  </button>
+                </div>
               </div>
             </div>
             <div class="mb-2">
@@ -1139,10 +1234,15 @@ watch(
               </select>
               <div v-if="advTripleApiId" class="mt-1">
                 <label>取值 Key：</label>
-                <select v-model="advTripleDataKey" class="border p-1 w-44">
-                  <option value="">(根)</option>
-                  <option v-for="k in advTripleKeyOptions" :key="k" :value="k">{{ k }}</option>
-                </select>
+                <div class="flex items-center gap-2">
+                  <select v-model="advTripleDataKey" class="border p-1 w-44">
+                    <option value="">(根)</option>
+                    <option v-for="k in advTripleKeyOptions" :key="k" :value="k">{{ k }}</option>
+                  </select>
+                  <button class="rounded border px-2 py-1 text-xs" @click="openKeyPickerForApi(advTripleApiId, advTripleDataKey, '选择三击取值 Key', true)">
+                    弹窗选择
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1169,10 +1269,15 @@ watch(
           </div>
           <div class="mb-2" v-if="tableApiId">
             <label>取值 Key：</label>
-            <select v-model="tableDataKey" class="border p-1">
-              <option value="">(根)</option>
-              <option v-for="k in tableKeyOptions" :key="k" :value="k">{{ k }}</option>
-            </select>
+            <div class="flex items-center gap-2">
+              <select v-model="tableDataKey" class="border p-1">
+                <option value="">(根)</option>
+                <option v-for="k in tableKeyOptions" :key="k" :value="k">{{ k }}</option>
+              </select>
+              <button class="rounded border px-2 py-1 text-xs" @click="openKeyPickerForApi(tableApiId, tableDataKey, '选择表格取值 Key', true)">
+                弹窗选择
+              </button>
+            </div>
           </div>
           <div class="mb-2">
             <label>表头高度：</label>
@@ -1221,10 +1326,15 @@ watch(
           </div>
           <div class="mb-2">
             <label>取值 Key：</label>
-            <select v-model="cardDataKey" class="border p-1" :disabled="!cardApiId">
-              <option value="">(无)</option>
-              <option v-for="k in cardKeyOptions" :key="k" :value="k">{{ k }}</option>
-            </select>
+            <div class="flex items-center gap-2">
+              <select v-model="cardDataKey" class="border p-1" :disabled="!cardApiId">
+                <option value="">(无)</option>
+                <option v-for="k in cardKeyOptions" :key="k" :value="k">{{ k }}</option>
+              </select>
+              <button class="rounded border px-2 py-1 text-xs" :disabled="!cardApiId" @click="openKeyPickerForApi(cardApiId, cardDataKey, '选择卡片取值 Key', true)">
+                弹窗选择
+              </button>
+            </div>
           </div>
           <div class="mb-2">
             <label>字体大小：</label>
@@ -1397,6 +1507,43 @@ watch(
           >
             关闭
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 取值 Key 选择弹窗 -->
+    <div v-if="keyPickerVisible" class="fixed inset-0 z-[6150] flex items-center justify-center bg-[rgba(0,0,0,0.6)]">
+      <div class="w-[860px] max-w-[92vw] max-h-[85vh] overflow-hidden rounded-lg bg-[#1f2430] text-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-[#3a3f52] px-4 py-3">
+          <div class="font-semibold">{{ keyPickerTitle }}</div>
+          <button class="rounded border border-gray-500 px-3 py-1 text-sm" @click="keyPickerVisible = false">关闭</button>
+        </div>
+        <div class="flex items-center justify-between border-b border-[#3a3f52] px-4 py-2 text-sm">
+          <div class="truncate">
+            当前选择：
+            <span class="text-blue-300">{{ keyPickerCurrent || (keyPickerAllowRoot ? '(根)' : '(未选择)') }}</span>
+          </div>
+          <button
+            v-if="keyPickerAllowRoot"
+            class="rounded border border-gray-500 px-2 py-1 text-xs"
+            @click="handlePickKey('')"
+          >
+            选择根节点
+          </button>
+        </div>
+        <div class="max-h-[70vh] overflow-auto px-4 py-3 text-sm">
+          <JsonTree
+            v-if="keyPickerData"
+            :value="keyPickerData"
+            path=""
+            :depth="0"
+            :expanded="keyPickerExpanded"
+            selectable
+            :highlight-path="keyPickerCurrent"
+            @toggle="toggleKeyPickerPath"
+            @select="handlePickKey"
+          />
+          <div v-else class="py-6 text-center text-sm text-gray-400">暂无数据</div>
         </div>
       </div>
     </div>

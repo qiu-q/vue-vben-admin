@@ -11,8 +11,10 @@ const props = defineProps<{
   path: string;
   depth: number;
   expanded: Set<string>;
+  selectable?: boolean;
+  highlightPath?: string;
 }>();
-const emit = defineEmits(['toggle']);
+const emit = defineEmits(['toggle', 'select']);
 
 function typeOf(val: any): 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null' | 'unknown' {
   if (val === null) return 'null';
@@ -50,6 +52,10 @@ function valueClass() {
     ? 'text-orange-300'
     : 'text-gray-300';
 }
+const isActive = computed(() => props.highlightPath === props.path);
+function handleSelect() {
+  emit('select', props.path);
+}
 </script>
 
 <template>
@@ -64,10 +70,21 @@ function valueClass() {
         {{ isOpen ? '-' : '+' }}
       </button>
       <span v-else class="mr-1 inline-block h-5 w-5"></span>
-      <span v-if="name !== undefined" class="text-blue-300 mr-1">{{ name }}:</span>
-      <span v-if="t === 'array'" class="text-purple-300">Array({{ size }})</span>
-      <span v-else-if="t === 'object'" class="text-purple-300">Object({{ size }})</span>
-      <span v-else :class="valueClass()">{{ stringifyPrimitive(value) }}</span>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <span v-if="name !== undefined" class="text-blue-300">{{ name }}:</span>
+        <span v-if="t === 'array'" class="text-purple-300">Array({{ size }})</span>
+        <span v-else-if="t === 'object'" class="text-purple-300">Object({{ size }})</span>
+        <span v-else :class="valueClass()">{{ stringifyPrimitive(value) }}</span>
+        <span v-if="selectable && path" class="text-xs text-gray-400">{{ path }}</span>
+      </div>
+      <button
+        v-if="selectable && path"
+        class="ml-2 rounded border px-2 py-0.5 text-xs"
+        :class="isActive ? 'border-blue-400 text-blue-300' : 'border-gray-600 text-gray-200'"
+        @click.stop="handleSelect"
+      >
+        {{ isActive ? '已选' : '选择' }}
+      </button>
     </div>
     <div v-if="isExpandable && isOpen" class="ml-5 border-l border-gray-600 pl-3">
       <JsonTree
@@ -79,7 +96,10 @@ function valueClass() {
         :path="path + '[' + i + ']'"
         :depth="depth + 1"
         :expanded="expanded"
+        :selectable="selectable"
+        :highlight-path="highlightPath"
         @toggle="$emit('toggle', $event)"
+        @select="$emit('select', $event)"
       />
       <JsonTree
         v-else
@@ -90,9 +110,11 @@ function valueClass() {
         :path="path ? path + '.' + (k as string) : (k as string)"
         :depth="depth + 1"
         :expanded="expanded"
+        :selectable="selectable"
+        :highlight-path="highlightPath"
         @toggle="$emit('toggle', $event)"
+        @select="$emit('select', $event)"
       />
     </div>
   </div>
 </template>
-
