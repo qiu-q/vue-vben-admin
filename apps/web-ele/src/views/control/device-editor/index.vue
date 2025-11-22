@@ -883,6 +883,7 @@ async function handleImportJson(e: Event) {
           :config="config"
           :selected-layer-id="selectedLayerId"
           :materials-list="materialsList"
+          :all-api-list="allApis"
           @update="handleConfigUpdate"
         />
       </template>
