@@ -8,7 +8,7 @@ import type {
 import { computed } from 'vue';
 import { RouterView } from 'vue-router';
 
-import { preferences, usePreferences } from '@vben/preferences';
+import { preferences } from '@vben/preferences';
 import { getTabKey, storeToRefs, useTabbarStore } from '@vben/stores';
 
 import { IFrameRouterView } from '../../iframe';
@@ -16,7 +16,7 @@ import { IFrameRouterView } from '../../iframe';
 defineOptions({ name: 'LayoutContent' });
 
 const tabbarStore = useTabbarStore();
-const { keepAlive } = usePreferences();
+const keepAlive = false;
 
 const { getCachedTabs, getExcludeCachedTabs, renderRouteView } =
   storeToRefs(tabbarStore);

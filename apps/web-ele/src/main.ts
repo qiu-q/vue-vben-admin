@@ -24,6 +24,7 @@ async function initApplication() {
   // 强制关闭 tab 缓存，避免页面切换后仍复用旧实例
   updatePreferences({
     tabbar: {
+      enable: false,
       keepAlive: false,
     },
   });
