@@ -14,6 +14,7 @@ import InternalLines from './components/InternalLines.vue';
 import TopoToolbar from './components/TopoToolbar.vue';
 
 const router = useRouter();
+defineOptions({ name: 'ControlNetworkTopology' });
 
 interface PortLayer {
   id: string;

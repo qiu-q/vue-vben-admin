@@ -8,6 +8,8 @@ import PalettePanel from '#/components/business/DeviceEditor/PalettePanel.vue';
 import PropertyPanel from '#/components/business/DeviceEditor/PropertyPanel.vue';
 import AiAssistantPanel from '#/components/business/DeviceEditor/AiAssistantPanel.vue';
 
+defineOptions({ name: 'ControlDeviceEditor' });
+
 /* -------------------------------------------------------------------------- */
 /* 工具函数                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -450,6 +452,21 @@ onUnmounted(() => window.removeEventListener('resize', updateEditorScale));
 
 // 上次加载的设备 id，用于复用设备数据
 const lastLoadedDeviceId = ref<string>('');
+
+/**
+ * 监听路由参数变化，保持选中设备与路由同步
+ * 否则在路由切换后组件会复用，导致需要刷新才能看到新数据
+ */
+watch(
+  () => route.params.deviceId,
+  (id) => {
+    const nextId = typeof id === 'string' ? id : '';
+    if (nextId !== selectedDeviceId.value) {
+      selectedDeviceId.value = nextId;
+    }
+  },
+);
+
 watch(selectedDeviceId, (id, prev) => {
   if (prev) lastLoadedDeviceId.value = prev;
   if (id) loadConfig(id);

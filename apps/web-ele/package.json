@@ -47,9 +47,13 @@
     "@vueuse/core": "catalog:",
     "dayjs": "catalog:",
     "element-plus": "catalog:",
+    "axios": "^1.7.9",
     "html2canvas": "^1.4.1",
     "mitt": "^3.0.1",
     "pinia": "catalog:",
+    "vis-data": "^7.1.10",
+    "vis-network": "^9.1.9",
+    "vis-util": "^5.0.7",
     "vue": "catalog:",
     "vue-router": "catalog:",
     "vuedraggable": "^4.1.0"
